@@ -6,7 +6,12 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 ![Home Page](./public/home.png)
 
-<img src="./public/login.png" width="400"/> <img src="./public/register.png" width="400"/>
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./public/login.png" style="width:100%; height:250px; object-fit:cover;"/></td>
+    <td width="50%"><img src="./public/register.png" style="width:100%; height:250px; object-fit:cover;"/></td>
+  </tr>
+</table>
 
 ![Todo Dashboard](./public/todo.png)
 
