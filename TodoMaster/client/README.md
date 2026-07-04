@@ -8,8 +8,8 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 <table width="800">
   <tr>
-    <td width="50%"><img src="./public/login.png" width="100%"/></td>
-    <td width="50%"><img src="./public/register.png" width="100%"/></td>
+    <td width="50%" hight="100%"><img src="./public/login.png" width="100%"/></td>
+    <td width="50%" hight="100%"><img src="./public/register.png" width="100%"/></td>
   </tr>
 </table>
 
