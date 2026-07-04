@@ -43,7 +43,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 ## Project Structure
 
-\`\`\`
+```
 TodoMaster/
 ├── client/
 │   ├── public/
@@ -59,7 +59,7 @@ TodoMaster/
     ├── routes/
     ├── database.js
     └── index.js
-\`\`\`
+```
 
 ## Environment Variables
 
