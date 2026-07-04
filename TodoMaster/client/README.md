@@ -5,8 +5,9 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 ## Screenshots
 
 ![Home Page](./public/home.png)
-![Login Page](./public/login.png)
-![Register Page](./public/register.png)
+
+<img src="./public/login.png" width="400"/> <img src="./public/register.png" width="400"/>
+
 ![Todo Dashboard](./public/todo.png)
 
 ## Features
@@ -37,7 +38,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 ## Project Structure
 
-```
+\`\`\`
 TodoMaster/
 ├── client/
 │   ├── public/
@@ -53,24 +54,24 @@ TodoMaster/
     ├── routes/
     ├── database.js
     └── index.js
-```
+\`\`\`
 
 ## Environment Variables
 
 This project uses environment variables to keep credentials and config out of the source code. Create a `.env` file in the `server` folder with:
 
-```env
+\`\`\`env
 PORT=4000
 MONGO_URL=mongodb://localhost:27017/TodoMaster
 JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRES_IN=7d
-```
+\`\`\`
 
 If your frontend also uses a configurable API URL, create a `.env` file in the `client` folder with:
 
-```env
+\`\`\`env
 REACT_APP_API_URL=http://localhost:4000
-```
+\`\`\`
 
 > Note: `.env` files are excluded via `.gitignore` and are never committed to the repository. Each person running this project should create their own `.env` file using the format above.
 
@@ -78,26 +79,26 @@ REACT_APP_API_URL=http://localhost:4000
 
 ### Backend
 
-```bash
+\`\`\`bash
 cd server
 npm install
-```
+\`\`\`
 
 Create your `.env` file as shown above, then start the server:
 
-```bash
+\`\`\`bash
 node index.js
-```
+\`\`\`
 
 Runs on `http://localhost:4000`. Requires MongoDB running locally (or update `MONGO_URL` to point to your own instance).
 
 ### Frontend
 
-```bash
+\`\`\`bash
 cd client
 npm install
 npm start
-```
+\`\`\`
 
 Runs on `http://localhost:3000`.
 
