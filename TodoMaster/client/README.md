@@ -4,7 +4,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 ## Screenshots
 
-<img src="./public/home.png" width="800"/>
+<img src="./public/home.png" width="1024"/>
 
 <table width="800">
   <tr>
@@ -13,7 +13,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
   </tr>
 </table>
 
-<img src="./public/todo.png" width="800"/>
+<img src="./public/todo.png" width="1024"/>
 
 ## Features
 
