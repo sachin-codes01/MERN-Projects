@@ -4,10 +4,10 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 ## Screenshots
 
-![Home Page](client/public/home.png)
-![Login Page](client/public/login.png)
-![Register Page](client/public/register.png)
-![Todo Dashboard](client/public/todo.png)
+![Home Page](./public/home.png)
+![Login Page](./public/login.png)
+![Register Page](./public/register.png)
+![Todo Dashboard](./public/todo.png)
 
 ## Features
 
