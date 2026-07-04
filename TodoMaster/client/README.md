@@ -4,16 +4,16 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo management application
 
 ## Screenshots
 
-![Home Page](./public/home.png)
+<img src="./public/home.png" width="800"/>
 
-<table width="100%">
+<table width="800">
   <tr>
-    <td width="50%"><img src="./public/login.png" style="width:100%; height:250px; object-fit:cover;"/></td>
-    <td width="50%"><img src="./public/register.png" style="width:100%; height:250px; object-fit:cover;"/></td>
+    <td width="50%"><img src="./public/login.png" width="100%"/></td>
+    <td width="50%"><img src="./public/register.png" width="100%"/></td>
   </tr>
 </table>
 
-![Todo Dashboard](./public/todo.png)
+<img src="./public/todo.png" width="800"/>
 
 ## Features
 
