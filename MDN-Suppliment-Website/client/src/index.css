@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+
+@import "./styles/admin.css";
+
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-mdn-black text-mdn-white font-body antialiased;
+}
+
+h1, h2, h3, h4 {
+  @apply font-display uppercase tracking-wide;
+}
+
+::selection {
+  @apply bg-mdn-green text-mdn-black;
+}
+
+/* Slim dark scrollbar, matches brand */
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #16181a;
+}
+::-webkit-scrollbar-thumb {
+  background: #22b14c;
+  border-radius: 999px;
+}
+
+@layer components {
+  .stat-chip {
+    @apply flex flex-col items-center justify-center rounded-md border border-mdn-green/40
+           bg-mdn-charcoal px-3 py-2 min-w-[64px] transition-colors duration-200;
+  }
+  .stat-chip-value {
+    @apply font-mono font-bold text-mdn-green text-sm sm:text-base leading-none;
+  }
+  .stat-chip-label {
+    @apply text-[10px] sm:text-xs text-mdn-gray mt-1 uppercase tracking-wide;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-mdn-green
+           px-5 py-2.5 font-semibold text-mdn-black shadow-green-glow
+           transition-all duration-200 hover:bg-mdn-green-light hover:-translate-y-0.5
+           active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-mdn-silver/30
+           bg-transparent px-5 py-2.5 font-semibold text-mdn-white
+           transition-all duration-200 hover:border-mdn-green hover:text-mdn-green;
+  }
+
+  .card {
+    @apply rounded-xl border border-white/5 bg-mdn-charcoal shadow-card transition-transform duration-300;
+  }
+
+  .input-field {
+    @apply w-full rounded-lg border border-white/10 bg-mdn-charcoal px-4 py-2.5 text-mdn-white
+           placeholder:text-mdn-gray outline-none transition-colors duration-200
+           focus:border-mdn-green focus:ring-2 focus:ring-mdn-green/25;
+  }
+}
