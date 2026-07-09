@@ -3,7 +3,7 @@
 A full-stack e-commerce platform for supplements and fitness nutrition, built on the MERN stack (MongoDB, Express, React, Node.js). Includes a customer-facing storefront and a full admin panel for managing products, orders, coupons, and users.
 
 <p align="center">
-  <img src="./public/mdn.png" alt="MDN Suppliment Website Logo" width="180" />
+  <img src="./public/mdn.png" alt="MDN Suppliment Website Logo" width="100%" />
 </p>
 
 ## Features
