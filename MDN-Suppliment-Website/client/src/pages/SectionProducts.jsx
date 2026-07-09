@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/api";
 import ProductCard from "../components/ProductCard";
+import MDNLoader from "../components/MDNLoader";
 
 const SECTION_LABELS = {
   best_seller: "Best Sellers",
@@ -108,18 +109,22 @@ export default function SectionProducts() {
       </div>
 
       {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-      {loading && <p className="mt-4 text-sm text-mdn-gray">Loading...</p>}
+
+      {loading && <MDNLoader label="Loading products" />}
+
       {!loading && products.length === 0 && (
         <p className="mt-4 text-sm text-mdn-gray">No products found.</p>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((p) => (
-          <ProductCard key={p._id} product={p} />
-        ))}
-      </div>
+      {!loading && products.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {products.map((p) => (
+            <ProductCard key={p._id} product={p} />
+          ))}
+        </div>
+      )}
 
-      {totalPages > 1 && (
+      {totalPages > 1 && !loading && (
         <div className="mt-8 flex items-center justify-center gap-4">
           <button
             disabled={page === 1}
