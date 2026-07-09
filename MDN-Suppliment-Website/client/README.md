@@ -2,8 +2,14 @@
 
 A full-stack e-commerce platform for supplements and fitness nutrition, built on the MERN stack (MongoDB, Express, React, Node.js). Includes a customer-facing storefront and a full admin panel for managing products, orders, coupons, and users.
 
+## 🌐 Live Demo
+
+🚀 **Live Website:** https://mdn-my-daily-nutrition.vercel.app/
+
+## 📸 Screenshot
+
 <p align="center">
-  <img src="./public/mdn.png" alt="MDN Suppliment Website Logo" width="100%" />
+  <img src="./public/mdn.png" alt="MDN Suppliment Website Screenshot" width="100%" />
 </p>
 
 ## Features
@@ -27,13 +33,13 @@ A full-stack e-commerce platform for supplements and fitness nutrition, built on
 
 ## Tech Stack
 
-**Frontend (`/client`)**
+### Frontend (`/client`)
 - React + Vite
 - React Router
 - Tailwind CSS
 - Context API for auth, cart badge, and toast notifications
 
-**Backend (`/server`)**
+### Backend (`/server`)
 - Node.js + Express
 - MongoDB with Mongoose
 - JWT-based authentication
@@ -41,88 +47,124 @@ A full-stack e-commerce platform for supplements and fitness nutrition, built on
 
 ## Project Structure
 
-```
+```text
 MDN-Suppliment-Website/
-├── client/                # React frontend
+├── client/                   
 │   ├── public/
 │   ├── src/
-│   │   ├── api/           # API client
-│   │   ├── components/    # Reusable UI components
-│   │   ├── context/       # Auth, Cart Badge, Toast providers
-│   │   ├── pages/         # Route-level pages (including admin/)
+│   │   ├── api/              
+│   │   ├── components/       
+│   │   ├── context/          
+│   │   ├── pages/            
 │   │   ├── styles/
 │   │   └── utils/
-│   └── .env                # Frontend environment variables (not committed)
+│   └── .env                  
 │
-└── server/                # Express backend
-    ├── controller/        # Route controllers (admin + customer-facing)
-    ├── middleware/         # Auth middleware
-    ├── models/             # Mongoose schemas
-    ├── routes/             # Express routers
+└── server/                   
+    ├── controller/           
+    ├── middleware/           
+    ├── models/               
+    ├── routes/               
     ├── database.js
     ├── server.js
-    └── .env                # Backend environment variables (not committed)
+    └── .env                  
 ```
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18+ recommended)
-- MongoDB (local instance or a hosted URI, e.g. MongoDB Atlas)
 
-### 1. Clone the repository
+- Node.js (v18 or later)
+- MongoDB (Local installation or MongoDB Atlas)
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/sachin-codes01/MERN-Projects.git
 cd MERN-Projects/MDN-Suppliment-Website
 ```
 
-### 2. Backend setup
+### 2. Backend Setup
+
+Install dependencies:
 
 ```bash
 cd server
 npm install
 ```
 
-Create a `.env` file in `server/` with:
+Create a `.env` file inside the `server` directory:
 
-```
+```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 ```
 
-Run the backend:
+Start the backend server:
 
 ```bash
 npm run dev
 ```
 
-### 3. Frontend setup
+### 3. Frontend Setup
+
+Install dependencies:
 
 ```bash
 cd ../client
 npm install
 ```
 
-Create a `.env` file in `client/` with:
+Create a `.env` file inside the `client` directory:
 
-```
+```env
 VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
-Run the frontend:
+Start the frontend:
 
 ```bash
 npm run dev
 ```
 
-The app should now be running locally, with the frontend calling the backend API.
+The application will be available at:
+
+```text
+http://localhost:5173
+```
 
 ## Environment Variables
 
-`.env` files are excluded from version control via `.gitignore`. Refer to the variables listed above for `server/` and `client/` when setting up your own local environment.
+### Backend (`server/.env`)
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
+
+### Frontend (`client/.env`)
+
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+```
+
+> Both `.env` files are excluded from version control using `.gitignore`.
+
+## Tech Highlights
+
+- MERN Stack Architecture
+- JWT Authentication & Authorization
+- Role-based Admin Dashboard
+- RESTful API
+- Responsive UI with Tailwind CSS
+- Guest Cart with Login Synchronization
+- Coupon Management System
+- Order Tracking Timeline
+- Search Functionality
+- Context API State Management
 
 ## License
 
-This project is for personal/educational use. Add a license here if you plan to open-source it (e.g. MIT).
+This project is for personal and educational purposes. Feel free to fork and modify it for learning.
