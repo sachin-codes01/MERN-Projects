@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
-import { fileToBase64 } from "../utils/fileToBase64";
+
+const emptyVariant = {
+  flavor: "",
+  weight: "",
+  price: "",
+  discountPrice: "",
+  stock: "",
+  sku: "",
+};
 
 const emptyForm = {
   name: "",
@@ -11,13 +19,8 @@ const emptyForm = {
   brand: "",
   category: "",
   productType: "",
-  flavor: "",
-  weight: "",
-  price: "",
-  discountPrice: "",
-  stock: "",
-  sku: "",
   sections: [],
+  variants: [{ ...emptyVariant }],
 };
 
 export default function AdminProducts() {
@@ -31,8 +34,9 @@ export default function AdminProducts() {
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
 
   const [form, setForm] = useState(emptyForm);
-  const [thumbnailBase64, setThumbnailBase64] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [thumbnailPreview, setThumbnailPreview] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
 
@@ -62,12 +66,46 @@ export default function AdminProducts() {
     }));
   };
 
+  /* ---------- Variant helpers ---------- */
+  const handleVariantChange = (index, e) => {
+    const { name, value } = e.target;
+    setForm((f) => {
+      const variants = [...f.variants];
+      variants[index] = { ...variants[index], [name]: value };
+      return { ...f, variants };
+    });
+  };
+
+  const addVariant = () => {
+    setForm((f) => ({ ...f, variants: [...f.variants, { ...emptyVariant }] }));
+  };
+
+  const removeVariant = (index) => {
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.length > 1 ? f.variants.filter((_, i) => i !== index) : f.variants,
+    }));
+  };
+
+  // ---------- Cloudinary image upload ----------
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const base64 = await fileToBase64(file);
-    setThumbnailBase64(base64);
-    setThumbnailPreview(base64);
+
+    // instant local preview jab tak upload chal raha hai
+    setThumbnailPreview(URL.createObjectURL(file));
+
+    try {
+      setUploading(true);
+      const { url } = await api.uploadImage(token, file);
+      setThumbnailUrl(url); // Cloudinary ka secure URL, DB me yahi store hoga
+    } catch (err) {
+      toastError("Image upload failed: " + err.message);
+      setThumbnailPreview("");
+      setThumbnailUrl("");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleCreateCategory = async (e) => {
@@ -88,13 +126,23 @@ export default function AdminProducts() {
 
   const resetForm = () => {
     setForm(emptyForm);
-    setThumbnailBase64("");
+    setThumbnailUrl("");
     setThumbnailPreview("");
     setEditingId(null);
   };
 
   const startEdit = (product) => {
-    const variant = product.variants?.[0] || {};
+    const variants = product.variants?.length
+      ? product.variants.map((v) => ({
+          flavor: v.flavor || "",
+          weight: v.weight || "",
+          price: v.price ?? "",
+          discountPrice: v.discountPrice ?? "",
+          stock: v.stock ?? "",
+          sku: v.sku || "",
+        }))
+      : [{ ...emptyVariant }];
+
     setForm({
       name: product.name || "",
       slug: product.slug || "",
@@ -102,15 +150,10 @@ export default function AdminProducts() {
       brand: product.brand || "",
       category: product.category?._id || product.category || "",
       productType: product.productType || "",
-      flavor: variant.flavor || "",
-      weight: variant.weight || "",
-      price: variant.price ?? "",
-      discountPrice: variant.discountPrice ?? "",
-      stock: variant.stock ?? "",
-      sku: variant.sku || "",
       sections: product.sections || [],
+      variants,
     });
-    setThumbnailBase64(product.thumbnail || "");
+    setThumbnailUrl(product.thumbnail || "");
     setThumbnailPreview(product.thumbnail || "");
     setEditingId(product._id);
     setError("");
@@ -125,28 +168,49 @@ export default function AdminProducts() {
     brand: form.brand,
     category: form.category,
     productType: form.productType,
-    thumbnail: thumbnailBase64,
+    thumbnail: thumbnailUrl, // ab Cloudinary URL jayega, base64 nahi
     sections: form.sections,
-    variants: [
-      {
-        flavor: form.flavor,
-        weight: form.weight,
-        price: Number(form.price),
-        discountPrice: form.discountPrice ? Number(form.discountPrice) : undefined,
-        stock: Number(form.stock),
-        sku: form.sku,
-      },
-    ],
+    variants: form.variants.map((v) => ({
+      flavor: v.flavor,
+      weight: v.weight,
+      price: Number(v.price),
+      discountPrice: v.discountPrice ? Number(v.discountPrice) : undefined,
+      stock: Number(v.stock),
+      sku: v.sku,
+    })),
   });
+
+  const validateVariants = () => {
+    for (const v of form.variants) {
+      if (!v.weight || v.price === "" || v.stock === "" || !v.sku) {
+        return false;
+      }
+    }
+    const skus = form.variants.map((v) => v.sku.trim().toLowerCase());
+    if (new Set(skus).size !== skus.length) return "duplicate";
+    return true;
+  };
 
   const handleSubmitProduct = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
 
-    if (!thumbnailBase64) {
+    if (!thumbnailUrl) {
       setError("Please choose a thumbnail image.");
       toastError("Please choose a thumbnail image.");
+      return;
+    }
+
+    const variantsValid = validateVariants();
+    if (variantsValid === "duplicate") {
+      setError("Each variant needs a unique SKU.");
+      toastError("Each variant needs a unique SKU.");
+      return;
+    }
+    if (!variantsValid) {
+      setError("Please fill in weight, price, stock, and SKU for every variant.");
+      toastError("Please fill in weight, price, stock, and SKU for every variant.");
       return;
     }
 
@@ -267,42 +331,123 @@ export default function AdminProducts() {
             <div className="flex flex-col items-center gap-4 sm:flex-row">
               <input type="file" accept="image/*" onChange={handleImageChange} className="input-field w-full sm:w-auto" />
               {thumbnailPreview && (
-                <img
-                  src={thumbnailPreview}
-                  alt="preview"
-                  className="h-20 w-20 shrink-0 rounded-lg border border-white/10 object-cover"
-                />
+                <div className="relative h-20 w-20 shrink-0">
+                  <img
+                    src={thumbnailPreview}
+                    alt="preview"
+                    className="h-20 w-20 rounded-lg border border-white/10 object-cover"
+                  />
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-[10px] text-white">
+                      Uploading...
+                    </div>
+                  )}
+                </div>
               )}
             </div>
+            {uploading && <p className="mt-1 text-xs text-mdn-gray">Uploading to Cloudinary…</p>}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <input name="flavor" placeholder="Flavor (optional)" value={form.flavor} onChange={handleFormChange} className="input-field" />
-            <input name="weight" placeholder="Weight (e.g. 1kg)" value={form.weight} onChange={handleFormChange} required className="input-field" />
-          </div>
+          {/* ---------- Variants ---------- */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-mdn-white">
+                Variants <span className="text-red-400">*</span>
+              </label>
+              <span className="text-xs text-mdn-gray">
+                {form.variants.length} variant{form.variants.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-mdn-gray/70">
+              Add one entry per flavor/weight/price combo customers can choose from (e.g. "Orange Burst — 390g" and
+              "Chocolate — 1kg").
+            </p>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <input name="price" type="number" placeholder="Price" value={form.price} onChange={handleFormChange} required className="input-field" />
-            <input
-              name="discountPrice"
-              type="number"
-              placeholder="Discount price (optional)"
-              value={form.discountPrice}
-              onChange={handleFormChange}
-              className="input-field"
-            />
-            <input
-              name="stock"
-              type="number"
-              placeholder="Stock (admin only)"
-              value={form.stock}
-              onChange={handleFormChange}
-              required
-              className="input-field"
-            />
-          </div>
+            <div className="mt-3 space-y-4">
+              {form.variants.map((v, i) => (
+                <div key={i} className="rounded-lg border border-white/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-mdn-gray">
+                      Variant {i + 1}
+                    </span>
+                    {form.variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(i)}
+                        className="text-xs font-semibold text-red-400 transition-colors hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
 
-          <input name="sku" placeholder="SKU (unique code)" value={form.sku} onChange={handleFormChange} required className="input-field w-full" />
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <input
+                      name="flavor"
+                      placeholder="Flavor (optional)"
+                      value={v.flavor}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      className="input-field"
+                    />
+                    <input
+                      name="weight"
+                      placeholder="Weight (e.g. 1kg)"
+                      value={v.weight}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      required
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                    <input
+                      name="price"
+                      type="number"
+                      placeholder="Price"
+                      value={v.price}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      required
+                      className="input-field"
+                    />
+                    <input
+                      name="discountPrice"
+                      type="number"
+                      placeholder="Discount price (optional)"
+                      value={v.discountPrice}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      className="input-field"
+                    />
+                    <input
+                      name="stock"
+                      type="number"
+                      placeholder="Stock (admin only)"
+                      value={v.stock}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      required
+                      className="input-field"
+                    />
+                  </div>
+
+                  <input
+                    name="sku"
+                    placeholder="SKU (unique code)"
+                    value={v.sku}
+                    onChange={(e) => handleVariantChange(i, e)}
+                    required
+                    className="input-field mt-4 w-full"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addVariant}
+              className="btn-secondary mt-3 !px-4 !py-1.5 text-sm"
+            >
+              + Add Another Variant
+            </button>
+          </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-mdn-white">Show in sections</label>
@@ -338,7 +483,7 @@ export default function AdminProducts() {
           </div>
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <button type="submit" className="btn-primary w-full sm:w-auto">
+            <button type="submit" disabled={uploading} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
               {editingId ? "Save Changes" : "Create Product"}
             </button>
             {editingId && (
@@ -360,7 +505,7 @@ export default function AdminProducts() {
                 <th className="px-4 py-3">Thumbnail</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Brand</th>
-                <th className="px-4 py-3">Stock</th>
+                <th className="px-4 py-3">Variants</th>
                 <th className="px-4 py-3">Sections</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Actions</th>
@@ -379,7 +524,14 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-4 py-3 text-mdn-white">{p.name}</td>
                   <td className="px-4 py-3 text-mdn-gray">{p.brand}</td>
-                  <td className="px-4 py-3 text-mdn-gray">{p.variants?.[0]?.stock ?? "—"}</td>
+                  <td className="px-4 py-3 text-mdn-gray">
+                    {p.variants?.length || 0} variant{(p.variants?.length || 0) === 1 ? "" : "s"}
+                    {p.variants?.length > 0 && (
+                      <span className="block text-xs text-mdn-gray/70">
+                        Total stock: {p.variants.reduce((sum, v) => sum + (v.stock || 0), 0)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-mdn-gray">
                     {(p.sections || []).map((s) => s.replace("_", " ")).join(", ") || "—"}
                   </td>

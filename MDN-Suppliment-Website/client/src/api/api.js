@@ -23,9 +23,35 @@ async function request(path, { method = "GET", body, token } = {}) {
   return data;
 }
 
+// File upload ke liye alag helper — FormData bhejta hai, JSON nahi.
+// Content-Type header jaan-bujh kar set nahi kiya, browser khud multipart
+// boundary ke saath set kar deta hai.
+async function uploadFile(path, file, token) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Server error (${res.status}) — check that the API route exists`);
+  }
+
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || "Upload failed");
+  }
+  return data;
+}
+
 export const api = {
-  register: (payload) => request("/auth/register", { method: "POST", body: payload }),
-  login: (payload) => request("/auth/login", { method: "POST", body: payload }),
+  // ---------- AUTH (Google OAuth) ----------
+  googleLogin: (credential) => request("/auth/google", { method: "POST", body: { credential } }),
   getMe: (token) => request("/auth/me", { token }),
 
   getProducts: (params = {}) => {
@@ -48,6 +74,7 @@ export const api = {
   removeCoupon: (token) =>
     request("/cart/coupon", { method: "DELETE", token }),
 
+  // ---------- ORDERS (abhi bina Razorpay ke — temporary) ----------
   placeOrder: (token, payload) => request("/orders", { method: "POST", body: payload, token }),
   getMyOrders: (token) => request("/orders", { token }),
   getOrderById: (token, id) => request(`/orders/${id}`, { token }),
@@ -62,7 +89,10 @@ export const api = {
   deleteAddress: (token, addressId) =>
     request(`/users/me/addresses/${addressId}`, { method: "DELETE", token }),
 
-  /* ---------- ADMIN: CATEGORIES ---------- */
+  // ---------- ADMIN: IMAGE UPLOAD (Cloudinary) ----------
+  uploadImage: (token, file) => uploadFile("/admin/upload", file, token),
+
+  // ---------- ADMIN: CATEGORIES ----------
   adminGetCategories: (token) => request("/admin/categories", { token }),
   adminCreateCategory: (token, payload) =>
     request("/admin/categories", { method: "POST", body: payload, token }),
@@ -71,7 +101,7 @@ export const api = {
   adminDeleteCategory: (token, id) =>
     request(`/admin/categories/${id}`, { method: "DELETE", token }),
 
-  /* ---------- ADMIN: PRODUCTS ---------- */
+  // ---------- ADMIN: PRODUCTS ----------
   adminGetProducts: (token) => request("/admin/products", { token }),
   adminGetProduct: (token, id) => request(`/admin/products/${id}`, { token }),
   adminCreateProduct: (token, payload) =>
@@ -81,7 +111,7 @@ export const api = {
   adminDeleteProduct: (token, id) =>
     request(`/admin/products/${id}`, { method: "DELETE", token }),
 
-  /* ---------- ADMIN: COUPONS ---------- */
+  // ---------- ADMIN: COUPONS ----------
   adminGetCoupons: (token) => request("/admin/coupons", { token }),
   adminGetCoupon: (token, id) => request(`/admin/coupons/${id}`, { token }),
   adminCreateCoupon: (token, payload) =>
@@ -91,7 +121,7 @@ export const api = {
   adminDeleteCoupon: (token, id) =>
     request(`/admin/coupons/${id}`, { method: "DELETE", token }),
 
-  /* ---------- ADMIN: ORDERS ---------- */
+  // ---------- ADMIN: ORDERS ----------
   adminGetOrders: (token, params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/admin/orders${qs ? `?${qs}` : ""}`, { token });
@@ -100,7 +130,7 @@ export const api = {
   adminUpdateOrderStatus: (token, id, payload) =>
     request(`/admin/orders/${id}/status`, { method: "PUT", body: payload, token }),
 
-  /* ---------- ADMIN: USERS ---------- */
+  // ---------- ADMIN: USERS ----------
   adminGetUsers: (token) => request("/admin/users", { token }),
   adminGetUser: (token, id) => request(`/admin/users/${id}`, { token }),
   adminGetUserOrders: (token, id) => request(`/admin/users/${id}/orders`, { token }),

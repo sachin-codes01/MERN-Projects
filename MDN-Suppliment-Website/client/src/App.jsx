@@ -4,7 +4,6 @@ import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Products from "./pages/Products";
 import SectionProducts from "./pages/SectionProducts";
@@ -12,6 +11,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
+import Profile from "./pages/Profile";
 import AdminProducts from "./pages/AdminProducts";
 import AdminUsers from "./pages/AdminUsers";
 import AdminCoupons from "./pages/AdminCoupons";
@@ -28,7 +28,6 @@ export default function App() {
           {/* Public — browsable without login */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/section/:section" element={<SectionProducts />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
@@ -49,6 +48,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

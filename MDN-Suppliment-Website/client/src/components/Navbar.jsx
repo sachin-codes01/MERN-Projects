@@ -1,23 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCartBadge } from "../context/CartBadgeContext";
 
 export default function Navbar() {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const { hasNewItem, clearNewItem } = useCartBadge();
-  const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const isAdminUser = ["admin", "superadmin"].includes(user?.role);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-    setMobileOpen(false);
-  };
 
   const linkClass = ({ active } = {}) =>
     `text-sm font-medium tracking-wide transition-colors duration-200 hover:text-mdn-green ${
@@ -65,21 +58,20 @@ export default function Navbar() {
           )}
 
           {token ? (
-            <div className="flex items-center gap-3 pl-3">
-              <span className="text-sm text-mdn-gray">Hi, {user?.name?.split(" ")[0]}</span>
-              <button onClick={handleLogout} className="btn-secondary !px-4 !py-1.5 text-sm">
-                Logout
-              </button>
-            </div>
+            <Link to="/profile" className="flex items-center gap-2 pl-3 text-sm text-mdn-white/90 hover:text-mdn-green">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
+                  {user?.name?.[0]?.toUpperCase() || "U"}
+                </span>
+              )}
+              <span>Hi, {user?.name?.split(" ")[0]}</span>
+            </Link>
           ) : (
-            <div className="flex items-center gap-3 pl-3">
-              <Link to="/login" className={linkClass()}>
-                Login
-              </Link>
-              <Link to="/register" className="btn-primary !px-4 !py-1.5 text-sm">
-                Register
-              </Link>
-            </div>
+            <Link to="/login" className="btn-primary !px-4 !py-1.5 text-sm">
+              Login with Google
+            </Link>
           )}
         </div>
 
@@ -125,18 +117,24 @@ export default function Navbar() {
             </Link>
           )}
           {token ? (
-            <button onClick={handleLogout} className="mt-1 rounded-md px-2 py-2 text-left text-red-400 hover:bg-white/5">
-              Logout
-            </button>
+            <Link
+              to="/profile"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5"
+            >
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="h-6 w-6 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
+                  {user?.name?.[0]?.toUpperCase() || "U"}
+                </span>
+              )}
+              My Profile
+            </Link>
           ) : (
-            <div className="mt-1 flex gap-2">
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-secondary flex-1 text-sm">
-                Login
-              </Link>
-              <Link to="/register" onClick={() => setMobileOpen(false)} className="btn-primary flex-1 text-sm">
-                Register
-              </Link>
-            </div>
+            <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary mt-1 text-sm">
+              Login with Google
+            </Link>
           )}
         </div>
       </div>
@@ -170,6 +168,7 @@ export default function Navbar() {
  * "My Daily Nutrition" — the full form of MDN.
  * Cycles: slides in next to the logo, holds for a moment,
  * then slides left (toward "MDN.") and fades out, repeating every few seconds.
+ * Shows on both mobile and desktop.
  */
 function AnimatedTagline() {
   const [phase, setPhase] = useState("hidden"); // hidden -> entering -> visible -> leaving -> hidden
@@ -195,15 +194,15 @@ function AnimatedTagline() {
 
   const stateClasses =
     phase === "visible"
-      ? "max-w-[190px] translate-x-0 opacity-100"
+      ? "max-w-[140px] sm:max-w-[190px] translate-x-0 opacity-100"
       : phase === "leaving"
-      ? "max-w-[190px] -translate-x-4 opacity-0"
+      ? "max-w-[140px] sm:max-w-[190px] -translate-x-4 opacity-0"
       : "max-w-0 translate-x-4 opacity-0";
 
   return (
     <span
       aria-hidden="true"
-      className={`ml-2 hidden overflow-hidden whitespace-nowrap text-xs font-medium normal-case tracking-normal text-mdn-gray transition-all duration-700 ease-in-out sm:inline-block ${stateClasses}`}
+      className={`ml-2 inline-block overflow-hidden whitespace-nowrap text-[10px] sm:text-xs font-medium normal-case tracking-normal text-mdn-gray transition-all duration-700 ease-in-out ${stateClasses}`}
     >
       My Daily Nutrition
     </span>

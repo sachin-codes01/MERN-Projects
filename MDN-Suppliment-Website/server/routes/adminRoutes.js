@@ -1,5 +1,7 @@
 const router = require("express").Router();
 const { isAuth, isAdmin } = require("../middleware/auth");
+const upload = require("../middleware/upload");
+const uploadCtrl = require("../controller/uploadController");
 
 const productCtrl = require("../controller/admin.productController"); // from earlier
 const Category = require("../models/Category");
@@ -9,6 +11,8 @@ const User = require("../models/User");
 
 router.use(isAuth, isAdmin); // every route below is admin-only
 
+//Image
+router.post("/upload", upload.single("image"), uploadCtrl.uploadImage);
 /* ---------- PRODUCTS ---------- */
 router.post("/products", productCtrl.createProduct);
 router.get("/products", productCtrl.getAllProducts);

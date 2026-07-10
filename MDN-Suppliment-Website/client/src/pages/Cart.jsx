@@ -35,6 +35,7 @@ export default function Cart() {
   }, [token]);
 
   const handleQuantityChange = async (variantId, quantity) => {
+    if (quantity < 1) return; // never allow dropping below 1 via the stepper
     try {
       if (token) {
         await api.updateCartItem(token, variantId, quantity);
@@ -122,13 +123,30 @@ export default function Cart() {
             </p>
 
             <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) => handleQuantityChange(item.variantId, Number(e.target.value))}
-                className="input-field w-16 shrink-0 !py-1.5 text-center sm:w-20"
-              />
+              {/* Quantity stepper */}
+              <div className="flex shrink-0 items-center rounded-lg border border-white/10 bg-mdn-charcoal2">
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(item.variantId, item.quantity - 1)}
+                  disabled={item.quantity <= 1}
+                  aria-label="Decrease quantity"
+                  className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  −
+                </button>
+                <span className="w-8 shrink-0 text-center text-sm font-semibold text-mdn-white">
+                  {item.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(item.variantId, item.quantity + 1)}
+                  aria-label="Increase quantity"
+                  className="flex h-8 w-8 items-center justify-center rounded-r-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5"
+                >
+                  +
+                </button>
+              </div>
+
               <p className="w-20 shrink-0 text-right font-mono font-bold text-mdn-green">
                 ₹{item.priceAtAddition * item.quantity}
               </p>

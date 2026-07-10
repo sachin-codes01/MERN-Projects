@@ -2,14 +2,15 @@ const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
+const User = require("../models/User");
 
 const generateOrderNumber = () => "ORD" + Date.now() + Math.floor(Math.random() * 1000);
 
+// TODO (Razorpay milne ke baad): Ye function hata kar Razorpay verify wala placeOrder use karna
 exports.placeOrder = async (req, res) => {
-  const decrementedItems = []; // track what we've already decremented, for rollback on failure
-
+  const decrementedItems = [];
   try {
-    const { shippingAddress, paymentMethod, saveAddress } = req.body;
+    const { shippingAddress, saveAddress } = req.body;
 
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
     if (!cart || cart.items.length === 0) {
@@ -27,25 +28,13 @@ exports.placeOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: `Variant no longer exists for ${product.name}` });
       }
 
-      // ATOMIC: only decrement if current stock is still >= requested quantity.
-      // This is the key fix — the check and the decrement happen in one
-      // indivisible DB operation, so two simultaneous orders can't both
-      // pass the check and oversell the same stock.
       const updated = await Product.findOneAndUpdate(
-        {
-          _id: product._id,
-          "variants._id": item.variantId,
-          "variants.stock": { $gte: item.quantity },
-        },
-        {
-          $inc: { "variants.$.stock": -item.quantity },
-        },
+        { _id: product._id, "variants._id": item.variantId, "variants.stock": { $gte: item.quantity } },
+        { $inc: { "variants.$.stock": -item.quantity } },
         { new: true }
       );
 
       if (!updated) {
-        // Someone else grabbed the remaining stock first — undo any
-        // decrements already made for earlier items in this same order.
         await rollback(decrementedItems);
         return res.status(400).json({
           success: false,
@@ -70,7 +59,6 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    // ---- coupon discount ----
     let discount = 0;
     let appliedCouponCode = null;
     if (cart.couponApplied) {
@@ -100,8 +88,8 @@ exports.placeOrder = async (req, res) => {
       items: orderItems,
       shippingAddress,
       pricing: { subtotal, discount, couponCode: appliedCouponCode, shippingFee, tax, total },
-      payment: { method: paymentMethod },
-      statusHistory: [{ status: "placed", note: "Order placed" }],
+      payment: { method: "online", status: "pending" },
+      statusHistory: [{ status: "placed", note: "Order placed (payment gateway pending setup)" }],
     });
 
     cart.items = [];
@@ -109,7 +97,6 @@ exports.placeOrder = async (req, res) => {
     await cart.save();
 
     if (saveAddress) {
-      const User = require("../models/User");
       await User.findByIdAndUpdate(req.user._id, {
         $push: { addresses: { ...shippingAddress, label: saveAddress.label || "Home" } },
       });
@@ -117,20 +104,17 @@ exports.placeOrder = async (req, res) => {
 
     res.status(201).json({ success: true, data: order });
   } catch (err) {
-    // if we crash mid-way after decrementing some items, restore that stock
     await rollback(decrementedItems);
     res.status(400).json({ success: false, message: err.message });
   }
 };
 
-// Restores stock for items that were decremented before a later step failed,
-// so a failed/partial order never leaves stock permanently short.
 async function rollback(decrementedItems) {
   for (const { productId, variantId, quantity } of decrementedItems) {
     await Product.updateOne(
       { _id: productId, "variants._id": variantId },
       { $inc: { "variants.$.stock": quantity } }
-    ).catch(() => {}); // best-effort; log this in production
+    ).catch(() => {});
   }
 }
 
@@ -162,7 +146,6 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Order can no longer be cancelled" });
     }
 
-    // restore stock for a cancelled order so it goes back on sale
     for (const item of order.items) {
       await Product.updateOne(
         { _id: item.product, "variants._id": item.variantId },

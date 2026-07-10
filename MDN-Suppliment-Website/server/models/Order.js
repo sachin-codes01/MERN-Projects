@@ -50,9 +50,13 @@ const orderSchema = new mongoose.Schema(
       total: Number,
     },
 
+    // TODO: Razorpay aane ke baad razorpayOrderId/razorpayPaymentId
+    // yahin fields use hongi, status "pending" -> "paid" verify hone par set hoga.
     payment: {
-      method: { type: String, enum: ["cod", "online"], default: "cod" },
+      method: { type: String, enum: ["online"], default: "online" },
       status: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
+      razorpayOrderId: String,
+      razorpayPaymentId: String,
     },
 
     orderStatus: {
