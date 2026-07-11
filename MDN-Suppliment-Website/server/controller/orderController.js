@@ -3,14 +3,97 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
 const User = require("../models/User");
+const razorpay = require("../config/razorpay");
+const crypto = require("crypto");
 
-const generateOrderNumber = () => "ORD" + Date.now() + Math.floor(Math.random() * 1000);
+async function rollback(decrementedItems) {
+  for (const { productId, variantId, quantity } of decrementedItems) {
+    await Product.updateOne(
+      { _id: productId, "variants._id": variantId },
+      { $inc: { "variants.$.stock": quantity } }
+    ).catch(() => {});
+  }
+}
 
-// TODO (Razorpay milne ke baad): Ye function hata kar Razorpay verify wala placeOrder use karna
-exports.placeOrder = async (req, res) => {
+// STEP 1: POST /api/orders/create-razorpay-order
+// Cart ke current total ke basis par Razorpay order banata hai (DB me abhi order nahi banta)
+exports.createRazorpayOrder = async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ success: false, message: "Cart is empty" });
+    }
+
+    const subtotal = cart.items.reduce((sum, i) => sum + i.priceAtAddition * i.quantity, 0);
+    let discount = 0;
+
+    if (cart.couponApplied) {
+      const coupon = await Coupon.findById(cart.couponApplied);
+      if (coupon && coupon.isActive && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
+        discount = coupon.discountType === "percentage"
+          ? Math.round((subtotal * coupon.discountValue) / 100)
+          : coupon.discountValue;
+        if (coupon.discountType === "percentage" && coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+        discount = Math.min(discount, subtotal);
+      }
+    }
+
+    const afterDiscount = subtotal - discount;
+    const shippingFee = afterDiscount > 999 ? 0 : 79;
+    const tax = Math.round(afterDiscount * 0.05);
+    const finalTotal = afterDiscount + shippingFee + tax;
+
+    const razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(finalTotal * 100), // paise me convert
+      currency: "INR",
+      receipt: "rcpt_" + Date.now(),
+    });
+
+    res.json({
+      success: true,
+      data: {
+        razorpayOrderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        subtotal,
+        discount,
+        shippingFee,
+        tax,
+        total: finalTotal,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// STEP 2: POST /api/orders/verify-payment
+// Signature verify karta hai, phir asli Order DB me banata hai
+exports.verifyPaymentAndPlaceOrder = async (req, res) => {
   const decrementedItems = [];
   try {
-    const { shippingAddress, saveAddress } = req.body;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      shippingAddress,
+      saveAddress,
+    } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Payment details missing" });
+    }
+
+    // Signature verify — proof ki payment genuinely Razorpay se hui hai
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Payment verification failed" });
+    }
 
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
     if (!cart || cart.items.length === 0) {
@@ -33,20 +116,15 @@ exports.placeOrder = async (req, res) => {
         { $inc: { "variants.$.stock": -item.quantity } },
         { new: true }
       );
-
       if (!updated) {
         await rollback(decrementedItems);
-        return res.status(400).json({
-          success: false,
-          message: `${product.name} just went out of stock. Please update your cart.`,
-        });
+        return res.status(400).json({ success: false, message: `${product.name} out of stock now.` });
       }
 
       decrementedItems.push({ productId: product._id, variantId: item.variantId, quantity: item.quantity });
 
       const price = variant.discountPrice || variant.price;
       subtotal += price * item.quantity;
-
       orderItems.push({
         product: product._id,
         variantId: item.variantId,
@@ -59,22 +137,16 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    let discount = 0;
-    let appliedCouponCode = null;
+    let discount = 0, appliedCouponCode = null;
     if (cart.couponApplied) {
       const coupon = await Coupon.findById(cart.couponApplied);
       if (coupon && coupon.isActive && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-        if (!coupon.minOrderValue || subtotal >= coupon.minOrderValue) {
-          discount =
-            coupon.discountType === "percentage"
-              ? Math.round((subtotal * coupon.discountValue) / 100)
-              : coupon.discountValue;
-          if (coupon.discountType === "percentage" && coupon.maxDiscount) {
-            discount = Math.min(discount, coupon.maxDiscount);
-          }
-          discount = Math.min(discount, subtotal);
-          appliedCouponCode = coupon.code;
-        }
+        discount = coupon.discountType === "percentage"
+          ? Math.round((subtotal * coupon.discountValue) / 100)
+          : coupon.discountValue;
+        if (coupon.discountType === "percentage" && coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+        discount = Math.min(discount, subtotal);
+        appliedCouponCode = coupon.code;
       }
     }
 
@@ -83,13 +155,18 @@ exports.placeOrder = async (req, res) => {
     const total = subtotal - discount + shippingFee + tax;
 
     const order = await Order.create({
-      orderNumber: generateOrderNumber(),
+      orderNumber: "ORD" + Date.now() + Math.floor(Math.random() * 1000),
       user: req.user._id,
       items: orderItems,
       shippingAddress,
       pricing: { subtotal, discount, couponCode: appliedCouponCode, shippingFee, tax, total },
-      payment: { method: "online", status: "pending" },
-      statusHistory: [{ status: "placed", note: "Order placed (payment gateway pending setup)" }],
+      payment: {
+        method: "online",
+        status: "paid",
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+      },
+      statusHistory: [{ status: "placed", note: "Payment received via Razorpay" }],
     });
 
     cart.items = [];
@@ -108,15 +185,6 @@ exports.placeOrder = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
-
-async function rollback(decrementedItems) {
-  for (const { productId, variantId, quantity } of decrementedItems) {
-    await Product.updateOne(
-      { _id: productId, "variants._id": variantId },
-      { $inc: { "variants.$.stock": quantity } }
-    ).catch(() => {});
-  }
-}
 
 exports.getMyOrders = async (req, res) => {
   try {

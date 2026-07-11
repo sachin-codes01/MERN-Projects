@@ -24,8 +24,6 @@ async function request(path, { method = "GET", body, token } = {}) {
 }
 
 // File upload ke liye alag helper — FormData bhejta hai, JSON nahi.
-// Content-Type header jaan-bujh kar set nahi kiya, browser khud multipart
-// boundary ke saath set kar deta hai.
 async function uploadFile(path, file, token) {
   const formData = new FormData();
   formData.append("image", file);
@@ -54,6 +52,7 @@ export const api = {
   googleLogin: (credential) => request("/auth/google", { method: "POST", body: { credential } }),
   getMe: (token) => request("/auth/me", { token }),
 
+  // ---------- PRODUCTS ----------
   getProducts: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/products${qs ? `?${qs}` : ""}`);
@@ -62,6 +61,7 @@ export const api = {
   addProductReview: (token, productId, payload) =>
     request(`/products/${productId}/reviews`, { method: "POST", body: payload, token }),
 
+  // ---------- CART ----------
   getCart: (token) => request("/cart", { token }),
   addToCart: (token, payload) => request("/cart/items", { method: "POST", body: payload, token }),
   updateCartItem: (token, variantId, quantity) =>
@@ -74,13 +74,17 @@ export const api = {
   removeCoupon: (token) =>
     request("/cart/coupon", { method: "DELETE", token }),
 
-  // ---------- ORDERS (abhi bina Razorpay ke — temporary) ----------
-  placeOrder: (token, payload) => request("/orders", { method: "POST", body: payload, token }),
+  // ---------- ORDERS (Razorpay payment ke saath) ----------
+  createRazorpayOrder: (token) =>
+    request("/orders/create-razorpay-order", { method: "POST", token }),
+  verifyPayment: (token, payload) =>
+    request("/orders/verify-payment", { method: "POST", body: payload, token }),
   getMyOrders: (token) => request("/orders", { token }),
   getOrderById: (token, id) => request(`/orders/${id}`, { token }),
   cancelOrder: (token, id, reason) =>
     request(`/orders/${id}/cancel`, { method: "PUT", body: { reason }, token }),
 
+  // ---------- USER ADDRESSES ----------
   getMyAddresses: (token) => request("/users/me/addresses", { token }),
   addAddress: (token, payload) =>
     request("/users/me/addresses", { method: "POST", body: payload, token }),

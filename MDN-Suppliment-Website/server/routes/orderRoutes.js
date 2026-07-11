@@ -2,9 +2,11 @@ const router = require("express").Router();
 const ctrl = require("../controller/orderController");
 const { isAuth } = require("../middleware/auth");
 
-router.use(isAuth); // all order routes require login
+router.use(isAuth);
 
-router.post("/", ctrl.placeOrder);
+router.post("/create-razorpay-order", ctrl.createRazorpayOrder);
+router.post("/verify-payment", ctrl.verifyPaymentAndPlaceOrder);
+
 router.get("/", ctrl.getMyOrders);
 router.get("/:id", ctrl.getOrderById);
 router.put("/:id/cancel", ctrl.cancelOrder);

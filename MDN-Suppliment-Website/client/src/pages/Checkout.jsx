@@ -20,7 +20,7 @@ export default function Checkout() {
 
   const [cart, setCart] = useState(null);
   const [addresses, setAddresses] = useState([]);
-  const [selectedAddressId, setSelectedAddressId] = useState(""); // "" = new/manual entry
+  const [selectedAddressId, setSelectedAddressId] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [saveAddress, setSaveAddress] = useState(true);
@@ -70,7 +70,6 @@ export default function Checkout() {
     setFieldErrors({});
 
     if (id === "") {
-      // "Enter a new address" chosen — clear form except name/email
       setForm({ ...emptyForm, fullName: user?.name || "", email: user?.email || "" });
       setSaveAddress(true);
       return;
@@ -78,7 +77,7 @@ export default function Checkout() {
 
     const addr = addresses.find((a) => a._id === id);
     applyAddressToForm(addr);
-    setSaveAddress(false); // already saved, no need to re-save unless edited
+    setSaveAddress(false);
   };
 
   const handleChange = (e) => {
@@ -123,11 +122,17 @@ export default function Checkout() {
     } catch (err) { toastError(err.message); }
   };
 
+  // ---------- RAZORPAY PAYMENT FLOW ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     if (!validate()) {
       toastError("Form me kuch fields sahi nahi hain, check karein.");
+      return;
+    }
+
+    if (!window.Razorpay) {
+      toastError("Payment system load nahi hua. Page refresh karke dobara try karein.");
       return;
     }
 
@@ -138,15 +143,62 @@ export default function Checkout() {
 
     setPlacing(true);
     try {
-      const data = await api.placeOrder(token, {
-        shippingAddress,
-        saveAddress: saveAddress ? { label: "Home" } : null,
+      // Step 1: Backend par Razorpay order banwao
+      const rpOrderRes = await api.createRazorpayOrder(token);
+      const rpOrder = rpOrderRes.data;
+
+      // Step 2: Razorpay popup options
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: rpOrder.amount,
+        currency: rpOrder.currency,
+        name: "MDN Store",
+        description: "Order Payment",
+        order_id: rpOrder.razorpayOrderId,
+        prefill: {
+          name: form.fullName,
+          email: form.email,
+          contact: form.phone,
+        },
+        theme: { color: "#22b14c" },
+
+        handler: async function (response) {
+          try {
+            const data = await api.verifyPayment(token, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              shippingAddress,
+              saveAddress: saveAddress ? { label: "Home" } : null,
+            });
+            navigate("/orders", { state: { justPlaced: data.data.orderNumber } });
+          } catch (err) {
+            setError(err.message);
+            toastError(err.message);
+          } finally {
+            setPlacing(false);
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            setPlacing(false);
+            toastError("Payment cancel kar diya gaya.");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on("payment.failed", function (response) {
+        setPlacing(false);
+        toastError("Payment fail ho gaya: " + response.error.description);
       });
-      navigate("/orders", { state: { justPlaced: data.data.orderNumber } });
+
+      rzp.open();
     } catch (err) {
       setError(err.message);
       toastError(err.message);
-    } finally {
       setPlacing(false);
     }
   };
@@ -170,10 +222,6 @@ export default function Checkout() {
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-mdn-white">Checkout</h2>
 
-      <p className="mt-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
-        Payment gateway abhi setup ho raha hai — order seedha place ho jayega (test mode).
-      </p>
-
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 
       <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-8">
@@ -185,11 +233,7 @@ export default function Checkout() {
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mdn-gray">
                 Choose a saved address
               </label>
-              <select
-                value={selectedAddressId}
-                onChange={handleSelectAddress}
-                className="input-field w-full"
-              >
+              <select value={selectedAddressId} onChange={handleSelectAddress} className="input-field w-full">
                 {addresses.map((addr) => (
                   <option key={addr._id} value={addr._id}>
                     {addr.label || "Address"} — {addr.line1}, {addr.city} {addr.isDefault ? "(Default)" : ""}
@@ -199,12 +243,6 @@ export default function Checkout() {
               </select>
             </div>
           )}
-
-          <p className="text-xs text-mdn-gray/70">
-            {selectedAddressId
-              ? "Selected address ke details neeche hain — chahein to yahin edit kar sakte hain."
-              : "Naya address bharein — chahein to profile me save bhi kar sakte hain."}
-          </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -277,10 +315,13 @@ export default function Checkout() {
           <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 text-base font-bold text-mdn-white">
             <span>Total</span><span className="text-mdn-green">₹{cart.total}</span>
           </div>
+          <p className="pt-1 text-xs text-mdn-gray/70">
+            Final amount (shipping + tax included) payment popup me dikhega.
+          </p>
         </section>
 
         <button type="submit" disabled={placing} className="btn-primary w-full sm:w-auto">
-          {placing ? "Placing order..." : "Place Order"}
+          {placing ? "Processing..." : "Pay & Place Order"}
         </button>
       </form>
     </div>
