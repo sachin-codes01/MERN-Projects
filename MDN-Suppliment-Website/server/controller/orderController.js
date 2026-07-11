@@ -15,8 +15,17 @@ async function rollback(decrementedItems) {
   }
 }
 
+// Same address dobara save na ho, isliye duplicate check
+function isDuplicateAddress(existingAddresses, newAddress) {
+  return existingAddresses.some(
+    (a) =>
+      (a.line1 || "").trim().toLowerCase() === (newAddress.line1 || "").trim().toLowerCase() &&
+      (a.pincode || "").trim() === (newAddress.pincode || "").trim() &&
+      (a.phone || "").trim() === (newAddress.phone || "").trim()
+  );
+}
+
 // STEP 1: POST /api/orders/create-razorpay-order
-// Cart ke current total ke basis par Razorpay order banata hai (DB me abhi order nahi banta)
 exports.createRazorpayOrder = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
@@ -44,7 +53,7 @@ exports.createRazorpayOrder = async (req, res) => {
     const finalTotal = afterDiscount + shippingFee + tax;
 
     const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(finalTotal * 100), // paise me convert
+      amount: Math.round(finalTotal * 100),
       currency: "INR",
       receipt: "rcpt_" + Date.now(),
     });
@@ -68,7 +77,6 @@ exports.createRazorpayOrder = async (req, res) => {
 };
 
 // STEP 2: POST /api/orders/verify-payment
-// Signature verify karta hai, phir asli Order DB me banata hai
 exports.verifyPaymentAndPlaceOrder = async (req, res) => {
   const decrementedItems = [];
   try {
@@ -84,7 +92,6 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment details missing" });
     }
 
-    // Signature verify — proof ki payment genuinely Razorpay se hui hai
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -173,10 +180,15 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
     cart.couponApplied = null;
     await cart.save();
 
+    // Address save — sirf tabhi jab duplicate na ho
     if (saveAddress) {
-      await User.findByIdAndUpdate(req.user._id, {
-        $push: { addresses: { ...shippingAddress, label: saveAddress.label || "Home" } },
-      });
+      const userDoc = await User.findById(req.user._id);
+      const alreadyExists = isDuplicateAddress(userDoc.addresses, shippingAddress);
+
+      if (!alreadyExists) {
+        userDoc.addresses.push({ ...shippingAddress, label: saveAddress.label || "Home" });
+        await userDoc.save();
+      }
     }
 
     res.status(201).json({ success: true, data: order });

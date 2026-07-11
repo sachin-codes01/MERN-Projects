@@ -40,8 +40,10 @@ export default function Checkout() {
         if (def) {
           setSelectedAddressId(def._id);
           applyAddressToForm(def);
+          setSaveAddress(false); // existing address hai — dobara save nahi karna
         } else {
           setForm((f) => ({ ...f, fullName: user?.name || "", email: user?.email || "" }));
+          setSaveAddress(true); // koi saved address nahi hai, isliye naya address save hoga
         }
       })
       .catch((err) => setError(err.message))
@@ -70,6 +72,7 @@ export default function Checkout() {
     setFieldErrors({});
 
     if (id === "") {
+      // "Enter a new address" chosen
       setForm({ ...emptyForm, fullName: user?.name || "", email: user?.email || "" });
       setSaveAddress(true);
       return;
@@ -77,7 +80,7 @@ export default function Checkout() {
 
     const addr = addresses.find((a) => a._id === id);
     applyAddressToForm(addr);
-    setSaveAddress(false);
+    setSaveAddress(false); // already saved address hai, re-save nahi chahiye
   };
 
   const handleChange = (e) => {
@@ -122,7 +125,6 @@ export default function Checkout() {
     } catch (err) { toastError(err.message); }
   };
 
-  // ---------- RAZORPAY PAYMENT FLOW ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -143,11 +145,9 @@ export default function Checkout() {
 
     setPlacing(true);
     try {
-      // Step 1: Backend par Razorpay order banwao
       const rpOrderRes = await api.createRazorpayOrder(token);
       const rpOrder = rpOrderRes.data;
 
-      // Step 2: Razorpay popup options
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: rpOrder.amount,
@@ -243,6 +243,12 @@ export default function Checkout() {
               </select>
             </div>
           )}
+
+          <p className="text-xs text-mdn-gray/70">
+            {selectedAddressId
+              ? "Selected address ke details neeche hain — chahein to yahin edit kar sakte hain."
+              : "Naya address bharein — chahein to profile me save bhi kar sakte hain."}
+          </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
