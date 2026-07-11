@@ -4,6 +4,7 @@ import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MDNLoader from "../components/MDNLoader";
+import CancelOrderModal from "../components/CancelOrderModal";
 
 const STATUS_STEPS = ["placed", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
 const NON_CANCELLABLE = ["shipped", "out_for_delivery", "delivered", "cancelled", "returned"];
@@ -43,9 +44,6 @@ function StatusTimeline({ order }) {
   );
 }
 
-// Finds the timestamp the order actually entered its current terminal
-// status (cancelled / returned), falling back to updatedAt if the
-// backend didn't send a statusHistory entry for it.
 function getTerminalStatusDate(order) {
   const entry = order.statusHistory
     ?.slice()
@@ -59,17 +57,13 @@ export default function Orders() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [cancelModalOrder, setCancelModalOrder] = useState(null); // naya state — modal ke liye
   const { token } = useAuth();
   const { success, error: toastError } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const justPlaced = location.state?.justPlaced;
 
-  // Guards against showing the "order placed" toast more than once for
-  // the same navigation — without this, React StrictMode's dev-only
-  // double-invoke of effects (mount -> unmount -> remount) fires this
-  // effect twice, and the router state also lingers across silent
-  // re-renders / remounts, which would toast a second (or third) time.
   const justPlacedShownRef = useRef(false);
 
   const loadOrders = () => {
@@ -89,21 +83,22 @@ export default function Orders() {
     if (justPlaced && !justPlacedShownRef.current) {
       justPlacedShownRef.current = true;
       success(`Order ${justPlaced} placed successfully!`);
-      // Clear the router state so it can't trigger this toast again on
-      // a later remount, refresh-back-navigation, or re-render.
       navigate(location.pathname, { replace: true, state: {} });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justPlaced]);
 
-  const handleCancel = async (orderId) => {
-    const reason = window.prompt("Optional: tell us why you're cancelling (or leave blank)");
-    if (reason === null) return;
+  // window.prompt hata diya — ab modal khulta hai
+  const openCancelModal = (order) => setCancelModalOrder(order);
+  const closeCancelModal = () => setCancelModalOrder(null);
 
+  const handleConfirmCancel = async (reason) => {
+    const orderId = cancelModalOrder._id;
     setCancellingId(orderId);
     try {
-      await api.cancelOrder(token, orderId, reason || undefined);
-      success("Order cancelled.");
+      await api.cancelOrder(token, orderId, reason);
+      success("Order cancelled successfully.");
+      closeCancelModal();
       loadOrders();
     } catch (err) {
       toastError(err.message);
@@ -177,8 +172,6 @@ export default function Orders() {
                 </p>
               )}
 
-              {/* Cancelled / returned orders show the date it happened.
-                  Every other order shows estimated / actual delivery. */}
               {isTerminalCancelLike ? (
                 <p className="mt-1 text-xs text-mdn-gray">
                   {order.orderStatus === "cancelled" ? "Cancelled" : "Returned"} on{" "}
@@ -221,16 +214,25 @@ export default function Orders() {
               {!NON_CANCELLABLE.includes(order.orderStatus) && (
                 <button
                   disabled={cancellingId === order._id}
-                  onClick={() => handleCancel(order._id)}
+                  onClick={() => openCancelModal(order)}
                   className="mt-3 text-xs font-semibold text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
                 >
-                  {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                  Cancel Order
                 </button>
               )}
             </div>
           );
         })}
       </div>
+
+      {cancelModalOrder && (
+        <CancelOrderModal
+          order={cancelModalOrder}
+          onClose={closeCancelModal}
+          onConfirm={handleConfirmCancel}
+          cancelling={cancellingId === cancelModalOrder._id}
+        />
+      )}
     </div>
   );
 }
