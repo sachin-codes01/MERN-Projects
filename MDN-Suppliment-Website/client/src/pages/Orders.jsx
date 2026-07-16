@@ -193,11 +193,14 @@ export default function Orders() {
               <ul className="mt-4 divide-y divide-white/5 border-t border-white/5">
                 {order.items.map((item, i) => (
                   <li key={i} className="flex items-center gap-3 py-2">
+                    {/* object-contain on a flat surface instead of
+                        object-cover — was cropping tall/jar-shaped product
+                        thumbnails. */}
                     <img
                       src={item.image}
                       alt={item.name}
                       onError={(e) => (e.target.style.display = "none")}
-                      className="h-10 w-10 rounded-md object-cover"
+                      className="h-10 w-10 rounded-md bg-mdn-charcoal2 object-contain p-1"
                     />
                     <span className="flex-1 text-sm text-mdn-white/90">
                       {item.name} {item.flavor ? `(${item.flavor})` : ""} — {item.weight} × {item.quantity}

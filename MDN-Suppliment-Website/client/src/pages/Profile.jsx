@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useTheme } from "../context/ThemeContext";
 import { api } from "../api/api";
 import MDNLoader from "../components/MDNLoader";
+import ThemeToggle from "../components/ThemeToggle";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 const PINCODE_REGEX = /^\d{6}$/;
@@ -15,6 +17,7 @@ const emptyAddressForm = {
 export default function Profile() {
   const { token, user, logout } = useAuth();
   const { success, error: toastError } = useToast();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   const [addresses, setAddresses] = useState([]);
@@ -171,6 +174,17 @@ export default function Profile() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* Appearance */}
+      <div className="card mt-6 flex items-center justify-between p-5">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-wide text-mdn-white">Appearance</p>
+          <p className="mt-1 text-sm text-mdn-gray">
+            {isDark ? "Dark mode — black & green." : "Light mode — white, silver & green."}
+          </p>
+        </div>
+        <ThemeToggle />
       </div>
 
       {/* Saved addresses */}

@@ -6,12 +6,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Theme tokens
+   Default (no class on <html>) = light / white+silver+green.
+   .dark on <html>               = the original black+green theme.
+   Components keep using bg-mdn-black, text-mdn-white, text-mdn-gray,
+   etc. — those utilities now read these CSS vars, so nothing else
+   needs to change to support both themes.
+   ============================================================ */
+:root {
+  --mdn-black: 255 255 255;      /* page background */
+  --mdn-charcoal: 244 246 244;   /* card / section surface */
+  --mdn-charcoal2: 236 239 236;  /* input / secondary surface */
+  --mdn-white: 23 26 24;         /* primary text (dark, for contrast on white) */
+  --mdn-gray: 96 104 100;        /* muted text */
+}
+
+.dark {
+  --mdn-black: 11 12 13;
+  --mdn-charcoal: 22 24 26;
+  --mdn-charcoal2: 31 34 36;
+  --mdn-white: 245 247 245;
+  --mdn-gray: 154 160 166;
+}
+
 html {
   scroll-behavior: smooth;
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-mdn-black text-mdn-white font-body antialiased;
+  @apply bg-mdn-black text-mdn-white font-body antialiased transition-colors duration-300;
 }
 
 h1, h2, h3, h4 {
@@ -22,17 +50,81 @@ h1, h2, h3, h4 {
   @apply bg-mdn-green text-mdn-black;
 }
 
-/* Slim dark scrollbar, matches brand */
+/* Slim scrollbar, matches brand in both themes */
 ::-webkit-scrollbar {
   height: 6px;
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #16181a;
+  background: rgb(var(--mdn-charcoal));
 }
 ::-webkit-scrollbar-thumb {
   background: #22b14c;
   border-radius: 999px;
+}
+
+/* Visible keyboard focus everywhere, both themes */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #22b14c;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   Light-mode overrides for hardcoded white/opacity utilities.
+   Many existing components use border-white/10, bg-white/5, etc.
+   to mean "faint line/surface on a dark background." In light
+   mode those need to become faint dark lines instead.
+
+   NOTE: these attribute selectors only match elements that carry
+   the literal utility class (e.g. `border-white/10`) directly in
+   their rendered HTML. Anything applied via @apply inside a custom
+   component class (like the old .card border) compiles straight to
+   CSS and never has that literal class in the DOM — so it's NOT
+   reached by these overrides. Those cases need a theme-variable-
+   driven color instead (see .card below).
+   ------------------------------------------------------------ */
+html:not(.dark) [class*="border-white/"] {
+  border-color: rgba(15, 23, 20, 0.12) !important;
+}
+html:not(.dark) [class*="bg-white/"] {
+  background-color: rgba(15, 23, 20, 0.05) !important;
+}
+html:not(.dark) [class*="divide-white/"] > * + * {
+  border-color: rgba(15, 23, 20, 0.08) !important;
+}
+html:not(.dark) [class*="hover\:bg-white/"]:hover {
+  background-color: rgba(15, 23, 20, 0.06) !important;
+}
+html:not(.dark) [class*="hover\:border-white/"]:hover {
+  border-color: rgba(15, 23, 20, 0.2) !important;
+}
+html:not(.dark) [class*="bg-mdn-black/9"] {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Light-mode override for border-mdn-silver/N utilities (buttons, toggle
+   pill, etc). mdn-silver is a fixed light-gray hex (#C9CDD3), so at low
+   opacity on a near-white page background it was nearly invisible —
+   this darkens it the same way the border-white/N overrides above do,
+   so borders and hover states are actually visible in light mode. */
+html:not(.dark) [class*="border-mdn-silver"] {
+  border-color: rgba(15, 23, 20, 0.28) !important;
+}
+html:not(.dark) [class*="hover\:border-mdn-green"]:hover {
+  border-color: #22b14c !important;
 }
 
 @layer components {
@@ -47,9 +139,12 @@ h1, h2, h3, h4 {
     @apply text-[10px] sm:text-xs text-mdn-gray mt-1 uppercase tracking-wide;
   }
 
+  /* NOTE: text-black (not text-mdn-black) on purpose — mdn-black is the
+     theme-flipping page-background token, but this button always needs
+     dark text against its bright green fill in both light and dark mode. */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg bg-mdn-green
-           px-5 py-2.5 font-semibold text-mdn-black shadow-green-glow
+           px-5 py-2.5 font-semibold text-black shadow-green-glow
            transition-all duration-200 hover:bg-mdn-green-light hover:-translate-y-0.5
            active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
   }
@@ -59,13 +154,50 @@ h1, h2, h3, h4 {
            transition-all duration-200 hover:border-mdn-green hover:text-mdn-green;
   }
 
+  /* .card border set with an explicit CSS custom property (--mdn-white)
+     instead of the border-white/N utility. border-white/N is invisible
+     in light mode here because the attribute-selector override above
+     can't reach classes introduced via @apply (see note above) — using
+     the theme token directly means the border is correct in BOTH themes
+     without depending on that override at all. Bumped from 5% to 12%
+     opacity too, since 5% was faint even in dark mode. */
   .card {
-    @apply rounded-xl border border-white/5 bg-mdn-charcoal shadow-card transition-transform duration-300;
+    @apply rounded-xl bg-mdn-charcoal shadow-card transition-transform duration-300;
+    border: 1px solid rgb(var(--mdn-white) / 0.12);
+  }
+
+  /* Same as .card, but for cards placed ON TOP of a section that is
+     already bg-mdn-charcoal (e.g. ReviewsSection, StorySection stat
+     tiles). Using .card there made the card and its parent section the
+     exact same color, so the border was the ONLY thing separating them
+     — and at 12% opacity, against a faint background grid pattern, that
+     read as "misaligned"/invisible. This uses the next surface step up
+     (bg-mdn-charcoal2) plus a stronger border so cards clearly sit apart
+     from the section behind them, in both themes. */
+  .card-alt {
+    @apply rounded-xl bg-mdn-charcoal2 shadow-card transition-transform duration-300;
+    border: 1px solid rgb(var(--mdn-white) / 0.18);
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-white/10 bg-mdn-charcoal px-4 py-2.5 text-mdn-white
+    @apply w-full rounded-lg border border-mdn-silver/40 bg-mdn-charcoal2 px-4 py-2.5 text-mdn-white
            placeholder:text-mdn-gray outline-none transition-colors duration-200
            focus:border-mdn-green focus:ring-2 focus:ring-mdn-green/25;
   }
+}
+
+/* Light-mode-only reinforcement for inputs: mdn-silver/40 alone was too
+   faint against a near-white page background, so give light mode a solid
+   white surface, a visible border, and a subtle shadow for definition. */
+html:not(.dark) .input-field {
+  background-color: #ffffff;
+  border-color: rgba(15, 23, 20, 0.22);
+  box-shadow: 0 1px 2px rgba(15, 23, 20, 0.05);
+}
+html:not(.dark) .input-field:focus {
+  border-color: #22b14c;
+  box-shadow: 0 0 0 3px rgba(34, 177, 76, 0.15);
+}
+html:not(.dark) .input-field::placeholder {
+  color: rgba(15, 23, 20, 0.45);
 }

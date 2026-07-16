@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/api";
-import ProductSection from "../components/ProductSection";
 import ProductCard from "../components/ProductCard";
 import Hero from "../components/Hero";
+import CategoryMoves from "../components/CategoryMoves";
+import StorySection from "../components/StorySection";
+import Bestsellers from "../components/Bestsellers";
+import TargetSection from "../components/TargetSection";
+import ReviewsSection from "../components/ReviewsSection";
+import TrustBadges from "../components/TrustBadges";
 import Testimonials from "../components/Testimonials";
 import FAQ from "../components/FAQ";
 import SearchInput from "../components/SearchInput";
@@ -46,9 +51,12 @@ export default function Home() {
     <div>
       <Hero />
 
-      <div className="mx-auto max-w-2xl px-4 pt-10 sm:px-6">
-        <SearchInput value={query} onChange={setQuery} placeholder="Search by name, brand, product type..." />
-      </div>
+      {!isSearching && (
+        <div className="mx-auto max-w-2xl px-4 pt-10 sm:hidden sm:px-6">
+          {/* Mobile inline search — desktop search now lives in the navbar */}
+          <SearchInput value={query} onChange={setQuery} placeholder="Search by name, brand, product type..." />
+        </div>
+      )}
 
       {isSearching ? (
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -66,11 +74,12 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <div id="best-sellers">
-            <ProductSection section="best_seller" />
-          </div>
-          <ProductSection section="new_arrival" />
-          <ProductSection section="fitness_combo" />
+          <CategoryMoves />
+          <StorySection />
+          <Bestsellers />
+          <TargetSection />
+          <ReviewsSection />
+          <TrustBadges />
           <Testimonials />
           <CustomerSupport />
           <FAQ />

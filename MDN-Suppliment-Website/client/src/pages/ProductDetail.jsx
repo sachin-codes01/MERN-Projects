@@ -94,11 +94,15 @@ export default function ProductDetail() {
         {/* Image */}
         <div className="animate-fade-up">
           <div className="relative aspect-square overflow-hidden rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 shadow-green-glow">
+            {/* object-contain + padding on purpose — object-cover was
+                cropping the tops/bottoms off tall jar-shaped product
+                photos. This shows the whole product on a flat surface
+                instead. */}
             <img
               src={product.thumbnail}
               alt={product.name}
               onError={(e) => (e.target.style.display = "none")}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain bg-mdn-charcoal2 p-6"
             />
             <span className="absolute left-3 top-3 rounded-full border border-mdn-green/40 bg-mdn-black/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-mdn-green">
               Premium Quality

@@ -6,20 +6,23 @@ import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartBadgeProvider } from "./context/CartBadgeContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ToastProvider>
-            <CartBadgeProvider>
-              <App />
-            </CartBadgeProvider>
-          </ToastProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </GoogleOAuthProvider>
+    <ThemeProvider>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <BrowserRouter>
+          <AuthProvider>
+            <ToastProvider>
+              <CartBadgeProvider>
+                <App />
+              </CartBadgeProvider>
+            </ToastProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </GoogleOAuthProvider>
+    </ThemeProvider>
   </StrictMode>
 );

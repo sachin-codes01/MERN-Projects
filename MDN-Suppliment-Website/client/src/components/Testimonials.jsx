@@ -33,13 +33,18 @@ export default function Testimonials() {
       </p>
 
       <div className="relative mt-10 overflow-hidden">
+        {/* items-start (instead of the flex default of stretch) — without
+            it, every slide in the row gets stretched to match the height
+            of the tallest quote, which made shorter-quote cards render
+            taller than their own content and show as a "ghost" card
+            peeking behind the visible one. */}
         <div
-          className="flex transition-transform duration-500 ease-in-out"
+          className="flex items-start transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${index * 100}%)` }}
         >
           {TESTIMONIALS.map((t, i) => (
-            <div key={i} className="w-full flex-shrink-0 px-2">
-              <div className="card mx-auto max-w-xl px-6 py-8 text-center sm:px-10">
+            <div key={i} className="w-full shrink-0 px-2">
+              <div className="card mx-auto flex h-full max-w-xl flex-col px-6 py-8 text-center sm:px-10">
                 <div className="mb-3 flex justify-center gap-1 text-mdn-green">
                   {Array.from({ length: 5 }).map((_, s) => (
                     <svg key={s} width="16" height="16" viewBox="0 0 24 24" fill={s < t.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">

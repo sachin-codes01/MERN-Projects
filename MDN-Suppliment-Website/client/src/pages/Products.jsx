@@ -1,4 +1,5 @@
 import ProductSection from "../components/ProductSection";
+import ProductsByCategory from "../components/ProductsByCategory";
 
 export default function Products() {
   return (
@@ -10,6 +11,12 @@ export default function Products() {
       <ProductSection section="best_seller" />
       <ProductSection section="new_arrival" />
       <ProductSection section="fitness_combo" />
+
+      {/* Divided by category */}
+      <div className="mx-auto max-w-7xl border-t border-white/5 px-4 pt-4 sm:px-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Browse by category</p>
+      </div>
+      <ProductsByCategory />
     </div>
   );
 }

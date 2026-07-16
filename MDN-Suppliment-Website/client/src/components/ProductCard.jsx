@@ -56,12 +56,26 @@ export default function ProductCard({ product }) {
   };
 
   return (
+    /* FIX: `overflow-hidden` removed from this outer element.
+       It used to sit here alongside `hover:-translate-y-1` (a transform)
+       and `hover:shadow-green-glow` (a shadow that needs room OUTSIDE the
+       box to render). overflow-hidden clips anything outside its own box
+       — including its own border and glow — so on hover, as the card
+       shifted up, that self-clipped edge showed up as a cropped/cut
+       border. The image's own rounding+clipping now happens on the inner
+       wrapper below instead, where it belongs; this outer box just moves
+       and glows, nothing about it gets clipped anymore.
+       Added `relative z-0 hover:z-10` too, so the lifted card renders
+       above its grid neighbors instead of tucking behind them. */
     <Link
-      to={`/products/${product.slug}`}
-      className={`card group relative flex flex-col overflow-hidden p-3 hover:-translate-y-1 hover:shadow-green-glow ${
-        outOfStock ? "opacity-60" : ""
-      }`}
-    >
+  to={`/products/${product.slug}`}
+  className={`card group relative z-0 flex flex-col p-3 transition-all duration-300 hover:z-10 hover:scale-[1.03] hover:border-mdn-green/50 hover:shadow-green-glow ${
+    outOfStock ? "opacity-60" : ""
+  }`}
+>
+      {/* overflow-hidden lives here now — a static container (no transform
+          of its own) clipping only its child <img>'s zoom. Nothing above
+          it is also transformed+clipped, so there's no seam/crop glitch. */}
       <div className="relative aspect-square overflow-hidden rounded-lg bg-mdn-charcoal2">
         <img
           src={product.thumbnail}

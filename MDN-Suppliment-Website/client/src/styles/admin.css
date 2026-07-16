@@ -57,9 +57,15 @@
 .admin-form-actions {
   @apply flex gap-3;
 }
-.btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-mdn-silver/30 bg-transparent px-4 py-2 text-sm font-semibold text-mdn-white transition-all duration-200 hover:border-mdn-green hover:text-mdn-green;
-}
+
+/* NOTE: .btn-secondary intentionally NOT redefined here anymore.
+   It used to be duplicated in this file with different padding/size
+   values than the canonical definition in index.css's @layer
+   components. Depending on Tailwind's layer/import ordering, that
+   made secondary buttons render at inconsistent sizes across pages
+   (checkout vs admin vs everywhere else). index.css's version is now
+   the single source of truth — see index.css @layer components. */
+
 .btn-danger {
   @apply inline-flex items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition-all duration-200 hover:bg-red-500/20;
 }
@@ -102,8 +108,10 @@
 .admin-table-actions button.btn-danger {
   @apply border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20;
 }
+/* object-contain on a flat surface instead of object-cover — cover was
+   cropping tall/jar-shaped product thumbnails top and bottom. */
 .table-thumb {
-  @apply h-12 w-12 rounded-md object-cover;
+  @apply h-12 w-12 rounded-md bg-mdn-charcoal2 object-contain p-1;
 }
 .admin-table-nested {
   @apply mt-2 rounded-lg border border-white/10;
@@ -186,4 +194,27 @@
 }
 .order-summary {
   @apply mt-4 space-y-1 rounded-lg border border-white/10 bg-mdn-charcoal2 p-4 text-sm text-mdn-white/90;
+}
+
+/* ---------- Footer marquee ----------
+   Defined explicitly here (not only via the Tailwind `animate-marquee`
+   utility) so the ticker is guaranteed to run even if the Tailwind
+   animation utility gets purged or misconfigured in a build. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 22s linear infinite;
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
 }
