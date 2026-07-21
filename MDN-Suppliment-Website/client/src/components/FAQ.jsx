@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SectionHeading from "./SectionHeading";
 
 const FAQS = [
   { q: "Is MDN Whey Protein Isolate suitable for beginners?", a: "Yes. Isolate is gentler on digestion than concentrate and works well whether you're just starting out or training at an advanced level." },
@@ -12,11 +13,12 @@ export default function FAQ() {
   const [open, setOpen] = useState(0);
 
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <h2 className="text-center text-2xl font-bold text-mdn-white sm:text-3xl">
-        Frequently Asked <span className="text-mdn-green">Questions</span>
-      </h2>
+    <section id="faq" className="mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-16">
+      <SectionHeading title="Frequently Asked" accent="Questions" />
 
+      {/* Padding/text sizes bumped up unconditionally (not just at sm:)
+          so the dropdowns read as comfortably tappable on small screens
+          instead of the old cramped text-sm / px-5 py-4. */}
       <div className="mt-8 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
         {FAQS.map((item, i) => {
           const isOpen = open === i;
@@ -24,12 +26,12 @@ export default function FAQ() {
             <div key={i} className="bg-mdn-charcoal">
               <button
                 onClick={() => setOpen(isOpen ? -1 : i)}
-                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/5"
+                className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition-colors hover:bg-white/5 sm:py-6"
               >
-                <span className="text-sm font-medium text-mdn-white sm:text-base">{item.q}</span>
+                <span className="text-base font-medium text-mdn-white sm:text-lg">{item.q}</span>
                 <svg
-                  width="18"
-                  height="18"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -45,7 +47,7 @@ export default function FAQ() {
                 }`}
               >
                 <div className="overflow-hidden">
-                  <p className="px-5 pb-4 text-sm leading-relaxed text-mdn-gray">{item.a}</p>
+                  <p className="px-5 pb-5 text-sm leading-relaxed text-mdn-gray sm:text-base sm:pb-6">{item.a}</p>
                 </div>
               </div>
             </div>

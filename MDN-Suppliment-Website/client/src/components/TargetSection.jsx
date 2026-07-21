@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import ItemCarousel from "./ItemCarousel";
+import SectionHeading from "./SectionHeading";
 import targetImg from "../assets/mdn-0.png"; // swap per-card image later
 
 const TARGETS = [
@@ -38,10 +40,7 @@ export default function TargetSection() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative overflow-hidden px-4 py-14 sm:px-6">
-      {/* Decorative background — same soft glow + faint grid treatment used
-          in the "Story of MDN" section, so this section carries the same
-          visual language instead of feeling like a plain grid dropped in. */}
+    <section className="relative overflow-hidden px-4 py-14 sm:px-6 sm:py-16">
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[100px]" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -53,61 +52,51 @@ export default function TargetSection() {
       />
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Goal-based stacks</p>
-          <h2 className="mt-1 text-3xl font-bold text-mdn-white sm:text-4xl">
-            What&rsquo;s Your <span className="text-mdn-green">Target?</span>
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-mdn-gray sm:text-base">
-            Choose your objective to see recommended stacks.
-          </p>
-        </div>
+        <SectionHeading
+          eyebrow="Goal-based stacks"
+          title="What's Your"
+          accent="Target?"
+          subtitle="Choose your objective to see recommended stacks."
+        />
 
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {TARGETS.map((t, i) => (
-            <button
-              key={t.title}
-              onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)}
-              style={{ animationDelay: `${i * 70}ms` }}
-              className="group animate-fade-up relative aspect-[4/5] overflow-hidden rounded-xl border border-white/5 bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:aspect-[3/4]"
-            >
-              {/* object-contain on purpose — object-cover was cropping the
-                  placeholder photo awkwardly inside these tall tiles. */}
-              <img
-                src={targetImg}
-                alt={t.title}
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-contain object-bottom p-2 transition-transform duration-500 group-hover:scale-105"
-              />
-              {/* Gradient made taller + a touch darker at the base (via/to
-                  stops added) — previously it only covered enough space
-                  for the title, so once a description line was added
-                  underneath, that second line sat on bare image/background
-                  with no contrast. Now the readable zone covers both
-                  lines comfortably in every tile size. */}
-              <div className="absolute inset-0 bg-gradient-to-t from-mdn-black via-mdn-black/70 via-40% to-transparent" />
-
-              {/* Description added below the title so tiles don't read as
-                  empty photo-plus-label — always visible (not hover-only)
-                  since a title-only card was the actual emptiness
-                  complaint, not just the "Shop stack" hover link. */}
-              <span className="absolute inset-x-0 bottom-0 p-3 text-left sm:p-4">
-                <span className="block text-sm font-bold leading-tight text-mdn-white sm:text-base">
-                  {t.title}
+        {/* Single row now, sliding one card at a time — auto-advances,
+            pauses on hover, drag/swipe, and arrow buttons — instead of the
+            old two-row static grid. */}
+        <div className="mt-10">
+          <ItemCarousel
+            items={TARGETS}
+            autoPlay
+            interval={3200}
+            itemClassName="w-[68%] sm:w-[38%] lg:w-[23%]"
+            renderItem={(t) => (
+              <button
+                onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)}
+                className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/5 bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow"
+              >
+                <img
+                  src={targetImg}
+                  alt={t.title}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-mdn-black via-mdn-black/70 via-40% to-transparent" />
+                <span className="absolute inset-x-0 bottom-0 p-3 text-left sm:p-4">
+                  <span className="block text-sm font-bold leading-tight text-mdn-white sm:text-base">
+                    {t.title}
+                  </span>
+                  <span className="mt-1 block text-xs leading-snug text-mdn-gray line-clamp-2">{t.desc}</span>
+                  <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-mdn-green opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    Shop stack
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
                 </span>
-                <span className="mt-1 block text-xs leading-snug text-mdn-gray line-clamp-2">
-                  {t.desc}
-                </span>
-                <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-mdn-green opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  Shop stack
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            )}
+          />
         </div>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const TAGS = ["All", "Muscle", "Taste", "Growth", "Recovery", "Fat Loss", "Digestion"];
 
@@ -28,23 +28,28 @@ export default function ReviewsSection() {
   const filtered = activeTag === "All" ? REVIEWS : REVIEWS.filter((r) => r.tag === activeTag);
   const slides = chunk(filtered, 3);
 
+  const stopAutoplay = () => clearInterval(timerRef.current);
+  const startAutoplay = useCallback(() => {
+    stopAutoplay();
+    if (slides.length > 1) {
+      timerRef.current = setInterval(() => {
+        setIndex((i) => (i + 1) % slides.length);
+      }, 4500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides.length]);
+
   useEffect(() => {
     setIndex(0);
   }, [activeTag]);
 
   useEffect(() => {
-    if (slides.length <= 1) return;
-    timerRef.current = setInterval(() => {
-      setIndex((i) => (i + 1) % slides.length);
-    }, 4500);
-    return () => clearInterval(timerRef.current);
-  }, [slides.length, activeTag]);
+    startAutoplay();
+    return stopAutoplay;
+  }, [startAutoplay]);
 
   return (
     <section className="relative overflow-hidden border-y border-white/5 bg-mdn-charcoal py-16">
-      {/* Decorative background — same soft glow + faint grid treatment used
-          in the "Story of MDN" section, so the reviews carousel doesn't
-          feel like a plain card grid dropped into a flat panel. */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[100px]" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -55,12 +60,18 @@ export default function ReviewsSection() {
         }}
       />
 
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center">
-          <h2 className="text-3xl font-bold leading-tight text-mdn-white sm:text-4xl">
-            Why 200,000+ Athletes Fuel Their Performance with{" "}
-            <span className="text-mdn-green">Ripped Up Nutrition</span>
-          </h2>
+          <div className="flex items-center justify-center gap-3 sm:gap-5">
+            <span className="hidden h-px w-14 shrink-0 bg-mdn-green sm:block" />
+            <h2 className="text-3xl font-bold leading-tight text-mdn-white sm:text-4xl">
+              Real People, <span className="text-mdn-green">Real Stories</span>
+            </h2>
+            <span className="hidden h-px w-14 shrink-0 bg-mdn-green sm:block" />
+          </div>
+          <p className="mt-2 text-sm text-mdn-gray sm:text-base">
+            Over 2,00,000+ athletes trust MDN (and counting)
+          </p>
         </div>
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -68,7 +79,7 @@ export default function ReviewsSection() {
             <button
               key={tag}
               onClick={() => {
-                clearInterval(timerRef.current);
+                stopAutoplay();
                 setActiveTag(tag);
               }}
               className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors duration-200 ${
@@ -82,36 +93,52 @@ export default function ReviewsSection() {
           ))}
         </div>
 
-        <div className="relative mt-8 overflow-hidden">
+        {/* Pauses on hover, like the other carousels on the page. */}
+        <div
+          className="relative mt-8 overflow-hidden"
+          onMouseEnter={stopAutoplay}
+          onMouseLeave={startAutoplay}
+        >
           {slides.length === 0 ? (
             <p className="py-8 text-center text-sm text-mdn-gray">No reviews for this tag yet.</p>
           ) : (
             <div
-              className="flex items-start transition-transform duration-700 ease-in-out"
+              // py-4 (and px-1 on the group below) give the scaled/lifted
+              // center card room to grow into without its top/bottom/side
+              // edges getting cut off by this wrapper's overflow-hidden —
+              // that clipping was the bug in the screenshot.
+              className="flex items-center py-5 transition-transform duration-700 ease-in-out"
               style={{ transform: `translateX(-${index * 100}%)` }}
             >
               {slides.map((group, si) => (
-                <div key={si} className="grid w-full shrink-0 items-stretch gap-4 sm:grid-cols-3">
-                  {group.map((r, i) => (
-                    /* card-alt (not card) — this section's own background is
-                       already bg-mdn-charcoal, same as the plain .card
-                       surface, so cards were rendering the same color as
-                       the section behind them and only a faint border told
-                       them apart. card-alt sits one shade up (charcoal2)
-                       with a stronger border so it visibly separates. */
-                    <div key={i} className="card-alt flex h-full flex-col p-5">
-                      <div className="flex gap-0.5 text-mdn-green">
-                        {Array.from({ length: 5 }).map((_, s) => (
-                          <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={s < r.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
-                            <path d="M12 2l2.9 6.4 7 .7-5.3 4.7 1.6 6.9L12 17.6 5.8 20.7l1.6-6.9L2.1 9.1l7-.7L12 2z" />
-                          </svg>
-                        ))}
+                <div key={si} className="grid w-full shrink-0 items-center gap-5 px-1 sm:grid-cols-3 sm:gap-6">
+                  {group.map((r, i) => {
+                    // Middle card in each row of 3 is emphasized — larger,
+                    // lifted, glowing — matching the "zoomed center card"
+                    // look from the reference screenshot.
+                    const isCenter = i === 1 && group.length === 3;
+                    return (
+                      <div
+                        key={i}
+                        className={`card-alt flex h-full cursor-default flex-col p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:p-7 ${
+                          isCenter
+                            ? "sm:z-10 sm:scale-110 sm:border-mdn-green/40 sm:shadow-green-glow"
+                            : "sm:scale-95 sm:opacity-90 hover:sm:scale-100 hover:sm:opacity-100"
+                        }`}
+                      >
+                        <div className="flex gap-0.5 text-mdn-green">
+                          {Array.from({ length: 5 }).map((_, s) => (
+                            <svg key={s} width="16" height="16" viewBox="0 0 24 24" fill={s < r.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+                              <path d="M12 2l2.9 6.4 7 .7-5.3 4.7 1.6 6.9L12 17.6 5.8 20.7l1.6-6.9L2.1 9.1l7-.7L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <p className="mt-4 text-base leading-relaxed text-mdn-white/90">&ldquo;{r.quote}&rdquo;</p>
+                        <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-mdn-white">{r.name}</p>
+                        <p className="text-sm text-mdn-gray">{r.role}</p>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-mdn-white/90">&ldquo;{r.quote}&rdquo;</p>
-                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-mdn-white">{r.name}</p>
-                      <p className="text-xs text-mdn-gray">{r.role}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -124,7 +151,7 @@ export default function ReviewsSection() {
               <button
                 key={i}
                 onClick={() => {
-                  clearInterval(timerRef.current);
+                  stopAutoplay();
                   setIndex(i);
                 }}
                 aria-label={`Go to review slide ${i + 1}`}

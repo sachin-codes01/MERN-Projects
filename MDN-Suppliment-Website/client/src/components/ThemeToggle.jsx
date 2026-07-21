@@ -28,7 +28,13 @@ export default function ThemeToggle({ className = "", compact = false }) {
       <Switch
         checked={isDark}
         onChange={toggleTheme}
-        inputProps={{ "aria-label": "Toggle dark mode" }}
+        // `inputProps` was the pre-v6 MUI API for reaching the underlying
+        // <input>. Newer MUI versions pass it straight through toward the
+        // DOM instead of consuming it, which is exactly the "React does
+        // not recognize the `inputProps` prop on a DOM element" warning —
+        // `slotProps.input` is the current, non-deprecated way to do the
+        // same thing.
+        slotProps={{ input: { "aria-label": "Toggle dark mode" } }}
         icon={<LightModeRoundedIcon sx={{ fontSize: 13, padding: "3px", color: "#16803C" }} />}
         checkedIcon={<DarkModeRoundedIcon sx={{ fontSize: 13, padding: "3px", color: "#0B0C0D" }} />}
         sx={{

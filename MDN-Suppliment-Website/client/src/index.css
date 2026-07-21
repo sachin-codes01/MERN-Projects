@@ -33,6 +33,16 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light;
+  /* Full-bleed sections (Hero, Footer's ticker strip) use `w-screen` /
+     100vw to break out of the page's centered container. 100vw measures
+     the viewport INCLUDING the scrollbar's own width, which is a hair
+     wider than the actual visible/scrollable area on desktop browsers —
+     that tiny overflow is exactly what let the whole page be dragged
+     left/right, and revealed a sliver of the green ticker strip's
+     background past the right edge. overflow-x: hidden clips that
+     invisible overflow instead of turning it into a scrollable/draggable
+     strip. */
+  overflow-x: hidden;
 }
 html.dark {
   color-scheme: dark;
@@ -40,6 +50,7 @@ html.dark {
 
 body {
   @apply bg-mdn-black text-mdn-white font-body antialiased transition-colors duration-300;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4 {
