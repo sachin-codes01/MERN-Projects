@@ -25,7 +25,7 @@ export default function Hero() {
       {/* `lg` (1024px+) matches the same breakpoint the slide/box classes
           below switch on, so the image source and the box shape change
           together. Below that, the <img> fallback (mobile crop) is used. */}
-      <source media="(min-width: 1024px)" srcSet={banner.desktop} />
+      <source media="(min-width: 1025px)" srcSet={banner.desktop} />
       <img
         src={banner.mobile}
         alt={`MDN promotional banner ${i + 1}`}
