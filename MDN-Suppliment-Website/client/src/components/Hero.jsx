@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import mdnHero from "../assets/mdn-0.png";
 import bodyUp from "../assets/body-up.png";
 import bodyDown from "../assets/body-down.png";
@@ -19,7 +19,6 @@ const MORE =
 export default function Hero() {
   const [expanded, setExpanded] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
-  const [photoIndex, setPhotoIndex] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -28,18 +27,7 @@ export default function Hero() {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPhotoIndex((i) => (i + 1) % HERO_PHOTOS.length);
-    }, 3200);
-    return () => clearInterval(id);
-  }, []);
-
   return (
-    // min-h reduced from 85vh -> 75vh (was leaving too much room to fill),
-    // and padding made asymmetric — pt smaller, pb bigger — so the
-    // items-center-ed content sits higher instead of dead-center of the
-    // full section height.
     <section className="relative flex min-h-[75vh] items-center overflow-hidden border-b border-white/5 bg-gradient-to-b from-mdn-charcoal to-mdn-black pt-6 pb-16 sm:pt-8 sm:pb-24">
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
         {/* Left — copy */}
@@ -113,22 +101,12 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Right — hero figure + floating product jars */}
+        {/* Right — carousel with autoplay, controls, and drag */}
         <div className="relative flex min-h-[420px] w-full items-center justify-center sm:min-h-[520px] lg:min-h-[600px]">
           <div className="absolute h-[420px] w-[420px] animate-[pulse_5s_ease-in-out_infinite] rounded-full bg-mdn-green/25 blur-[110px] sm:h-[520px] sm:w-[520px]" />
           <div className="absolute h-[300px] w-[300px] animate-[pulse_1.8s_ease-in-out_infinite] rounded-full bg-mdn-green/20 blur-[70px] sm:h-[380px] sm:w-[380px]" />
 
-          <div className="relative z-10 flex w-full flex-col items-center justify-center">
-            <div className="flex h-[340px] w-full max-w-[88%] items-center justify-center sm:h-[440px] lg:h-[540px]">
-              <img
-                key={photoIndex}
-                src={HERO_PHOTOS[photoIndex]}
-                alt="MDN athlete"
-                className="animate-fade-up mx-auto h-full w-auto max-w-full object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.6)]"
-              />
-            </div>
-            <GroundGlow width={220} />
-          </div>
+          <Carousel images={HERO_PHOTOS} className="z-10 w-full max-w-[88%]" />
 
           <FloatingJar src={mdnP1} className="left-[-2%] top-[2%] h-32 w-32 sm:h-44 sm:w-44 lg:h-52 lg:w-52" />
           <FloatingJar src={mdnP2} className="right-[-2%] top-[8%] h-36 w-36 sm:h-48 sm:w-48 lg:h-56 lg:w-56" />
@@ -137,6 +115,111 @@ export default function Hero() {
         </div>
       </div>
     </section>
+  );
+}
+
+function Carousel({ images = [], className = "" }) {
+  const [index, setIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [dragX, setDragX] = useState(0);
+  const containerRef = useRef(null);
+  const startXRef = useRef(0);
+  const draggingRef = useRef(false);
+  const autoplayRef = useRef(null);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    autoplayRef.current = setInterval(() => setIndex((i) => (i + 1) % images.length), 3500);
+    return () => clearInterval(autoplayRef.current);
+  }, [isPlaying, images.length]);
+
+  function goto(i) {
+    setIndex((i + images.length) % images.length);
+  }
+
+  function prev() {
+    goto(index - 1);
+  }
+  function next() {
+    goto(index + 1);
+  }
+
+  function onPointerDown(e) {
+    draggingRef.current = true;
+    setIsPlaying(false);
+    startXRef.current = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
+    setDragX(0);
+    if (containerRef.current) containerRef.current.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e) {
+    if (!draggingRef.current) return;
+    const currentX = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
+    setDragX(currentX - startXRef.current);
+  }
+  function onPointerUp(e) {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    const delta = dragX;
+    const threshold = (containerRef.current?.clientWidth ?? 300) * 0.2;
+    if (delta > threshold) prev();
+    else if (delta < -threshold) next();
+    setDragX(0);
+    setIsPlaying(true);
+    try {
+      if (containerRef.current) containerRef.current.releasePointerCapture(e.pointerId);
+    } catch (err) {}
+  }
+
+  const translate = `translateX(calc(${-(index * 100)}% + ${dragX}px))`;
+
+  return (
+    <div className={`relative ${className}`}>
+      <div
+        ref={containerRef}
+        className="carousel h-[340px] sm:h-[440px] lg:h-[540px] overflow-hidden rounded-md"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        style={{ touchAction: "pan-y" }}
+      >
+        <div className="flex h-full transition-transform duration-300 ease-out" style={{ transform: translate }}>
+          {images.map((src, i) => (
+            <div key={i} className="flex-shrink-0 flex items-center justify-center h-full w-full">
+              <img src={src} alt={`hero-${i}`} className="h-full w-auto max-w-full object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.6)]" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <button
+        aria-label="Previous"
+        onClick={() => { setIsPlaying(false); prev(); setIsPlaying(true); }}
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+      >
+        ‹
+      </button>
+      <button
+        aria-label="Next"
+        onClick={() => { setIsPlaying(false); next(); setIsPlaying(true); }}
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+      >
+        ›
+      </button>
+
+      {/* Indicators */}
+      <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-2">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            aria-label={`Go to slide ${i + 1}`}
+            onClick={() => { setIsPlaying(false); goto(i); setIsPlaying(true); }}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-mdn-green" : "w-1.5 bg-white/30"}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
