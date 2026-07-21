@@ -1,3 +1,5 @@
+import plugin from "tailwindcss/plugin";
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: "class",
@@ -82,5 +84,15 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Touch browsers keep a tapped element's `:hover` state active until
+    // the next tap elsewhere, so every `hover:` utility (card glow/lift,
+    // nav underline, etc.) was sticking around after a tap/click instead
+    // of only showing for an actual mouse hover. Redefining the built-in
+    // `hover` variant to require `(hover: hover)` makes it a true "mouse
+    // hover only" state everywhere it's used, with no per-component changes.
+    plugin(({ addVariant }) => {
+      addVariant("hover", "@media (hover: hover) { &:hover }");
+    }),
+  ],
 };

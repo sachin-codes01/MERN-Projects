@@ -7,6 +7,7 @@ import mdnLogo from "../assets/mdn-logo.png";
 import SplashCursor from "./SplashCursor";
 import ErrorBoundary from "./ErrorBoundary";
 import { hasWebGLSupport } from "../utils/hasWebGLSupport";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const QUICK_LINKS = [
   { label: "Home", to: "/" },
@@ -41,6 +42,10 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const [search, setSearch] = useState("");
+  // The WebGL fluid-cursor background is heavy enough to make small
+  // screens laggy — only mount it from `lg` up, where a mouse cursor
+  // actually drives it and there's headroom to render it smoothly.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const isAdminUser = ["admin", "superadmin"].includes(user?.role);
@@ -67,7 +72,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-white/5 bg-mdn-black/95 backdrop-blur">
       {/* Background WebGL Fluid Canvas */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-     {hasWebGLSupport() && (
+     {isDesktop && hasWebGLSupport() && (
      <ErrorBoundary>
      <SplashCursor
   DENSITY_DISSIPATION={4.2}   // Evaporates faster so it dissipates like actual smoke puffs
@@ -156,7 +161,7 @@ export default function Navbar() {
           {token ? (
             <Link to="/profile" className="hidden items-center gap-2 text-sm text-mdn-white/90 hover:text-mdn-green sm:flex">
               {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-7 w-7 rounded-full object-cover" loading="lazy" />
+                <img src={user.avatar} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
               ) : (
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
                   {user?.name?.[0]?.toUpperCase() || "U"}
@@ -321,7 +326,7 @@ export default function Navbar() {
               className="flex items-center gap-2 rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5"
             >
               {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-6 w-6 rounded-full object-cover" loading="lazy" />
+                <img src={user.avatar} alt={user.name} className="h-6 w-6 rounded-full object-cover" />
               ) : (
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
                   {user?.name?.[0]?.toUpperCase() || "U"}

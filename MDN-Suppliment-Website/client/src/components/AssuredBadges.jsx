@@ -29,7 +29,7 @@ export default function AssuredBadges() {
       {group.map((label, i) => (
         <div key={i} className="flex flex-col items-center gap-2 text-center sm:gap-3">
           <div className="h-14 w-14 overflow-hidden rounded-xl border border-mdn-green/30 bg-mdn-charcoal2 shadow-card sm:h-32 sm:w-32 lg:h-44 lg:w-44">
-            <img src={badgeImg} alt={label} loading="lazy" className="h-full w-full object-cover" />
+            <img src={badgeImg} alt={label} className="h-full w-full object-cover" />
           </div>
           <p className="line-clamp-2 text-[8px] font-semibold uppercase leading-tight tracking-wide text-mdn-white sm:text-sm lg:text-base">
             {label}

@@ -110,7 +110,12 @@ export default function ItemCarousel({
         onPointerUp={endDrag}
         onPointerLeave={endDrag}
         onPointerCancel={endDrag}
-        style={{ cursor: maxIndex > 0 ? (isDragging ? "grabbing" : "grab") : "default" }}
+        style={{
+          cursor: maxIndex > 0 ? (isDragging ? "grabbing" : "grab") : "default",
+          // See Carousel.jsx: without this, touch browsers can hijack a
+          // horizontal swipe as page-scroll and cancel the drag mid-way.
+          touchAction: "pan-y",
+        }}
       >
         <div
           ref={trackRef}

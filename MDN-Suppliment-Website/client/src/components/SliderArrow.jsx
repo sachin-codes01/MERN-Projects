@@ -13,6 +13,9 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
  *   element that handles click-and-drag swiping, and without this the
  *   parent's drag handler was capturing the pointer and swallowing the
  *   button's click — which is why the arrows weren't working.
+ * - Hidden below `lg`: on phones/tablets these buttons just get in the
+ *   way of finger-swiping, so touch-sized viewports rely on drag only —
+ *   arrows only render from `lg` up, where a mouse is the norm.
  */
 export default function SliderArrow({ direction, onClick }) {
   const Icon = direction === "left" ? ChevronLeftRoundedIcon : ChevronRightRoundedIcon;
@@ -26,7 +29,7 @@ export default function SliderArrow({ direction, onClick }) {
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       aria-label={direction === "left" ? "Previous slide" : "Next slide"}
-      className={`group absolute inset-y-0 ${sideClass} z-30 flex w-10 items-center justify-center bg-mdn-green/0 text-white transition-colors duration-300 hover:bg-mdn-green/20 active:bg-mdn-green/40 sm:w-14`}
+      className={`group absolute inset-y-0 ${sideClass} z-30 hidden w-14 items-center justify-center bg-mdn-green/0 text-white transition-colors duration-300 hover:bg-mdn-green/20 active:bg-mdn-green/40 lg:flex`}
     >
       <Icon
         sx={{ fontSize: 34 }}

@@ -23,7 +23,6 @@ export default function Hero() {
       // either cropping or leaving empty bars — cropping is what looks
       // intentional here, the same way it does on most sites.
       className="h-full w-full object-contain lg:object-cover"
-      loading={i === 0 ? "eager" : "lazy"}
       draggable={false}
     />
   ));

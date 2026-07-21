@@ -32,7 +32,6 @@ export default function WhyOne() {
           <img
             src={img1}
             alt="MDN ONE — why choose us"
-            loading="lazy"
             className="h-full w-full object-contain"
           />
         </div>
@@ -43,7 +42,6 @@ export default function WhyOne() {
               <img
                 src={src}
                 alt="MDN ONE — why choose us"
-                loading="lazy"
                 className="h-full w-full object-contain"
               />
             </div>

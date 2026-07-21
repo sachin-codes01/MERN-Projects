@@ -76,7 +76,6 @@ export default function TargetSection() {
                 <img
                   src={targetImg}
                   alt={t.title}
-                  loading="lazy"
                   decoding="async"
                   draggable={false}
                   className="absolute inset-0 h-full w-full object-cover"

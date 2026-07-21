@@ -92,7 +92,15 @@ export default function Carousel({
         onPointerUp={endDrag}
         onPointerLeave={endDrag}
         onPointerCancel={endDrag}
-        style={{ cursor: count > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
+        style={{
+          cursor: count > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+          // Without this, touch browsers treat any swipe with even a
+          // slight vertical drift as a page-scroll gesture and cancel the
+          // pointer sequence mid-drag — which is why swiping only "worked"
+          // some of the time. `pan-y` tells the browser to keep native
+          // vertical scroll but hand horizontal movement to this handler.
+          touchAction: "pan-y",
+        }}
       >
         <div
           className="flex items-start"

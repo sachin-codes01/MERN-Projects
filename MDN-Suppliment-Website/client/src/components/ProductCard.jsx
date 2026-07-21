@@ -103,7 +103,6 @@ export default function ProductCard({ product }) {
         <img
           src={product.thumbnail}
           alt={product.name}
-          loading="lazy"
           onError={(e) => (e.target.style.display = "none")}
           className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
         />

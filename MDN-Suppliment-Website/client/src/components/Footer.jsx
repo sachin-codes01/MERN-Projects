@@ -7,6 +7,7 @@ import mdnLogo from "../assets/mdn-logo.png";
 import SplashCursor from "./SplashCursor";
 import ErrorBoundary from "./ErrorBoundary";
 import { hasWebGLSupport } from "../utils/hasWebGLSupport";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const CONTACT_EMAIL = "sachin.codes01@gmail.com";
 
@@ -27,12 +28,15 @@ const TICKER_ITEMS = [
 
 export default function Footer() {
   const ticker = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  // Same reasoning as Navbar: this WebGL effect is laggy on small screens,
+  // so it only mounts from `lg` up.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   return (
     <footer className="relative mt-10 w-full overflow-hidden bg-mdn-black">
       {/* Background WebGL Fluid Canvas (z-0) */}
       <div className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-hidden">
-        {hasWebGLSupport() && (
+        {isDesktop && hasWebGLSupport() && (
         <ErrorBoundary>
         <SplashCursor
           SIM_RESOLUTION={128}

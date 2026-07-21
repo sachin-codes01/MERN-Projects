@@ -22,14 +22,17 @@ export default function CategoryMoves() {
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
+    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-16">
       <SectionHeading eyebrow="Explore" title="Shop by" accent="Collection" />
 
       {/* Large screens: every card shown at once in a static grid — no
           carousel needed since there's room for all 10.
           Small/medium screens: a swipe-only carousel — no autoplay, no
-          arrow buttons, just finger/touch drag. */}
-      <div className="mt-10">
+          arrow buttons, just finger/touch drag.
+          mt-4 on mobile (vs. sm:mt-10) — the fuller sm+ gap was leaving a
+          big empty band above the cards on phones, where the section is
+          otherwise short. */}
+      <div className="mt-4 sm:mt-10">
         <div className="hidden lg:grid lg:grid-cols-5 lg:gap-4">
           {COLLECTIONS.map((c) => (
             <CollectionCard key={c.title} item={c} onClick={() => navigate(c.to)} />
