@@ -1,8 +1,8 @@
 import Carousel from "./Carousel";
 import bannerDisciplineDesktop from "../assets/mdn-discipline-whey-2400x1200.png";
-import bannerIsolateDesktop from "../assets/mdn-isolate-whey-2400x1200.png";
-import bannerMaximumResultsDesktop from "../assets/mdn-maximum-results-2400x1200.png";
-import bannerShilajitDesktop from "../assets/mdn-shilajit-2400x1200.png";
+import bannerIsolateDesktop from "../assets/mdn-isolate-whey-2400x1200.jpg";
+import bannerMaximumResultsDesktop from "../assets/mdn-maximum-results-2400x1200.jpg";
+import bannerShilajitDesktop from "../assets/mdn-shilajit-2400x1200.jpg";
 import bannerDisciplineMobile from "../assets/mdn-discipline-whey-900x1125.png";
 import bannerIsolateMobile from "../assets/mdn-isolate-whey-900x1125.png";
 import bannerMaximumResultsMobile from "../assets/mdn-maximum-results-900x1125.png";
@@ -29,17 +29,12 @@ export default function Hero() {
       <img
         src={banner.mobile}
         alt={`MDN promotional banner ${i + 1}`}
-        // Mobile/tablet: object-contain — the full poster is always shown,
-        // never cropped, inside a normal banner-shaped box (see ratio
-        // below).
-        // Desktop/laptop (lg+): object-cover — this is the one place a
-        // small crop is unavoidable and expected: to truly fill 100% of
-        // both the width AND the height of every visitor's differently-
-        // shaped screen (the way most full-screen hero sections work),
-        // there's no single aspect ratio that fits every monitor without
-        // either cropping or leaving empty bars — cropping is what looks
-        // intentional here, the same way it does on most sites.
-        className="h-full w-full object-contain lg:object-cover"
+        // object-cover on every breakpoint: the exported poster files
+        // don't land on the box's exact aspect ratio pixel-for-pixel, so
+        // object-contain was leaving thin white bars above/below on
+        // mobile. Cover always fills the box completely (tiny edge crop,
+        // never visible letterboxing) instead.
+        className="h-full w-full object-cover"
         draggable={false}
       />
     </picture>
@@ -63,7 +58,7 @@ export default function Hero() {
         // poster runs full width AND fills most of the screen's height —
         // adjust the 85vh below (e.g. to 90vh or 100vh) if you want it
         // taller or shorter.
-        slideClassName="aspect-[4/5] bg-mdn-charcoal2 lg:aspect-auto lg:h-[85vh]"
+        slideClassName="aspect-[4/5] bg-mdn-charcoal2 lg:aspect-auto lg:h-[84.6vh]"
       />
     </section>
   );

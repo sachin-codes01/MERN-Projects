@@ -59,12 +59,16 @@ function CollectionCard({ item, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="card group flex w-full flex-col items-center gap-1.5 px-1.5 py-3 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:gap-3 sm:px-4 sm:py-6"
+      className="card group flex h-full w-full flex-col items-center gap-1.5 px-1.5 py-3 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:gap-3 sm:px-4 sm:py-6"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mdn-green/10 text-mdn-green transition-all duration-300 group-hover:scale-110 group-hover:bg-mdn-green group-hover:text-black group-hover:rotate-6 sm:h-12 sm:w-12">
         <Glyph name={item.glyph} />
       </span>
-      <span className="line-clamp-2 text-[10px] font-bold leading-tight text-mdn-white transition-colors duration-300 group-hover:text-mdn-green sm:text-base sm:leading-snug">
+      {/* Fixed min-height reserves the same 2-line space for every card
+          regardless of title length, and h-full above makes the button
+          fill its grid/carousel slot — together this is what keeps every
+          card the same size instead of shrinking to fit 1-line titles. */}
+      <span className="line-clamp-2 min-h-[2.5em] text-[10px] font-bold leading-tight text-mdn-white transition-colors duration-300 group-hover:text-mdn-green sm:text-xs">
         {item.title}
       </span>
     </button>

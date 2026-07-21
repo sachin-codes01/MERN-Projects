@@ -26,10 +26,14 @@ export default function ItemCarousel({
   const trackRef = useRef(null);
   const [index, setIndex] = useState(0);
   const [stepPx, setStepPx] = useState(0);
+  const [maxScroll, setMaxScroll] = useState(0);
   const [maxIndex, setMaxIndex] = useState(Math.max(0, items.length - 1));
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
+  const lastMoveX = useRef(0);
+  const lastMoveTime = useRef(0);
+  const velocityRef = useRef(0);
   const timerRef = useRef(null);
 
   const measure = useCallback(() => {
@@ -43,15 +47,21 @@ export default function ItemCarousel({
     if (itemWidth <= 0) return;
     setStepPx(itemWidth);
     const containerWidth = container.getBoundingClientRect().width;
-    const visible = Math.max(1, Math.round((containerWidth + gap) / itemWidth));
-    setMaxIndex(Math.max(0, items.length - visible));
-  }, [items.length]);
+    // `track.scrollWidth` is the exact total width of every item + gap
+    // between them — using that (instead of guessing how many items
+    // "visible" fit and multiplying) is what lets the scroll clamp land
+    // EXACTLY at the end, so the last card sits flush against the right
+    // edge instead of being cut off or leaving empty space after it.
+    const maxScrollPx = Math.max(0, track.scrollWidth - containerWidth);
+    setMaxScroll(maxScrollPx);
+    setMaxIndex(Math.max(0, Math.ceil(maxScrollPx / itemWidth)));
+  }, []);
 
   useEffect(() => {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [measure]);
+  }, [measure, items.length]);
 
   useEffect(() => {
     setIndex((i) => Math.min(i, maxIndex));
@@ -75,22 +85,43 @@ export default function ItemCarousel({
 
   const goTo = (i) => setIndex(Math.max(0, Math.min(maxIndex, i)));
 
+  // Pixel offset for a given index, clamped so the LAST index always
+  // lands exactly at `maxScroll` instead of `index * stepPx`, which can
+  // overshoot past the real end or stop short of it depending on how
+  // evenly the items divide into the container width.
+  const positionFor = (i) => Math.min(i * stepPx, maxScroll);
+
   const onPointerDown = (e) => {
     if (maxIndex <= 0) return;
     setIsDragging(true);
     dragStartX.current = e.clientX;
+    lastMoveX.current = e.clientX;
+    lastMoveTime.current = performance.now();
+    velocityRef.current = 0;
     stopAutoplay();
     trackRef.current?.setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e) => {
     if (!isDragging) return;
+    const now = performance.now();
+    const dt = now - lastMoveTime.current;
+    if (dt > 0) velocityRef.current = (e.clientX - lastMoveX.current) / dt; // px/ms
+    lastMoveX.current = e.clientX;
+    lastMoveTime.current = now;
     setDragOffset(e.clientX - dragStartX.current);
   };
   const endDrag = () => {
     if (!isDragging) return;
-    const threshold = stepPx * 0.25;
-    if (dragOffset < -threshold) goTo(index + 1);
-    else if (dragOffset > threshold) goTo(index - 1);
+    // How far you dragged, PLUS a bit of projected travel from how fast
+    // you were moving at release (a quick flick keeps going) — together
+    // these decide how MANY cards to advance, instead of always moving
+    // exactly one no matter how far or fast the swipe was.
+    const flungOffset = dragOffset + velocityRef.current * 160;
+    const minThreshold = stepPx * 0.2;
+    if (Math.abs(flungOffset) > minThreshold) {
+      const steps = Math.max(1, Math.round(Math.abs(flungOffset) / stepPx));
+      goTo(flungOffset < 0 ? index + steps : index - steps);
+    }
     setIsDragging(false);
     setDragOffset(0);
     startAutoplay();
@@ -121,7 +152,7 @@ export default function ItemCarousel({
           ref={trackRef}
           className={`flex py-4 ${gapClassName}`}
           style={{
-            transform: `translateX(calc(-${index * stepPx}px + ${dragOffset}px))`,
+            transform: `translateX(calc(-${positionFor(index)}px + ${dragOffset}px))`,
             transition: isDragging ? "none" : "transform 0.5s cubic-bezier(.4,0,.2,1)",
           }}
         >
