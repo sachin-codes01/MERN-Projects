@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import ItemCarousel from "./ItemCarousel";
 import SectionHeading from "./SectionHeading";
-import targetImg from "../assets/mdn-0.png"; // swap per-card image later
 
 const TARGETS = [
   {
@@ -73,13 +72,6 @@ export default function TargetSection() {
                 onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)}
                 className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/5 bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow"
               >
-                <img
-                  src={targetImg}
-                  alt={t.title}
-                  decoding="async"
-                  draggable={false}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
                 <div className="absolute inset-0 bg-gradient-to-t from-mdn-black via-mdn-black/70 via-40% to-transparent" />
                 <span className="absolute inset-x-0 bottom-0 p-3 text-left sm:p-4">
                   <span className="block text-sm font-bold leading-tight text-mdn-white sm:text-base">
