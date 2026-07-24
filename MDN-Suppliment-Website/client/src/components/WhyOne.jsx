@@ -1,9 +1,11 @@
 import SectionHeading from "./SectionHeading";
-import img1 from "../assets/Artboard_2onecards_1.webp";
-import img2 from "../assets/Artboard_3onecards_1.webp";
+import img1Mobile from "../assets/343×224px.png";
+import img1Tablet from "../assets/592×288px.png";
+import img1Desktop from "../assets/315×464px.png";
+import img2 from "../assets/Artboard_3onecards_1.png";
 import img3 from "../assets/Artboard_4onecards_1.avif";
 import img4 from "../assets/Artboard_5onecards.avif";
-import img5 from "../assets/Artboard_6onecards_1.webp";
+import img5 from "../assets/Artboard_6onecards_1.png";
 
 const TILE_CLASS =
   "card h-40 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-48 lg:h-56";
@@ -29,11 +31,18 @@ export default function WhyOne() {
           number to match (new total = tileHeight × 2 + gap). */}
       <div className="mt-10 grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
         <div className="card h-56 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-72 lg:h-[464px]">
-          <img
-            src={img1}
-            alt="MDN ONE — why choose us"
-            className="h-full w-full object-contain"
-          />
+          {/* object-fill stretches each crop to the box's exact
+              dimensions — whole poster visible, no cropping, and no side
+              gaps either. */}
+          <picture>
+            <source media="(min-width: 1024px)" srcSet={img1Desktop} />
+            <source media="(min-width: 640px)" srcSet={img1Tablet} />
+            <img
+              src={img1Mobile}
+              alt="MDN ONE — why choose us"
+              className="h-full w-full object-fill"
+            />
+          </picture>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-span-2">
@@ -42,7 +51,7 @@ export default function WhyOne() {
               <img
                 src={src}
                 alt="MDN ONE — why choose us"
-                className="h-full w-full object-contain"
+                className={`h-full w-full ${src === img3 ? "object-contain" : "object-fill"}`}
               />
             </div>
           ))}

@@ -6,7 +6,7 @@ import bannerShilajitDesktop from "../assets/mdn-shilajit-2400x1200.jpg";
 import bannerDisciplineMobile from "../assets/mdn-discipline-whey-900x1125.png";
 import bannerIsolateMobile from "../assets/mdn-isolate-whey-900x1125.png";
 import bannerMaximumResultsMobile from "../assets/mdn-maximum-results-900x1125.png";
-import bannerShilajitMobile from "../assets/mdn-shilajit-900x1125.png";
+import bannerShilajitMobile from "../assets/mdn-creatine-375×469px.png";
 
 // Each banner ships two crops: a 4:5 "mobile" poster (900x1125) and a wide
 // "desktop" one (2400x1200) — see the `<picture>` below for which shows
