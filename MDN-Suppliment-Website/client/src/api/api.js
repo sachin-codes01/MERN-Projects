@@ -142,4 +142,9 @@ export const api = {
     request(`/admin/users/${id}/block`, { method: "PUT", token }),
   adminUnblockUser: (token, id) =>
     request(`/admin/users/${id}/unblock`, { method: "PUT", token }),
+
+  // ---------- SETTINGS ----------
+  getSettings: () => request("/settings"),
+  adminUpdateSettings: (token, payload) =>
+    request("/admin/settings", { method: "PUT", body: payload, token }),
 };

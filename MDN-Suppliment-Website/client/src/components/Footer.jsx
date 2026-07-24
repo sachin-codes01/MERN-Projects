@@ -8,6 +8,7 @@ import SplashCursor from "./SplashCursor";
 import ErrorBoundary from "./ErrorBoundary";
 import { hasWebGLSupport } from "../utils/hasWebGLSupport";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useSettings } from "../context/SettingsContext";
 
 const CONTACT_EMAIL = "sachin.codes01@gmail.com";
 
@@ -31,12 +32,13 @@ export default function Footer() {
   // Same reasoning as Navbar: this WebGL effect is laggy on small screens,
   // so it only mounts from `lg` up.
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { splashCursorEnabled } = useSettings();
 
   return (
     <footer className="relative mt-10 w-full overflow-hidden bg-mdn-black">
       {/* Background WebGL Fluid Canvas (z-0) */}
       <div className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-hidden">
-        {isDesktop && hasWebGLSupport() && (
+        {splashCursorEnabled && isDesktop && hasWebGLSupport() && (
         <ErrorBoundary>
         <SplashCursor
           SIM_RESOLUTION={128}
@@ -76,7 +78,17 @@ export default function Footer() {
         <div className="pointer-events-auto border-t border-white/5 bg-mdn-charcoal/40 backdrop-blur-[2px]">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <img src={mdnLogo} alt="MDN — My Daily Nutrition" className="h-8 w-auto" />
+              {/* Same reserved-box + overflow technique as Navbar, and the
+                  exact same box/image sizes, so the logo reads as
+                  identical between nav and footer without changing either
+                  bar's height. */}
+              <span className="relative block h-8 w-16 sm:h-9 sm:w-20">
+                <img
+                  src={mdnLogo}
+                  alt="MDN — My Daily Nutrition"
+                  className="absolute left-1/2 top-1/2 h-14 w-auto -translate-x-1/2 -translate-y-1/2 sm:h-16"
+                />
+              </span>
               <p className="mt-3 text-sm leading-relaxed text-mdn-gray">
                 My Daily Nutrition -- clean, tested supplements for every stage of your training.
               </p>
@@ -117,8 +129,8 @@ export default function Footer() {
                 <li><Link to="/support" className="hover:text-mdn-green">Customer Support</Link></li>
                 <li><Link to="/orders" className="hover:text-mdn-green">Track Order</Link></li>
                 <li><a href="#faq" className="hover:text-mdn-green">FAQs</a></li>
-                <li><a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-mdn-green">Contact Us</a></li>
-                <li><a href="#" className="hover:text-mdn-green">Shipping and Returns</a></li>
+                <li><Link to="/support?topic=contact" className="hover:text-mdn-green">Contact Us</Link></li>
+                <li><Link to="/support?topic=shipping" className="hover:text-mdn-green">Shipping and Returns</Link></li>
               </ul>
             </div>
 

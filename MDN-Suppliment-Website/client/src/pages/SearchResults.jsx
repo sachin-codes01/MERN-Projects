@@ -72,9 +72,13 @@ export default function SearchResults() {
         </div>
       )}
 
-      {error && <p className="error">{error}</p>}
       {loading && <p>Searching...</p>}
-      {!loading && products.length === 0 && !error && <p>No products found for "{query}".</p>}
+      {!loading && products.length === 0 && (
+        <div className="mx-auto max-w-lg px-4 py-16 text-center">
+          <p className="text-lg font-semibold text-mdn-white">This product is currently not available.</p>
+          <p className="mt-2 text-sm text-mdn-gray">We will add this soon.</p>
+        </div>
+      )}
 
       <div className="product-grid">
         {products.map((p) => (

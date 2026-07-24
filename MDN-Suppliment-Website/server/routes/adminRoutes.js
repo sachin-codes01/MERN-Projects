@@ -8,6 +8,7 @@ const Category = require("../models/Category");
 const Coupon = require("../models/Coupon");
 const Order = require("../models/Order");
 const User = require("../models/User");
+const SiteSettings = require("../models/SiteSettings");
 
 router.use(isAuth, isAdmin); // every route below is admin-only
 
@@ -177,6 +178,20 @@ router.put("/users/:id/unblock", async (req, res) => {
   const user = await User.findByIdAndUpdate(req.params.id, { isBlocked: false }, { new: true }).select("-password");
   if (!user) return res.status(404).json({ success: false, message: "User not found" });
   res.json({ success: true, data: user });
+});
+
+/* ---------- SITE SETTINGS ---------- */
+router.get("/settings", async (req, res) => {
+  const settings = await SiteSettings.getSingleton();
+  res.json({ success: true, data: settings });
+});
+
+router.put("/settings", async (req, res) => {
+  const { splashCursorEnabled } = req.body;
+  const settings = await SiteSettings.getSingleton();
+  if (splashCursorEnabled !== undefined) settings.splashCursorEnabled = splashCursorEnabled;
+  await settings.save();
+  res.json({ success: true, data: settings });
 });
 
 module.exports = router;

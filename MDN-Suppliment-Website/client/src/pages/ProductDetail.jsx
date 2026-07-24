@@ -35,7 +35,7 @@ export default function ProductDetail() {
       .catch((err) => setError(err.message));
   }, [slug]);
 
-  const currentVariant = product?.variants.find((v) => v._id === selectedVariant);
+  const currentVariant = product?.variants?.find((v) => v._id === selectedVariant);
   const outOfStock = currentVariant && currentVariant.stock <= 0;
 
   const handleAddToCart = async () => {
@@ -71,7 +71,14 @@ export default function ProductDetail() {
     }
   };
 
-  if (error && !product) return <p className="mx-auto max-w-7xl px-4 py-10 text-red-400">{error}</p>;
+  if (error && !product) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-24 text-center">
+        <p className="text-lg font-semibold text-mdn-white">This product is currently not available.</p>
+        <p className="mt-2 text-sm text-mdn-gray">We will add this soon.</p>
+      </div>
+    );
+  }
   if (!product) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -147,7 +154,7 @@ export default function ProductDetail() {
             onChange={(e) => setSelectedVariant(e.target.value)}
             className="input-field mt-2"
           >
-            {product.variants.map((v) => (
+            {(product.variants || []).map((v) => (
               <option key={v._id} value={v._id}>
                 {v.flavor ? `${v.flavor} - ` : ""}
                 {v.weight} - ₹{v.discountPrice || v.price}

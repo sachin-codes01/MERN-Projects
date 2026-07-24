@@ -8,6 +8,7 @@ import SplashCursor from "./SplashCursor";
 import ErrorBoundary from "./ErrorBoundary";
 import { hasWebGLSupport } from "../utils/hasWebGLSupport";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useSettings } from "../context/SettingsContext";
 
 const QUICK_LINKS = [
   { label: "Home", to: "/" },
@@ -17,22 +18,58 @@ const QUICK_LINKS = [
   // Customer Support page instead, per request. Everything else about
   // the navbar is untouched.
   { label: "Customer Support", to: "/support" },
-  { label: "Blogs", to: "/search?q=blog" },
+  { label: "Blogs", to: "/blogs" },
 ];
 
-// Real collection pages on asitisnutrition.com — external, so these
-// render as plain <a> tags below (not react-router Links).
+// In-site collection links (internal routes, react-router Links below —
+// these used to point at asitisnutrition.com by mistake).
+// `image` is left `null` until real category photos exist — drop a URL
+// (or an `import`-ed local asset) into any entry and its card below picks
+// it up automatically; until then it renders the placeholder tile.
 const SHOP_CATEGORIES = [
-  { label: "All Products", href: "https://asitisnutrition.com/collections/as-it-is-one-all-products" },
-  { label: "Whey Protein", href: "https://asitisnutrition.com/collections/asitis-one-whey-protein" },
-  { label: "New Launches", href: "https://asitisnutrition.com/collections/as-i-is-one-new-launch" },
-  { label: "Vegan Protein", href: "https://asitisnutrition.com/collections/as-it-is-one-non-whey" },
-  { label: "Amino Acids", href: "https://asitisnutrition.com/collections/as-it-is-one-amino-acids" },
-  { label: "Peanut Butter", href: "https://asitisnutrition.com/collections/as-it-is-one-peanut-butter" },
-  { label: "Supplements", href: "https://asitisnutrition.com/collections/as-it-is-one-supplements" },
-  { label: "Combos", href: "https://asitisnutrition.com/collections/as-it-is-one-best-sellers" },
-  { label: "Accessories", href: "https://asitisnutrition.com/collections/as-it-is-one-accessories" },
+  { label: "All Products", to: "/products", image: null },
+  { label: "Whey Protein", to: "/search?q=whey%20protein", image: null },
+  { label: "New Launches", to: "/products/section/new_arrival", image: null },
+  { label: "Vegan Protein", to: "/search?q=vegan%20protein", image: null },
+  { label: "Amino Acids", to: "/search?q=amino%20acids", image: null },
+  { label: "Peanut Butter", to: "/search?q=peanut%20butter", image: null },
+  { label: "Supplements", to: "/search?q=supplements", image: null },
+  { label: "Combos", to: "/products/section/fitness_combo", image: null },
+  { label: "Accessories", to: "/search?q=accessories", image: null },
 ];
+
+// The mega-menu header already has a "View All" button, so the card row
+// itself skips the "All Products" entry to avoid showing it twice.
+const SHOP_ROW_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.label !== "All Products");
+
+// Image-first "shop by category" tile used in both the desktop Shop
+// mega-menu and the mobile Shop accordion. Falls back to a soft branded
+// placeholder (no broken-image icon) until a real photo is set on the
+// category above. Name sits below the image (not overlaid on it) — the
+// whole tile is the hover target (`group/card`), so the image box, its
+// border/glow, and the label all respond together.
+function ShopCategoryCard({ label, image }) {
+  return (
+    <div className="group/card flex flex-col items-center gap-1.5 transition-transform duration-200 hover:-translate-y-1">
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-mdn-charcoal2 shadow-sm transition-all duration-200 group-hover/card:border-mdn-green/60 group-hover/card:shadow-green-glow">
+        {image ? (
+          <img
+            src={image}
+            alt={label}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-110"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-mdn-green/20 to-mdn-charcoal2">
+            <PlaceholderBoxIcon className="h-1/3 w-1/3 text-mdn-green/60" />
+          </div>
+        )}
+      </div>
+      <span className="block max-w-full truncate text-center text-[10.5px] font-semibold uppercase tracking-wide text-mdn-white/80 transition-colors duration-200 group-hover/card:text-mdn-green">
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export default function Navbar() {
   const { user, token } = useAuth();
@@ -42,10 +79,17 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const [search, setSearch] = useState("");
+  // Some Google accounts' avatar URLs occasionally fail to load (dead
+  // link, hotlink block, etc). Without this, a failed <img> falls back
+  // to the browser's broken-image glyph + alt text instead of the
+  // letter-avatar badge — this tracks that failure so we can swap in the
+  // fallback ourselves, the same way ProductCard already does for thumbnails.
+  const [avatarBroken, setAvatarBroken] = useState(false);
   // The WebGL fluid-cursor background is heavy enough to make small
   // screens laggy — only mount it from `lg` up, where a mouse cursor
   // actually drives it and there's headroom to render it smoothly.
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { splashCursorEnabled } = useSettings();
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const isAdminUser = ["admin", "superadmin"].includes(user?.role);
@@ -68,11 +112,17 @@ export default function Navbar() {
     setMobileShopOpen(false);
   }, [location.pathname]);
 
+  // Re-attempt the avatar image whenever the logged-in user (or their
+  // avatar URL) changes, instead of staying stuck on the fallback forever.
+  useEffect(() => {
+    setAvatarBroken(false);
+  }, [user?.avatar]);
+
   return (
     <nav className="sticky top-0 z-50 border-b border-white/5 bg-mdn-black/95 backdrop-blur">
       {/* Background WebGL Fluid Canvas */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-     {isDesktop && hasWebGLSupport() && (
+     {splashCursorEnabled && isDesktop && hasWebGLSupport() && (
      <ErrorBoundary>
      <SplashCursor
   DENSITY_DISSIPATION={4.2}   // Evaporates faster so it dissipates like actual smoke puffs
@@ -117,7 +167,20 @@ export default function Navbar() {
 
         {/* Center — logo + tagline underneath */}
         <Link to="/" className="flex flex-col items-center justify-center leading-none">
-          <img src={mdnLogo} alt="MDN — My Daily Nutrition" className="h-8 w-auto sm:h-9" loading="eager" />
+          {/* Reserved box keeps its ORIGINAL footprint (h-8/sm:h-9) so the
+              navbar's row height never changes — the actual <img> is
+              rendered larger and absolutely centered on top of it,
+              overflowing the box visually instead of pushing layout.
+              Footer's logo uses this exact same box + image size so the
+              two stay visually identical. */}
+          <span className="relative block h-8 w-16 sm:h-9 sm:w-20">
+            <img
+              src={mdnLogo}
+              alt="MDN — My Daily Nutrition"
+              loading="eager"
+              className="absolute left-1/2 top-1/2 h-14 w-auto -translate-x-1/2 -translate-y-1/2 sm:h-16"
+            />
+          </span>
           <span className="mt-1 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.22em] text-mdn-gray sm:text-[10px]">
             My Daily Nutrition
           </span>
@@ -160,8 +223,13 @@ export default function Navbar() {
 
           {token ? (
             <Link to="/profile" className="hidden items-center gap-2 text-sm text-mdn-white/90 hover:text-mdn-green sm:flex">
-              {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
+              {user?.avatar && !avatarBroken ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  onError={() => setAvatarBroken(true)}
+                  className="h-7 w-7 rounded-full object-cover"
+                />
               ) : (
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
                   {user?.name?.[0]?.toUpperCase() || "U"}
@@ -207,26 +275,55 @@ export default function Navbar() {
               </svg>
             </button>
 
-            <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
-              <div className="w-52 rounded-lg border border-white/10 bg-mdn-charcoal p-2 shadow-card">
-                {SHOP_CATEGORIES.map((c) => (
-                  <a
-                    key={c.label}
-                    href={c.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-md px-3 py-2 text-sm text-mdn-white/90 transition-colors hover:bg-white/5 hover:text-mdn-green"
-                  >
-                    {c.label}
-                  </a>
-                ))}
-                <div className="mt-1 border-t border-white/10 pt-1">
+            {/* `fixed` (not `absolute`) so the panel centers on the whole
+                viewport instead of under the Shop button, which itself
+                isn't centered in the strip. It still opens/closes correctly
+                off the *same* CSS :hover, because it's a DOM descendant of
+                `.group` — the browser counts hovering it as hovering the
+                group regardless of where it's visually positioned.
+                `top-28` = the navbar's measured 112px height, so the panel
+                sits flush beneath it. */}
+            <div className="invisible fixed left-1/2 top-28 z-50 -translate-x-1/2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+              <div className="w-[92vw] max-w-4xl rounded-2xl border border-white/10 bg-mdn-charcoal/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-sm">
+                <div className="mb-4 flex items-end justify-between gap-4 border-b border-white/10 pb-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-mdn-green">Shop</p>
+                    <h3 className="mt-0.5 text-lg font-bold text-mdn-white">Browse by Category</h3>
+                  </div>
                   <Link
                     to="/products"
-                    className="block rounded-md px-3 py-2 text-sm font-semibold text-mdn-green transition-colors hover:bg-white/5"
+                    className="group/all inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border border-mdn-green/40 px-4 py-1.5 text-xs font-semibold text-mdn-green transition-all duration-200 hover:border-mdn-green hover:bg-mdn-green hover:text-black"
                   >
-                    View All Products →
+                    View All
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.6"
+                      className="transition-transform duration-200 group-hover/all:translate-x-0.5"
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </Link>
+                </div>
+
+                {/* Fixed column count (not fixed-width + scroll) — columns
+                    shrink to fit the panel exactly, so it's always a single
+                    row with no slide/scrollbar, no matter the viewport. No
+                    `overflow-hidden` on this row either, so a card's hover
+                    lift/glow near the edges never gets clipped.
+                    `justify-items-center` + a `max-w` on each card keeps the
+                    tiles a fixed, compact size — without it, a column just
+                    stretches to fill the full panel width, which is what
+                    made cards balloon up on tablet-width viewports. */}
+                <div className="grid grid-cols-8 justify-items-center gap-3">
+                  {SHOP_ROW_CATEGORIES.map((c) => (
+                    <Link key={c.label} to={c.to} className="w-full max-w-[72px]">
+                      <ShopCategoryCard label={c.label} image={c.image} />
+                    </Link>
+                  ))}
                 </div>
               </div>
             </div>
@@ -245,12 +342,23 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer Menu — same grid-template-rows technique as the Shop
+          accordion inside it: the Shop section's height varies (collapsed
+          vs. 3 rows of category cards), so a guessed `max-height` here
+          would either clip when Shop is open or leave dead space when it's
+          not. `1fr` always matches the real content height.
+          The `overflow-hidden` that makes `0fr` actually collapse to zero
+          has to sit on a padding-less wrapper — putting it on the same
+          element as `px-4 py-3` still rendered that padding at height 0
+          (padding isn't "content", so collapsing doesn't remove it), which
+          is what showed as the gap with "Explore" peeking through above
+          the Hero. */}
       <div
-        className={`relative z-10 overflow-hidden border-t border-white/5 bg-mdn-charcoal transition-[max-height] duration-300 ease-in-out md:hidden ${
-          mobileOpen ? "max-h-[42rem]" : "max-h-0"
+        className={`relative z-10 grid overflow-hidden border-t border-white/5 bg-mdn-charcoal transition-[grid-template-rows] duration-300 ease-in-out md:hidden ${
+          mobileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >
+        <div className="min-h-0 overflow-hidden">
         <div className="flex flex-col gap-1 px-4 py-3">
           <p className="mb-1 mt-1 text-[10px] font-semibold uppercase tracking-widest text-mdn-gray">Explore</p>
           {QUICK_LINKS.map((l) => (
@@ -283,23 +391,35 @@ export default function Navbar() {
               <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+          {/* Animates via `grid-template-rows` (0fr -> 1fr) instead of a
+              guessed `max-height` — a fixed max-h cut the 3rd row of cards
+              off (it clipped mid-row, bleeding into the Hero below) because
+              9 cards at this card size run taller than any one guessed
+              number. `1fr` always matches the real content height exactly,
+              so it can't clip no matter how many categories/rows there are. */}
           <div
-            className={`overflow-hidden pl-3 transition-[max-height] duration-300 ease-in-out ${
-              mobileShopOpen ? "max-h-64" : "max-h-0"
+            className={`grid overflow-hidden pl-3 transition-[grid-template-rows] duration-300 ease-in-out ${
+              mobileShopOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
             }`}
           >
-            {SHOP_CATEGORIES.map((c) => (
-              <a
-                key={c.label}
-                href={c.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileOpen(false)}
-                className="block rounded-md px-2 py-2 text-sm text-mdn-gray hover:bg-white/5 hover:text-mdn-green"
-              >
-                {c.label}
-              </a>
-            ))}
+            <div className="min-h-0 overflow-hidden">
+              {/* `auto-fill` with a fixed 76px track — not a rigid
+                  `grid-cols-3` — so the column COUNT adapts to whatever
+                  width the drawer actually has: more columns (fewer rows)
+                  on a wider phone, fewer columns on a narrow one. A fixed
+                  column count either forces 3 rows even when 2 (or 1) would
+                  fit, or stretches cards to fill leftover space; this does
+                  neither — cards stay a fixed size and the row just packs
+                  as many as actually fit, `justify-center` centering
+                  whatever's left over instead of leaving it blank on one side. */}
+              <div className="grid grid-cols-[repeat(auto-fill,64px)] justify-center gap-3 py-2 pr-2">
+                {SHOP_CATEGORIES.map((c) => (
+                  <Link key={c.label} to={c.to} onClick={() => setMobileOpen(false)}>
+                    <ShopCategoryCard label={c.label} image={c.image} />
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
 
           <p className="mb-1 mt-3 text-[10px] font-semibold uppercase tracking-widest text-mdn-gray">Account</p>
@@ -325,8 +445,13 @@ export default function Navbar() {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5"
             >
-              {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-6 w-6 rounded-full object-cover" />
+              {user?.avatar && !avatarBroken ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  onError={() => setAvatarBroken(true)}
+                  className="h-6 w-6 rounded-full object-cover"
+                />
               ) : (
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
                   {user?.name?.[0]?.toUpperCase() || "U"}
@@ -340,6 +465,7 @@ export default function Navbar() {
             </Link>
           )}
         </div>
+        </div>
       </div>
 
       {/* Admin Subnav Panel */}
@@ -350,6 +476,7 @@ export default function Navbar() {
             ["/admin/orders", "Orders"],
             ["/admin/users", "Users"],
             ["/admin/coupons", "Coupons"],
+            ["/admin/settings", "Settings"],
           ].map(([to, label]) => (
             <Link
               key={to}
@@ -395,6 +522,14 @@ function CloseIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+function PlaceholderBoxIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className}>
+      <path d="M3.5 7.5l8.5-4 8.5 4-8.5 4-8.5-4z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 7.5v9l8.5 4M20.5 7.5v9l-8.5 4M12 11.5v9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
@@ -15,18 +15,46 @@ const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=
   WHATSAPP_LINK
 )}`;
 
+// Footer links (Contact Us / Shipping and Returns) both land here via
+// `?topic=`, and each just swaps the eyebrow/heading/intro text below —
+// the contact card and quick-link grid underneath stay the same for
+// every topic, we just point the visitor at the right one.
+const TOPICS = {
+  support: {
+    eyebrow: "We're here for you",
+    title: "Customer Support",
+    intro:
+      "Questions about an order, a product, tracking, or returns? Reach us directly below — real people, real answers.",
+  },
+  contact: {
+    eyebrow: "Get in touch",
+    title: "Contact Us",
+    intro:
+      "Have a question about an order, a product, or anything else? Reach our team directly below — real people, real answers.",
+  },
+  shipping: {
+    eyebrow: "Delivery & returns",
+    title: "Shipping & Returns",
+    intro:
+      "Free shipping over ₹999 with same-day dispatch. Unopened products can be returned within 7 days of delivery — details below, or message us directly.",
+    highlightCard: "Shipping & Returns",
+  },
+};
+
 export default function CustomerSupportPage() {
+  const [searchParams] = useSearchParams();
+  const topic = TOPICS[searchParams.get("topic")] || TOPICS.support;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <p className="text-center text-xs font-semibold uppercase tracking-widest text-mdn-green sm:text-left">
-        We're here for you
+        {topic.eyebrow}
       </p>
       <h1 className="mt-1 text-center font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-left sm:text-3xl">
-        Customer Support
+        {topic.title}
       </h1>
       <p className="mt-3 max-w-2xl text-center text-sm leading-relaxed text-mdn-gray sm:text-left">
-        Questions about an order, a product, tracking, or returns? Reach us directly below — real people,
-        real answers.
+        {topic.intro}
       </p>
 
       {/* Contact card */}
@@ -108,6 +136,7 @@ export default function CustomerSupportPage() {
           Icon={LocalShippingRoundedIcon}
           title="Shipping & Returns"
           body="Free shipping over ₹999. Unopened products can be returned within 7 days of delivery."
+          highlighted={topic.highlightCard === "Shipping & Returns"}
         />
         <InfoCard
           Icon={HelpOutlineRoundedIcon}
@@ -121,9 +150,9 @@ export default function CustomerSupportPage() {
   );
 }
 
-function InfoCard({ Icon, title, body, to, cta }) {
+function InfoCard({ Icon, title, body, to, cta, highlighted }) {
   return (
-    <div className="card p-5">
+    <div className={`card p-5 ${highlighted ? "border-mdn-green/60 ring-1 ring-mdn-green/40" : ""}`}>
       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mdn-green/15 text-mdn-green">
         <Icon sx={{ fontSize: 18 }} />
       </span>

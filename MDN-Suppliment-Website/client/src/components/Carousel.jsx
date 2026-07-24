@@ -44,23 +44,82 @@ export default function Carousel({
   const dragStartX = useRef(0);
   const trackRef = useRef(null);
   const timerRef = useRef(null);
+  const pointerIdRef = useRef(null);
+  const capturedRef = useRef(false);
+
+  // Minimum horizontal travel, in px, before a pointer-down is treated as a
+  // drag rather than a click/tap on a slide.
+  const DRAG_THRESHOLD = 6;
+
+  // Guards against stacking more than one move at a time. Without this,
+  // spamming the arrow (or an autoplay tick landing before the previous
+  // move's wraparound snap has resolved — e.g. after the tab was
+  // backgrounded and a `transitionend` got missed) lets `position` walk
+  // past the extended slide array's real bounds (0..count+1), which
+  // renders as a blank/white frame since nothing is painted there.
+  const isAnimatingRef = useRef(false);
+  const animationLockTimeoutRef = useRef(null);
+
+  const clearAnimationLock = () => {
+    isAnimatingRef.current = false;
+    clearTimeout(animationLockTimeoutRef.current);
+  };
+
+  // Fallback safety net for a `transitionend` that never fires (tab
+  // backgrounded mid-animation, a dropped frame under load, etc). The
+  // normal snap happens in `handleTransitionEnd`; if that never runs,
+  // `position` is left sitting on a clone frame (0 or count+1) with
+  // nothing to reset it — the NEXT move then walks `position` past the
+  // extended array's real bounds and renders a blank frame there (the
+  // exact bug this file's other comments already call out). Scheduled via
+  // setTimeout instead of relying on the closure's `position`, so it
+  // always snaps off whatever the CURRENT value turns out to be — using
+  // the functional form of setPosition rather than the stale value
+  // captured when the timeout was scheduled.
+  const scheduleAnimationLock = () => {
+    animationLockTimeoutRef.current = setTimeout(() => {
+      isAnimatingRef.current = false;
+      setPosition((p) => {
+        if (p === count + 1) {
+          setTransitionOn(false);
+          return 1;
+        }
+        if (p === 0) {
+          setTransitionOn(false);
+          return count;
+        }
+        return p;
+      });
+    }, TRANSITION_MS + 150);
+  };
 
   const realIndex = count > 1 ? (((position - 1) % count) + count) % count : 0;
+  // Hard safety net: even if some other edge case leaves `position`
+  // outside the extended array's valid range, the rendered transform
+  // never reads past it — worst case it holds on the nearest clone frame
+  // instead of sliding into the empty space beyond the last rendered slide.
+  const clampedPosition = Math.min(Math.max(position, 0), count + 1);
 
   const stopAutoplay = () => clearInterval(timerRef.current);
   const startAutoplay = useCallback(() => {
     stopAutoplay();
     if (autoPlay && count > 1) {
       timerRef.current = setInterval(() => {
+        if (isAnimatingRef.current) return; // previous move hasn't settled yet — skip this tick
+        isAnimatingRef.current = true;
         setTransitionOn(true);
         setPosition((p) => p + 1);
+        scheduleAnimationLock();
       }, interval);
     }
   }, [autoPlay, interval, count]);
 
   useEffect(() => {
     startAutoplay();
-    return stopAutoplay;
+    return () => {
+      stopAutoplay();
+      clearTimeout(animationLockTimeoutRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startAutoplay]);
 
@@ -75,6 +134,7 @@ export default function Carousel({
       setTransitionOn(false);
       setPosition(count);
     }
+    clearAnimationLock();
   };
 
   // Two animation frames after a silent snap, switch the transition back
@@ -92,40 +152,62 @@ export default function Carousel({
     };
   }, [transitionOn]);
 
-  const next = () => {
+  // Shared entry point for any move that isn't the raw drag-follow — caps
+  // navigation to one move at a time so `position` can never be pushed
+  // past the extended array's real bounds. `updater` is whatever
+  // `setPosition` would normally take (function or absolute value).
+  const move = (updater) => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setTransitionOn(true);
-    setPosition((p) => p + 1);
+    setPosition(updater);
+    scheduleAnimationLock();
   };
-  const prev = () => {
-    setTransitionOn(true);
-    setPosition((p) => p - 1);
-  };
-  const goTo = (i) => {
-    setTransitionOn(true);
-    setPosition((((i % count) + count) % count) + 1);
-  };
+
+  const next = () => move((p) => p + 1);
+  const prev = () => move((p) => p - 1);
+  const goTo = (i) => move((((i % count) + count) % count) + 1);
 
   const onPointerDown = (e) => {
     if (count <= 1) return;
-    setIsDragging(true);
+    // Deliberately NOT calling setPointerCapture here — see ItemCarousel.jsx
+    // for the full explanation. Capturing on every pointerdown retargets the
+    // click that follows a plain tap (e.g. on a link inside a slide) away
+    // from its real target, silently swallowing it. Capture is deferred to
+    // onPointerMove, once real drag movement crosses DRAG_THRESHOLD.
     dragStartX.current = e.clientX;
+    pointerIdRef.current = e.pointerId;
+    capturedRef.current = false;
     stopAutoplay();
-    trackRef.current?.setPointerCapture?.(e.pointerId);
   };
 
   const onPointerMove = (e) => {
-    if (!isDragging) return;
-    setDragOffset(e.clientX - dragStartX.current);
+    if (pointerIdRef.current === null) return;
+    const totalOffset = e.clientX - dragStartX.current;
+    if (!isDragging) {
+      if (Math.abs(totalOffset) < DRAG_THRESHOLD) return;
+      setIsDragging(true);
+      trackRef.current?.setPointerCapture?.(pointerIdRef.current);
+      capturedRef.current = true;
+    }
+    setDragOffset(totalOffset);
   };
 
-  const endDrag = () => {
-    if (!isDragging) return;
-    const width = trackRef.current?.offsetWidth || 1;
-    const threshold = width * 0.12;
-    if (dragOffset < -threshold) next();
-    else if (dragOffset > threshold) prev();
-    setIsDragging(false);
-    setDragOffset(0);
+  const endDrag = (e) => {
+    if (e && capturedRef.current && trackRef.current?.hasPointerCapture?.(e.pointerId)) {
+      trackRef.current.releasePointerCapture(e.pointerId);
+    }
+    pointerIdRef.current = null;
+    capturedRef.current = false;
+
+    if (isDragging) {
+      const width = trackRef.current?.offsetWidth || 1;
+      const threshold = width * 0.12;
+      if (dragOffset < -threshold) next();
+      else if (dragOffset > threshold) prev();
+      setIsDragging(false);
+      setDragOffset(0);
+    }
     startAutoplay();
   };
 
@@ -160,7 +242,7 @@ export default function Carousel({
           className="flex items-start"
           onTransitionEnd={handleTransitionEnd}
           style={{
-            transform: `translateX(calc(-${position * 100}% + ${dragOffset}px))`,
+            transform: `translateX(calc(-${clampedPosition * 100}% + ${dragOffset}px))`,
             transition:
               isDragging || !transitionOn ? "none" : `transform ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1)`,
           }}

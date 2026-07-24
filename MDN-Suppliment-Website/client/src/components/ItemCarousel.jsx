@@ -35,6 +35,12 @@ export default function ItemCarousel({
   const lastMoveTime = useRef(0);
   const velocityRef = useRef(0);
   const timerRef = useRef(null);
+  const pointerIdRef = useRef(null);
+  const capturedRef = useRef(false);
+
+  // Minimum horizontal travel, in px, before a pointer-down is treated as a
+  // drag rather than a click/tap on a card.
+  const DRAG_THRESHOLD = 6;
 
   const measure = useCallback(() => {
     const track = trackRef.current;
@@ -93,37 +99,62 @@ export default function ItemCarousel({
 
   const onPointerDown = (e) => {
     if (maxIndex <= 0) return;
-    setIsDragging(true);
+    // Deliberately NOT calling setPointerCapture here. Per the Pointer
+    // Events spec, once a pointer is captured, the browser retargets that
+    // pointer's subsequent mouse-compat events — including the `click`
+    // that follows `pointerup` — to the capturing element, regardless of
+    // what's actually under the cursor. Capturing eagerly on every
+    // pointerdown meant a plain tap on a product card (zero movement) had
+    // its click silently retargeted from the <a> to this track div, so
+    // navigation never fired. Capture is deferred to onPointerMove, once
+    // real drag movement crosses DRAG_THRESHOLD — by then it's a genuine
+    // drag, not a click, so there's nothing left to swallow.
     dragStartX.current = e.clientX;
     lastMoveX.current = e.clientX;
     lastMoveTime.current = performance.now();
     velocityRef.current = 0;
+    pointerIdRef.current = e.pointerId;
+    capturedRef.current = false;
     stopAutoplay();
-    trackRef.current?.setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e) => {
-    if (!isDragging) return;
+    if (pointerIdRef.current === null) return;
     const now = performance.now();
     const dt = now - lastMoveTime.current;
     if (dt > 0) velocityRef.current = (e.clientX - lastMoveX.current) / dt; // px/ms
     lastMoveX.current = e.clientX;
     lastMoveTime.current = now;
-    setDragOffset(e.clientX - dragStartX.current);
-  };
-  const endDrag = () => {
-    if (!isDragging) return;
-    // How far you dragged, PLUS a bit of projected travel from how fast
-    // you were moving at release (a quick flick keeps going) — together
-    // these decide how MANY cards to advance, instead of always moving
-    // exactly one no matter how far or fast the swipe was.
-    const flungOffset = dragOffset + velocityRef.current * 160;
-    const minThreshold = stepPx * 0.2;
-    if (Math.abs(flungOffset) > minThreshold) {
-      const steps = Math.max(1, Math.round(Math.abs(flungOffset) / stepPx));
-      goTo(flungOffset < 0 ? index + steps : index - steps);
+
+    const totalOffset = e.clientX - dragStartX.current;
+    if (!isDragging) {
+      if (Math.abs(totalOffset) < DRAG_THRESHOLD) return;
+      setIsDragging(true);
+      trackRef.current?.setPointerCapture?.(pointerIdRef.current);
+      capturedRef.current = true;
     }
-    setIsDragging(false);
-    setDragOffset(0);
+    setDragOffset(totalOffset);
+  };
+  const endDrag = (e) => {
+    if (e && capturedRef.current && trackRef.current?.hasPointerCapture?.(e.pointerId)) {
+      trackRef.current.releasePointerCapture(e.pointerId);
+    }
+    pointerIdRef.current = null;
+    capturedRef.current = false;
+
+    if (isDragging) {
+      // How far you dragged, PLUS a bit of projected travel from how fast
+      // you were moving at release (a quick flick keeps going) — together
+      // these decide how MANY cards to advance, instead of always moving
+      // exactly one no matter how far or fast the swipe was.
+      const flungOffset = dragOffset + velocityRef.current * 160;
+      const minThreshold = stepPx * 0.2;
+      if (Math.abs(flungOffset) > minThreshold) {
+        const steps = Math.max(1, Math.round(Math.abs(flungOffset) / stepPx));
+        goTo(flungOffset < 0 ? index + steps : index - steps);
+      }
+      setIsDragging(false);
+      setDragOffset(0);
+    }
     startAutoplay();
   };
 
