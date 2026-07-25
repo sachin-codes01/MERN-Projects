@@ -103,7 +103,7 @@ export default function App() {
           </Suspense>
         </ErrorBoundary>
       </main>
-      <Footer />
+      {!location.pathname.startsWith("/admin") && <Footer />}
     </div>
   );
 }

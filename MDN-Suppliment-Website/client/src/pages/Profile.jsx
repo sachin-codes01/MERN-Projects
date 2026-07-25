@@ -30,6 +30,15 @@ export default function Profile() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  // Same fix as Navbar.jsx: some Google avatar URLs fail to load, and a
+  // failed <img> falls back to the browser's broken-image glyph + alt
+  // text instead of the letter-avatar badge — this tracks that failure
+  // so we can swap in the fallback ourselves.
+  const [avatarBroken, setAvatarBroken] = useState(false);
+
+  useEffect(() => {
+    setAvatarBroken(false);
+  }, [user?.avatar]);
 
   const loadAddresses = () => {
     setLoading(true);
@@ -154,10 +163,11 @@ export default function Profile() {
 
       {/* User info card */}
       <div className="card mt-6 flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:text-left">
-        {user?.avatar ? (
+        {user?.avatar && !avatarBroken ? (
           <img
             src={user.avatar}
             alt={user.name}
+            onError={() => setAvatarBroken(true)}
             className="h-20 w-20 rounded-full border-2 border-mdn-green/40 object-cover"
           />
         ) : (

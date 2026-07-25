@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import SectionHeading from "./SectionHeading";
 
 const TAGS = ["All", "Muscle", "Taste", "Growth", "Recovery", "Fat Loss", "Digestion"];
 
@@ -61,18 +62,11 @@ export default function ReviewsSection() {
       />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-3 sm:gap-5">
-            <span className="hidden h-px w-14 shrink-0 bg-mdn-green sm:block" />
-            <h2 className="text-3xl font-bold leading-tight text-mdn-white sm:text-4xl">
-              Real People, <span className="text-mdn-green">Real Stories</span>
-            </h2>
-            <span className="hidden h-px w-14 shrink-0 bg-mdn-green sm:block" />
-          </div>
-          <p className="mt-2 text-sm text-mdn-gray sm:text-base">
-            Over 2,00,000+ athletes trust MDN (and counting)
-          </p>
-        </div>
+        <SectionHeading
+          title="Real People,"
+          accent="Real Stories"
+          subtitle="Over 2,00,000+ athletes trust MDN (and counting)"
+        />
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           {TAGS.map((tag) => (

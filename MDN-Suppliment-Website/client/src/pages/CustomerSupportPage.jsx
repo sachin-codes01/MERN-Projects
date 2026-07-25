@@ -5,15 +5,18 @@ import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
+import qrCodeImg from "../assets/QrCode.jpeg";
 
-const WHATSAPP_NUMBER = "+91 98765 43210";
-const WHATSAPP_LINK = "https://wa.me/919876543210";
+const WHATSAPP_NUMBER = "+91 72173 44896";
+// Pre-filled text so a chat landing from the site reads as a website
+// lead, not a cold message — same idea as Footer.jsx's contact links.
+// Instagram has no public "pre-filled DM" link (that's business-API
+// only), so its link below just opens the profile/DM thread as-is.
+const CONTACT_MESSAGE = "Hi MDN! I'm reaching out from your website — I'd like to know more.";
+const WHATSAPP_LINK = `https://wa.me/917217344896?text=${encodeURIComponent(CONTACT_MESSAGE)}`;
 const INSTAGRAM_LINK = "https://www.instagram.com/sachin_28022005?igsh=MTNtY2kzaTlqaDl6cw==";
 const EMAIL = "sachin.codes01@gmail.com";
-
-const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=FFFFFF&color=000000&margin=8&data=${encodeURIComponent(
-  WHATSAPP_LINK
-)}`;
+const EMAIL_LINK = `mailto:${EMAIL}?subject=${encodeURIComponent("Inquiry from MDN Website")}&body=${encodeURIComponent(CONTACT_MESSAGE)}`;
 
 // Footer links (Contact Us / Shipping and Returns) both land here via
 // `?topic=`, and each just swaps the eyebrow/heading/intro text below —
@@ -84,7 +87,7 @@ export default function CustomerSupportPage() {
               </a>
 
               <a
-                href={`mailto:${EMAIL}`}
+                href={EMAIL_LINK}
                 className="flex items-center gap-3 rounded-lg border border-white/10 bg-mdn-charcoal2 px-4 py-3 text-left transition-colors hover:border-mdn-green/50"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mdn-green/15 text-mdn-green">
@@ -115,7 +118,7 @@ export default function CustomerSupportPage() {
 
           <div className="flex flex-col items-center justify-center rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 p-6 text-center">
             <div className="rounded-lg border border-mdn-silver/30 bg-white p-2">
-              <img src={qrSrc} alt="Scan to chat on WhatsApp" className="h-32 w-32 rounded-md sm:h-44 sm:w-44" />
+              <img src={qrCodeImg} alt="Scan to chat on WhatsApp" className="h-32 w-32 rounded-md object-contain sm:h-44 sm:w-44" />
             </div>
             <p className="mt-4 text-sm font-semibold text-mdn-white">Scan to chat on WhatsApp</p>
             <p className="mt-1 text-xs text-mdn-gray">Fastest way to reach our team</p>

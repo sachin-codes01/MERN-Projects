@@ -1,5 +1,18 @@
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
+// Session expired/invalid on the server (401) while we sent a token —
+// force a clean logout instead of leaving the UI stuck on a broken
+// session. Only fires when a token was actually sent, so a 401 on a
+// public/unauthenticated call (e.g. a failed login attempt) doesn't
+// wipe anything. Full reload to "/" so every bit of in-memory auth
+// state (AuthContext, etc) resets from localStorage on the next mount.
+function handleExpiredSession(token, status) {
+  if (!token || status !== 401) return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  if (window.location.pathname !== "/") window.location.href = "/";
+}
+
 async function request(path, { method = "GET", body, token } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -9,6 +22,8 @@ async function request(path, { method = "GET", body, token } = {}) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  handleExpiredSession(token, res.status);
 
   let data;
   try {
@@ -33,6 +48,8 @@ async function uploadFile(path, file, token) {
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
+
+  handleExpiredSession(token, res.status);
 
   let data;
   try {

@@ -12,11 +12,28 @@ import { useSettings } from "../context/SettingsContext";
 
 const CONTACT_EMAIL = "sachin.codes01@gmail.com";
 
+// Pre-filled on WhatsApp/email so a message that lands from the site is
+// immediately recognizable as a lead from here rather than a cold
+// contact. Instagram has no equivalent public "pre-filled DM" link — its
+// API only allows that for approved business integrations — so its link
+// below just opens the profile/DM thread as-is.
+const CONTACT_MESSAGE = "Hi MDN! I'm reaching out from your website — I'd like to know more.";
+
 const FOOTER_SOCIALS = [
-  { name: "WhatsApp", href: "https://wa.me/919876543210", Icon: WhatsAppIcon, hoverColor: "#25D366" },
+  {
+    name: "WhatsApp",
+    href: `https://wa.me/917217344896?text=${encodeURIComponent(CONTACT_MESSAGE)}`,
+    Icon: WhatsAppIcon,
+    hoverColor: "#25D366",
+  },
   { name: "Instagram", href: "https://www.instagram.com/sachin_28022005?igsh=MTNtY2kzaTlqaDl6cw==", Icon: InstagramIcon, hoverColor: "#E1306C" },
   { name: "Facebook", href: "https://facebook.com/mdn.nutrition", Icon: FacebookIcon, hoverColor: "#1877F2" },
-  { name: "Email", href: `mailto:${CONTACT_EMAIL}`, Icon: EmailIcon, hoverColor: "#22B14C" },
+  {
+    name: "Email",
+    href: `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Inquiry from MDN Website")}&body=${encodeURIComponent(CONTACT_MESSAGE)}`,
+    Icon: EmailIcon,
+    hoverColor: "#22B14C",
+  },
 ];
 
 const TICKER_ITEMS = [
@@ -35,7 +52,7 @@ export default function Footer() {
   const { splashCursorEnabled } = useSettings();
 
   return (
-    <footer className="relative mt-10 w-full overflow-hidden bg-mdn-black">
+    <footer id="site-footer" className="relative mt-10 w-full overflow-hidden bg-mdn-black">
       {/* Background WebGL Fluid Canvas (z-0) */}
       <div className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-hidden">
         {splashCursorEnabled && isDesktop && hasWebGLSupport() && (
@@ -135,12 +152,25 @@ export default function Footer() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-mdn-white">Newsletter</h4>
-              <p className="mt-3 text-sm text-mdn-gray">Get restock alerts and training tips.</p>
-              <form className="mt-3 flex gap-2" onSubmit={(e) => e.preventDefault()}>
-                <input type="email" placeholder="you@email.com" className="input-field !py-2 text-sm" />
-                <button className="btn-primary !px-4 !py-2 text-sm">Join</button>
-              </form>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-mdn-white">Get in Touch</h4>
+              <ul className="mt-3 space-y-2 text-sm text-mdn-gray">
+                <li>
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-mdn-green">
+                    {CONTACT_EMAIL}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={FOOTER_SOCIALS[0].href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-mdn-green"
+                  >
+                    WhatsApp: +91 72173 44896
+                  </a>
+                </li>
+                <li className="text-mdn-gray/80">Mon–Sat, 10am–7pm IST</li>
+              </ul>
             </div>
           </div>
 

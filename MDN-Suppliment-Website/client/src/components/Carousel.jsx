@@ -19,6 +19,7 @@ export default function Carousel({
   interval = 4000,
   showArrows = true,
   showDots = true,
+  dotsPosition = "below", // "below" (default, adds space under the track) | "overlay" (floats over the bottom of the slide)
   pauseOnHover = true,
   className = "",
   slideClassName = "",
@@ -222,7 +223,7 @@ export default function Carousel({
           to exactly the slide area — not the slide area + dots below. */}
       <div
         ref={trackRef}
-        className="relative overflow-hidden"
+        className="relative h-full overflow-hidden"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -239,7 +240,7 @@ export default function Carousel({
         }}
       >
         <div
-          className="flex items-start"
+          className="flex h-full items-start"
           onTransitionEnd={handleTransitionEnd}
           style={{
             transform: `translateX(calc(-${clampedPosition * 100}% + ${dragOffset}px))`,
@@ -248,7 +249,7 @@ export default function Carousel({
           }}
         >
           {extended.map((slide, i) => (
-            <div key={i} className={`w-full flex-shrink-0 ${slideClassName}`}>
+            <div key={i} className={`h-full w-full flex-shrink-0 ${slideClassName}`}>
               {slide}
             </div>
           ))}
@@ -275,7 +276,13 @@ export default function Carousel({
       </div>
 
       {showDots && count > 1 && (
-        <div className="mt-5 flex justify-center gap-2">
+        <div
+          className={
+            dotsPosition === "overlay"
+              ? "absolute inset-x-0 bottom-3 z-20 flex justify-center gap-1.5 drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]"
+              : "mt-5 flex justify-center gap-2"
+          }
+        >
           {slides.map((_, i) => (
             <button
               key={i}
@@ -285,9 +292,15 @@ export default function Carousel({
                 startAutoplay();
               }}
               aria-label={`Go to slide ${i + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                i === realIndex ? "w-6 bg-mdn-green" : "w-2 bg-white/25 hover:bg-white/45"
-              }`}
+              className={
+                dotsPosition === "overlay"
+                  ? `h-1 rounded-full transition-all duration-300 ${
+                      i === realIndex ? "w-4 bg-mdn-green" : "w-1 bg-white/60 hover:bg-white/85"
+                    }`
+                  : `h-2 rounded-full transition-all duration-300 ${
+                      i === realIndex ? "w-6 bg-mdn-green" : "w-2 bg-white/25 hover:bg-white/45"
+                    }`
+              }
             />
           ))}
         </div>

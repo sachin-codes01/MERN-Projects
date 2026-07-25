@@ -3,8 +3,8 @@ import img1Mobile from "../assets/343×224px.png";
 import img1Tablet from "../assets/592×288px.png";
 import img1Desktop from "../assets/315×464px.png";
 import img2 from "../assets/Artboard_3onecards_1.png";
-import img3 from "../assets/Artboard_4onecards_1.avif";
-import img4 from "../assets/Artboard_5onecards.avif";
+import img3 from "../assets/Artboard_4onecards_1.jpg";
+import img4 from "../assets/Artboard_5onecards.jpg";
 import img5 from "../assets/Artboard_6onecards_1.png";
 
 const TILE_CLASS =
@@ -34,7 +34,7 @@ export default function WhyOne() {
           {/* object-fill stretches each crop to the box's exact
               dimensions — whole poster visible, no cropping, and no side
               gaps either. */}
-          <picture>
+          <picture className="block h-full w-full">
             <source media="(min-width: 1024px)" srcSet={img1Desktop} />
             <source media="(min-width: 640px)" srcSet={img1Tablet} />
             <img

@@ -10,6 +10,14 @@ const variantSchema = new mongoose.Schema(
     stock: { type: Number, required: true, default: 0 },
     sku: { type: String, required: true, unique: true },
     images: [{ type: String }],
+    flavorImage: { type: String }, // swatch photo for the flavor picker; reuse the same URL across weights of the same flavor
+    servings: { type: Number }, // optional — powers "N servings" + per-serving price on the weight/pack cards
+    supplyLabel: { type: String }, // optional free text, e.g. "2-month supply"
+    // Added on top of `price`/`discountPrice` to get this variant's final,
+    // customer-facing price (e.g. base 500 + 50 for Chocolate = 550).
+    // Lets flavors cost more without re-entering the full price per
+    // weight/flavor combo — only the delta needs setting.
+    flavorPriceAdjustment: { type: Number, default: 0 },
   },
   { _id: true }
 );
@@ -86,9 +94,12 @@ const productSchema = new mongoose.Schema(
     ingredients: { type: String }, // full ingredient list text
     directionsOfUse: { type: String },
     warnings: { type: String },
+    whoIsThisFor: { type: String }, // PDP "Who is this for?" accordion content
 
     thumbnail: { type: String, required: true },
     images: [{ type: String }],
+    posterTop: { type: String }, // PDP bottom promo block — full-width, shorter poster
+    posterBottom: { type: String }, // PDP bottom promo block — bigger poster
 
     ratingsAverage: { type: Number, default: 0, min: 0, max: 5 },
     ratingsCount: { type: Number, default: 0 },

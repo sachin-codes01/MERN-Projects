@@ -113,17 +113,62 @@ export default function Cart() {
       </h2>
 
       <div className="mt-6 space-y-3">
-        {cart.items.map((item) => (
-          <div
-            key={item.variantId}
-            className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4"
-          >
-            <p className="flex-1 text-sm font-medium text-mdn-white">
-              {item.product?.name || item.name || "Product"}
-            </p>
+        {cart.items.map((item) => {
+          // Logged-in carts only populate `product` (name/thumbnail/slug/
+          // variants/brand) — the specific flavor/weight has to be looked
+          // up from the variant matching this line item. Guest carts
+          // instead carry a denormalized snapshot (name/image/flavor/
+          // weight/brand) taken at the moment the item was added, since
+          // there's no live product join for a logged-out cart.
+          const variant = item.product?.variants?.find((v) => String(v._id) === String(item.variantId));
+          const name = item.product?.name || item.name || "Product";
+          const brand = item.product?.brand || item.brand;
+          const image = variant?.flavorImage || item.product?.thumbnail || item.image;
+          const flavor = variant?.flavor || item.flavor;
+          const weight = variant?.weight || item.weight;
+          const slug = item.product?.slug || item.slug;
 
-            <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
-              {/* Quantity stepper */}
+          return (
+          <div key={item.variantId} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+            {/* Image + text always sit side by side, even on mobile —
+                only the stepper/price/remove group below moves from its
+                own full-width row (mobile) to inline on the right
+                (desktop). Previously image and text were separate flex
+                items in a column on mobile, which is not what this
+                needed to look like. */}
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <Link to={slug ? `/products/${slug}` : "#"} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-mdn-charcoal2">
+                {image && (
+                  <img
+                    src={image}
+                    alt={name}
+                    onError={(e) => (e.target.style.display = "none")}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </Link>
+
+              <div className="min-w-0">
+                {brand && <p className="text-xs font-semibold uppercase tracking-wide text-mdn-green">{brand}</p>}
+                <Link
+                  to={slug ? `/products/${slug}` : "#"}
+                  className="line-clamp-1 text-sm font-medium text-mdn-white transition-colors hover:text-mdn-green"
+                >
+                  {name}
+                </Link>
+                {(flavor || weight) && (
+                  <p className="mt-0.5 truncate text-xs text-mdn-gray">{[flavor, weight].filter(Boolean).join(" · ")}</p>
+                )}
+                <p className="mt-1 font-mono text-xs text-mdn-gray">₹{item.priceAtAddition} each</p>
+              </div>
+            </div>
+
+            {/* justify-between spreads these across the full card width on
+                mobile instead of leaving a big empty gap in the middle;
+                sm:justify-end pulls them into a tight right-aligned
+                group once there's a row's worth of space to share with
+                the image+text block instead. */}
+            <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4 sm:justify-end sm:gap-6 sm:border-t-0 sm:pt-0">
               <div className="flex shrink-0 items-center rounded-lg border border-white/10 bg-mdn-charcoal2">
                 <button
                   type="button"
@@ -147,7 +192,7 @@ export default function Cart() {
                 </button>
               </div>
 
-              <p className="w-20 shrink-0 text-right font-mono font-bold text-mdn-green">
+              <p className="shrink-0 text-right font-mono text-base font-bold text-mdn-green">
                 ₹{item.priceAtAddition * item.quantity}
               </p>
               <button
@@ -158,7 +203,8 @@ export default function Cart() {
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6 flex flex-col items-center gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">

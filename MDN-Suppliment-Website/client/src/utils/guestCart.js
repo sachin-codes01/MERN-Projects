@@ -21,13 +21,13 @@ export const guestCart = {
     return { items, subtotal, discount: 0, total: subtotal, couponApplied: null };
   },
 
-  addItem: ({ productId, variantId, quantity = 1, name, image, price, slug, stock }) => {
+  addItem: ({ productId, variantId, quantity = 1, name, image, price, slug, stock, flavor, weight, brand }) => {
     const items = readCart();
     const existing = items.find((i) => i.productId === productId && i.variantId === variantId);
     if (existing) {
       existing.quantity += quantity;
     } else {
-      items.push({ productId, variantId, quantity, name, image, priceAtAddition: price, slug, stock });
+      items.push({ productId, variantId, quantity, name, image, priceAtAddition: price, slug, stock, flavor, weight, brand });
     }
     writeCart(items);
     return items;

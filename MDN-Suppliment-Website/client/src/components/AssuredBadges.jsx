@@ -1,6 +1,6 @@
 import Carousel from "./Carousel";
 import SectionHeading from "./SectionHeading";
-import badgeImg from "../assets/Trustifies_1.webp";
+import badgeImg from "../assets/Trustifies_1.jpg";
 
 const BADGE_LABELS = [
   "Trustified",

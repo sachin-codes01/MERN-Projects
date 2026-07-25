@@ -10,6 +10,10 @@ const emptyVariant = {
   discountPrice: "",
   stock: "",
   sku: "",
+  servings: "",
+  supplyLabel: "",
+  flavorImage: "",
+  flavorPriceAdjustment: "",
 };
 
 const emptyForm = {
@@ -21,6 +25,12 @@ const emptyForm = {
   productType: "",
   sections: [],
   variants: [{ ...emptyVariant }],
+  images: [],
+  ingredients: "",
+  directionsOfUse: "",
+  whoIsThisFor: "",
+  posterTop: "",
+  posterBottom: "",
 };
 
 export default function AdminProducts() {
@@ -108,6 +118,64 @@ export default function AdminProducts() {
     }
   };
 
+  // Gallery images shown in the PDP swipeable carousel — multi-file, uploads
+  // each to Cloudinary and appends the URL.
+  const handleGalleryUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    try {
+      setUploading(true);
+      const uploaded = await Promise.all(files.map((f) => api.uploadImage(token, f)));
+      setForm((f) => ({ ...f, images: [...f.images, ...uploaded.map((u) => u.url)] }));
+    } catch (err) {
+      toastError("Image upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeGalleryImage = (index) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  };
+
+  // Per-variant flavor swatch photo — reuse the same image across every
+  // weight of the same flavor rather than re-uploading it each time.
+  const handleVariantImageUpload = async (index, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const { url } = await api.uploadImage(token, file);
+      setForm((f) => {
+        const variants = [...f.variants];
+        variants[index] = { ...variants[index], flavorImage: url };
+        return { ...f, variants };
+      });
+    } catch (err) {
+      toastError("Image upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  // PDP bottom promo posters (posterTop / posterBottom) — single image each.
+  const handlePosterUpload = async (field, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const { url } = await api.uploadImage(token, file);
+      setForm((f) => ({ ...f, [field]: url }));
+    } catch (err) {
+      toastError("Image upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
   const handleCreateCategory = async (e) => {
     e.preventDefault();
     setError("");
@@ -140,6 +208,10 @@ export default function AdminProducts() {
           discountPrice: v.discountPrice ?? "",
           stock: v.stock ?? "",
           sku: v.sku || "",
+          servings: v.servings ?? "",
+          supplyLabel: v.supplyLabel || "",
+          flavorImage: v.flavorImage || "",
+          flavorPriceAdjustment: v.flavorPriceAdjustment ?? "",
         }))
       : [{ ...emptyVariant }];
 
@@ -152,6 +224,12 @@ export default function AdminProducts() {
       productType: product.productType || "",
       sections: product.sections || [],
       variants,
+      images: product.images || [],
+      ingredients: product.ingredients || "",
+      directionsOfUse: product.directionsOfUse || "",
+      whoIsThisFor: product.whoIsThisFor || "",
+      posterTop: product.posterTop || "",
+      posterBottom: product.posterBottom || "",
     });
     setThumbnailUrl(product.thumbnail || "");
     setThumbnailPreview(product.thumbnail || "");
@@ -169,6 +247,12 @@ export default function AdminProducts() {
     category: form.category,
     productType: form.productType,
     thumbnail: thumbnailUrl, // ab Cloudinary URL jayega, base64 nahi
+    images: form.images,
+    ingredients: form.ingredients,
+    directionsOfUse: form.directionsOfUse,
+    whoIsThisFor: form.whoIsThisFor,
+    posterTop: form.posterTop,
+    posterBottom: form.posterBottom,
     sections: form.sections,
     variants: form.variants.map((v) => ({
       flavor: v.flavor,
@@ -177,6 +261,10 @@ export default function AdminProducts() {
       discountPrice: v.discountPrice ? Number(v.discountPrice) : undefined,
       stock: Number(v.stock),
       sku: v.sku,
+      servings: v.servings ? Number(v.servings) : undefined,
+      supplyLabel: v.supplyLabel,
+      flavorImage: v.flavorImage,
+      flavorPriceAdjustment: v.flavorPriceAdjustment ? Number(v.flavorPriceAdjustment) : 0,
     })),
   });
 
@@ -249,7 +337,7 @@ export default function AdminProducts() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <p className="text-center text-xs font-semibold uppercase tracking-widest text-mdn-green sm:text-left">
         Admin Panel
       </p>
@@ -348,6 +436,79 @@ export default function AdminProducts() {
             {uploading && <p className="mt-1 text-xs text-mdn-gray">Uploading to Cloudinary…</p>}
           </div>
 
+          <div>
+            <label className="mb-2 block text-sm font-medium text-mdn-white">
+              Gallery images <span className="text-mdn-gray">(shown as a swipeable carousel on the product page)</span>
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleGalleryUpload}
+              className="input-field w-full sm:w-auto"
+            />
+            {form.images.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-3">
+                {form.images.map((url, i) => (
+                  <div key={i} className="relative h-20 w-20 shrink-0">
+                    <img src={url} alt={`Gallery ${i + 1}`} className="h-20 w-20 rounded-lg border border-white/10 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryImage(i)}
+                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+                      aria-label="Remove image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-mdn-white">Top poster</label>
+            <div className="flex flex-col items-center gap-4 sm:flex-row">
+              <input type="file" accept="image/*" onChange={(e) => handlePosterUpload("posterTop", e)} className="input-field w-full sm:w-auto" />
+              {form.posterTop && <img src={form.posterTop} alt="Top poster preview" className="h-16 w-28 rounded-lg border border-white/10 object-cover" />}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-mdn-white">Bottom poster</label>
+            <div className="flex flex-col items-center gap-4 sm:flex-row">
+              <input type="file" accept="image/*" onChange={(e) => handlePosterUpload("posterBottom", e)} className="input-field w-full sm:w-auto" />
+              {form.posterBottom && <img src={form.posterBottom} alt="Bottom poster preview" className="h-16 w-28 rounded-lg border border-white/10 object-cover" />}
+            </div>
+          </div>
+
+          <textarea
+            name="ingredients"
+            placeholder="Ingredients (optional)"
+            value={form.ingredients}
+            onChange={handleFormChange}
+            rows={3}
+            className="input-field w-full resize-y"
+          />
+
+          <textarea
+            name="directionsOfUse"
+            placeholder="How to use? (optional)"
+            value={form.directionsOfUse}
+            onChange={handleFormChange}
+            rows={3}
+            className="input-field w-full resize-y"
+          />
+
+          <textarea
+            name="whoIsThisFor"
+            placeholder="Who is this for? (optional)"
+            value={form.whoIsThisFor}
+            onChange={handleFormChange}
+            rows={3}
+            className="input-field w-full resize-y"
+          />
+
           {/* ---------- Variants ---------- */}
           <div>
             <div className="flex items-center justify-between">
@@ -428,6 +589,21 @@ export default function AdminProducts() {
                     />
                   </div>
 
+                  <div className="mt-4">
+                    <label className="mb-1 block text-xs text-mdn-gray">
+                      Price increase for this flavor (optional) — added on top of the price above, e.g. price 500
+                      + 50 here = 550 charged when a customer picks this flavor
+                    </label>
+                    <input
+                      name="flavorPriceAdjustment"
+                      type="number"
+                      placeholder="e.g. 50 (leave blank or 0 for no change)"
+                      value={v.flavorPriceAdjustment}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      className="input-field w-full sm:w-1/3"
+                    />
+                  </div>
+
                   <input
                     name="sku"
                     placeholder="SKU (unique code)"
@@ -436,6 +612,41 @@ export default function AdminProducts() {
                     required
                     className="input-field mt-4 w-full"
                   />
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <input
+                      name="servings"
+                      type="number"
+                      placeholder="Servings (optional)"
+                      value={v.servings}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      className="input-field"
+                    />
+                    <input
+                      name="supplyLabel"
+                      placeholder="Supply label (e.g. 2-month supply)"
+                      value={v.supplyLabel}
+                      onChange={(e) => handleVariantChange(i, e)}
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-1 block text-xs text-mdn-gray">
+                      Flavor photo — reuse the same image across every weight of this flavor
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleVariantImageUpload(i, e)}
+                        className="input-field w-full sm:w-auto"
+                      />
+                      {v.flavorImage && (
+                        <img src={v.flavorImage} alt="Flavor preview" className="h-12 w-12 shrink-0 rounded-lg border border-white/10 object-cover" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

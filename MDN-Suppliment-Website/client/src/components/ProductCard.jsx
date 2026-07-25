@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCartBadge } from "../context/CartBadgeContext";
 import { useToast } from "../context/ToastContext";
 import { guestCart } from "../utils/guestCart";
+import { getVariantPrice } from "../utils/pricing";
 
 // Deterministic per-product rating (4.00–4.89) used only when the product
 // itself doesn't carry a real `rating` field yet. No fabricated review
@@ -49,7 +50,7 @@ export default function ProductCard({ product }) {
 
   const rating = product.rating ?? pseudoRating(product.name || product._id || "");
   const showFrom = (product.variants?.length || 0) > 1;
-  const displayPrice = variant?.discountPrice || variant?.price;
+  const { price, discountPrice, effectivePrice } = getVariantPrice(variant);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -71,10 +72,13 @@ export default function ProductCard({ product }) {
           variantId: variant._id,
           quantity: 1,
           name: product.name,
-          image: product.thumbnail,
-          price: variant.discountPrice || variant.price,
+          image: variant.flavorImage || product.thumbnail,
+          price: effectivePrice,
           slug: product.slug,
           stock: variant.stock,
+          flavor: variant.flavor,
+          weight: variant.weight,
+          brand: product.brand,
         });
       }
       markNewItem();
@@ -121,10 +125,8 @@ export default function ProductCard({ product }) {
         {variant && (
           <p className="mt-1.5 font-mono text-sm font-bold text-mdn-green">
             {showFrom && <span className="mr-1 text-xs font-medium text-mdn-gray">From</span>}
-            ₹{displayPrice}
-            {variant.discountPrice && (
-              <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{variant.price}</span>
-            )}
+            ₹{effectivePrice}
+            {discountPrice && <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{price}</span>}
           </p>
         )}
 

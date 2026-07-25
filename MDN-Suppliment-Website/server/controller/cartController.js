@@ -30,7 +30,7 @@ const calcCartTotals = async (cart) => {
 // GET /api/cart
 exports.getCart = async (req, res) => {
   try {
-    let cart = await Cart.findOne({ user: req.user._id }).populate("items.product", "name thumbnail slug");
+    let cart = await Cart.findOne({ user: req.user._id }).populate("items.product", "name thumbnail slug variants brand");
     if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
 
     const totals = await calcCartTotals(cart);
@@ -66,11 +66,15 @@ exports.addItem = async (req, res) => {
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
+      // Flavor can add a per-variant surcharge on top of the base pack
+      // price (e.g. base 500 + 50 for Chocolate = 550) — see
+      // variantSchema.flavorPriceAdjustment in models/Product.js.
+      const basePrice = variant.discountPrice || variant.price;
       cart.items.push({
         product: productId,
         variantId,
         quantity,
-        priceAtAddition: variant.discountPrice || variant.price,
+        priceAtAddition: basePrice + (variant.flavorPriceAdjustment || 0),
       });
     }
 
