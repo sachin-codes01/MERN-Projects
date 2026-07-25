@@ -1,8 +1,9 @@
 // One-off, idempotent script: seeds a handful of realistic Hindi-English
 // mixed demo reviews onto every active product that doesn't have any yet,
-// so the new ProductReviews section isn't empty while there's no
-// "write a review" UI in the app yet. Safe to re-run — products that
-// already have reviews are skipped.
+// so the ProductReviews section isn't empty for freshly-added products.
+// Safe to re-run — any product with existing reviews (demo OR a genuine
+// one a customer wrote via the product page) is skipped entirely, never
+// overwritten.
 //
 // Usage: npm run seed:reviews  (from server/)
 require("dotenv").config();
@@ -84,16 +85,14 @@ async function run() {
   await connectDB();
   const reviewers = await upsertReviewers();
 
-  const products = await Product.find({ isActive: true });
+  // Only products with zero reviews so far — never touches a product a
+  // customer has already reviewed (demo or real).
+  const products = await Product.find({ isActive: true, $or: [{ reviews: { $exists: false } }, { reviews: { $size: 0 } }] });
 
   for (const product of products) {
     const shuffledPool = [...REVIEW_POOL].sort(() => Math.random() - 0.5);
     const shuffledReviewers = [...reviewers].sort(() => Math.random() - 0.5);
 
-    // These are all demo/seed reviews (there's no "write a review" UI
-    // yet, so nothing real can exist here) — replace wholesale each run
-    // rather than appending, so re-running stays at exactly 24 instead
-    // of growing unbounded.
     product.reviews = shuffledPool.map((review, i) => {
       const createdAt = randomPastDate();
       return {

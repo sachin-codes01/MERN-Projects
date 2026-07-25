@@ -43,6 +43,24 @@ app.use("/api/settings", settingsRoutes);
 
 app.get("/", (req, res) => res.send("Supplement Store API running"));
 
+// Unmatched /api/* routes — without this Express falls through to its
+// default HTML 404 page, which breaks client/src/api/api.js's `res.json()`
+// parse (it always expects the {success, message} JSON shape).
+app.use("/api", (req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// Catch-all error handler — must be registered last (4 args is how Express
+// recognizes an error middleware). Without this, an error thrown outside a
+// controller's own try/catch (e.g. a sync throw, a rejected promise in
+// middleware) falls through to Express's default HTML error page instead
+// of the JSON shape the frontend expects.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ success: false, message: err.message || "Internal server error" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {

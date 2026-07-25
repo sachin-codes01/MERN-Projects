@@ -9,11 +9,44 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 function handleExpiredSession(token, status) {
   if (!token || status !== 401) return;
   localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
   if (window.location.pathname !== "/") window.location.href = "/";
 }
 
-async function request(path, { method = "GET", body, token } = {}) {
+// Access tokens expire after 15 minutes. Rather than hard-logging the user
+// out at that point, trade the stored refresh token for a new access token
+// once and let the original call transparently retry. Concurrent 401s
+// share one in-flight refresh instead of each firing their own.
+let refreshPromise = null;
+async function refreshAccessToken() {
+  const storedRefreshToken = localStorage.getItem("refreshToken");
+  if (!storedRefreshToken) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: storedRefreshToken }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.success || !data.accessToken) return null;
+        localStorage.setItem("token", data.accessToken);
+        // Lets AuthContext (which holds its own token state, set once at
+        // login) pick up the rotated token without a full page reload.
+        window.dispatchEvent(new CustomEvent("auth:token-refreshed", { detail: data.accessToken }));
+        return data.accessToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+async function request(path, { method = "GET", body, token, _retried = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -22,6 +55,11 @@ async function request(path, { method = "GET", body, token } = {}) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  if (res.status === 401 && token && !_retried) {
+    const newToken = await refreshAccessToken();
+    if (newToken) return request(path, { method, body, token: newToken, _retried: true });
+  }
 
   handleExpiredSession(token, res.status);
 
@@ -39,7 +77,7 @@ async function request(path, { method = "GET", body, token } = {}) {
 }
 
 // File upload ke liye alag helper — FormData bhejta hai, JSON nahi.
-async function uploadFile(path, file, token) {
+async function uploadFile(path, file, token, _retried = false) {
   const formData = new FormData();
   formData.append("image", file);
 
@@ -48,6 +86,11 @@ async function uploadFile(path, file, token) {
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
+
+  if (res.status === 401 && token && !_retried) {
+    const newToken = await refreshAccessToken();
+    if (newToken) return uploadFile(path, file, newToken, true);
+  }
 
   handleExpiredSession(token, res.status);
 
@@ -68,6 +111,7 @@ export const api = {
   // ---------- AUTH (Google OAuth) ----------
   googleLogin: (credential) => request("/auth/google", { method: "POST", body: { credential } }),
   getMe: (token) => request("/auth/me", { token }),
+  logout: (token) => request("/auth/logout", { method: "POST", token }),
 
   // ---------- PRODUCTS ----------
   getProducts: (params = {}) => {
@@ -81,10 +125,10 @@ export const api = {
   // ---------- CART ----------
   getCart: (token) => request("/cart", { token }),
   addToCart: (token, payload) => request("/cart/items", { method: "POST", body: payload, token }),
-  updateCartItem: (token, variantId, quantity) =>
-    request(`/cart/items/${variantId}`, { method: "PUT", body: { quantity }, token }),
-  removeCartItem: (token, variantId) =>
-    request(`/cart/items/${variantId}`, { method: "DELETE", token }),
+  updateCartItem: (token, itemId, quantity) =>
+    request(`/cart/items/${itemId}`, { method: "PUT", body: { quantity }, token }),
+  removeCartItem: (token, itemId) =>
+    request(`/cart/items/${itemId}`, { method: "DELETE", token }),
 
   applyCoupon: (token, code) =>
     request("/cart/coupon", { method: "POST", body: { code }, token }),

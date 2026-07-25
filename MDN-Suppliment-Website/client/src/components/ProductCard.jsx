@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCartBadge } from "../context/CartBadgeContext";
 import { useToast } from "../context/ToastContext";
 import { guestCart } from "../utils/guestCart";
-import { getVariantPrice } from "../utils/pricing";
+import { getSizePrice } from "../utils/pricing";
 
 // Deterministic per-product rating (4.00–4.89) used only when the product
 // itself doesn't carry a real `rating` field yet. No fabricated review
@@ -39,8 +39,12 @@ function Stars({ rating }) {
 }
 
 export default function ProductCard({ product }) {
-  const variant = product.variants?.[0];
-  const outOfStock = !variant || variant.stock <= 0;
+  const size = product.sizes?.[0];
+  // Quick add-to-cart from the listing card has no size/flavor picker, so
+  // it defaults to the first of each — same convention as which one shows
+  // first on the product detail page.
+  const flavor = product.flavors?.[0] || null;
+  const outOfStock = !size || size.stock <= 0;
   const { token } = useAuth();
   const { markNewItem } = useCartBadge();
   const { success, error: toastError } = useToast();
@@ -48,9 +52,13 @@ export default function ProductCard({ product }) {
   const [error, setError] = useState("");
   const [justAdded, setJustAdded] = useState(false);
 
-  const rating = product.rating ?? pseudoRating(product.name || product._id || "");
-  const showFrom = (product.variants?.length || 0) > 1;
-  const { price, discountPrice, effectivePrice } = getVariantPrice(variant);
+  // Product schema stores ratingsAverage/ratingsCount (there's no `rating`
+  // field) — use the real average once the product has reviews, otherwise
+  // fall back to the deterministic placeholder.
+  const rating =
+    product.ratingsCount > 0 ? product.ratingsAverage : pseudoRating(product.name || product._id || "");
+  const showFrom = (product.sizes?.length || 0) > 1;
+  const { price, discountPrice, effectivePrice } = getSizePrice(size, flavor?.priceAdjustment || 0);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -63,21 +71,23 @@ export default function ProductCard({ product }) {
       if (token) {
         await api.addToCart(token, {
           productId: product._id,
-          variantId: variant._id,
+          sizeId: size._id,
+          flavorId: flavor?._id || null,
           quantity: 1,
         });
       } else {
         guestCart.addItem({
           productId: product._id,
-          variantId: variant._id,
+          sizeId: size._id,
+          flavorId: flavor?._id || null,
           quantity: 1,
           name: product.name,
-          image: variant.flavorImage || product.thumbnail,
+          image: flavor?.image || product.thumbnail,
           price: effectivePrice,
           slug: product.slug,
-          stock: variant.stock,
-          flavor: variant.flavor,
-          weight: variant.weight,
+          stock: size.stock,
+          flavor: flavor?.name || null,
+          weight: size.weight,
           brand: product.brand,
         });
       }
@@ -122,28 +132,34 @@ export default function ProductCard({ product }) {
         <h3 className="mt-1.5 line-clamp-1 text-sm font-semibold text-mdn-white">{product.name}</h3>
         <p className="text-xs text-mdn-gray">{product.brand}</p>
 
-        {variant && (
-          <p className="mt-1.5 font-mono text-sm font-bold text-mdn-green">
-            {showFrom && <span className="mr-1 text-xs font-medium text-mdn-gray">From</span>}
-            ₹{effectivePrice}
-            {discountPrice && <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{price}</span>}
-          </p>
-        )}
+        {/* Always renders — price line and button below are never
+            conditionally omitted, only their label/disabled state changes.
+            Skipping them for out-of-stock cards used to make those cards
+            shorter than in-stock ones, breaking the grid row's alignment. */}
+        <p className="mt-1.5 font-mono text-sm font-bold text-mdn-green">
+          {size ? (
+            <>
+              {showFrom && <span className="mr-1 text-xs font-medium text-mdn-gray">From</span>}
+              ₹{effectivePrice}
+              {discountPrice && <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{price}</span>}
+            </>
+          ) : (
+            <span className="text-xs font-medium text-mdn-gray">Price unavailable</span>
+          )}
+        </p>
 
-        {!outOfStock && (
-          <button
-            onClick={handleAddToCart}
-            disabled={adding}
-            // Fixed dark button regardless of light/dark theme — matches the
-            // reference card's solid dark "View Product" button, while
-            // keeping this one functional as Add to Cart.
-            className={`mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black disabled:cursor-not-allowed disabled:opacity-60 ${
-              justAdded ? "animate-pop" : ""
-            }`}
-          >
-            {adding ? "Adding..." : justAdded ? "Added ✓" : "Add to Cart"}
-          </button>
-        )}
+        <button
+          onClick={handleAddToCart}
+          disabled={adding || outOfStock}
+          // Fixed dark button regardless of light/dark theme — matches the
+          // reference card's solid dark "View Product" button, while
+          // keeping this one functional as Add to Cart.
+          className={`mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black disabled:cursor-not-allowed disabled:opacity-60 ${
+            justAdded ? "animate-pop" : ""
+          }`}
+        >
+          {outOfStock ? "Out of Stock" : adding ? "Adding..." : justAdded ? "Added ✓" : "Add to Cart"}
+        </button>
         {error && <span className="mt-1 text-xs text-red-400">{error}</span>}
       </div>
     </Link>

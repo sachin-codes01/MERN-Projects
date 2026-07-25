@@ -27,10 +27,24 @@ const calcCartTotals = async (cart) => {
   return { subtotal, discount, total: subtotal - discount, couponDetails };
 };
 
+// Stock is a single shared pool per size, split across however many
+// flavor-lines of that size are already in the cart — so adding "1kg
+// Vanilla" has to account for "1kg Chocolate" already sitting in the same
+// cart against the same size's stock. `excludeItemId` lets an in-place
+// quantity update compare against the OTHER lines only, not double-count
+// the line being changed.
+const quantityOfSizeInCart = (cart, sizeId, excludeItemId = null) =>
+  cart.items
+    .filter((i) => i.sizeId.toString() === sizeId.toString() && String(i._id) !== String(excludeItemId))
+    .reduce((sum, i) => sum + i.quantity, 0);
+
 // GET /api/cart
 exports.getCart = async (req, res) => {
   try {
-    let cart = await Cart.findOne({ user: req.user._id }).populate("items.product", "name thumbnail slug variants brand");
+    let cart = await Cart.findOne({ user: req.user._id }).populate(
+      "items.product",
+      "name thumbnail slug sizes flavors brand"
+    );
     if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
 
     const totals = await calcCartTotals(cart);
@@ -43,38 +57,44 @@ exports.getCart = async (req, res) => {
 // POST /api/cart/items
 exports.addItem = async (req, res) => {
   try {
-    const { productId, variantId, quantity = 1 } = req.body;
+    const { productId, sizeId, flavorId = null, quantity = 1 } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
 
-    const variant = product.variants.id(variantId);
-    if (!variant) return res.status(404).json({ success: false, message: "Variant not found" });
+    const size = product.sizes.id(sizeId);
+    if (!size) return res.status(404).json({ success: false, message: "Size not found" });
+
+    const flavor = flavorId ? product.flavors.id(flavorId) : null;
+    if (flavorId && !flavor) return res.status(404).json({ success: false, message: "Flavor not found" });
 
     let cart = await Cart.findOne({ user: req.user._id });
     if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
 
     const existingItem = cart.items.find(
-      (i) => i.product.toString() === productId && i.variantId.toString() === variantId
+      (i) =>
+        i.product.toString() === productId &&
+        i.sizeId.toString() === sizeId &&
+        (i.flavorId ? i.flavorId.toString() : null) === (flavorId || null)
     );
-    const totalRequested = (existingItem?.quantity || 0) + quantity;
 
-    if (variant.stock < totalRequested) {
+    const alreadyInCart = quantityOfSizeInCart(cart, sizeId, existingItem?._id);
+    const totalRequested = alreadyInCart + (existingItem?.quantity || 0) + quantity;
+    if (size.stock < totalRequested) {
       return res.status(400).json({ success: false, message: "Not enough stock available" });
     }
 
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
-      // Flavor can add a per-variant surcharge on top of the base pack
-      // price (e.g. base 500 + 50 for Chocolate = 550) — see
-      // variantSchema.flavorPriceAdjustment in models/Product.js.
-      const basePrice = variant.discountPrice || variant.price;
+      const basePrice = size.discountPrice || size.price;
       cart.items.push({
         product: productId,
-        variantId,
+        sizeId,
+        flavorId: flavor?._id || null,
+        flavor: flavor?.name || null,
         quantity,
-        priceAtAddition: basePrice + (variant.flavorPriceAdjustment || 0),
+        priceAtAddition: basePrice + (flavor?.priceAdjustment || 0),
       });
     }
 
@@ -85,22 +105,23 @@ exports.addItem = async (req, res) => {
   }
 };
 
-// PUT /api/cart/items/:variantId
+// PUT /api/cart/items/:itemId
 exports.updateItemQuantity = async (req, res) => {
   try {
     const { quantity } = req.body;
     const cart = await Cart.findOne({ user: req.user._id });
     if (!cart) return res.status(404).json({ success: false, message: "Cart not found" });
 
-    const item = cart.items.find((i) => i.variantId.toString() === req.params.variantId);
+    const item = cart.items.id(req.params.itemId);
     if (!item) return res.status(404).json({ success: false, message: "Item not in cart" });
 
     if (quantity <= 0) {
-      cart.items = cart.items.filter((i) => i.variantId.toString() !== req.params.variantId);
+      cart.items.pull(req.params.itemId);
     } else {
       const product = await Product.findById(item.product);
-      const variant = product?.variants.id(req.params.variantId);
-      if (variant && quantity > variant.stock) {
+      const size = product?.sizes.id(item.sizeId);
+      const othersOfThisSize = size ? quantityOfSizeInCart(cart, item.sizeId, item._id) : 0;
+      if (size && othersOfThisSize + quantity > size.stock) {
         return res.status(400).json({ success: false, message: "Not enough stock available" });
       }
       item.quantity = quantity;
@@ -113,13 +134,13 @@ exports.updateItemQuantity = async (req, res) => {
   }
 };
 
-// DELETE /api/cart/items/:variantId
+// DELETE /api/cart/items/:itemId
 exports.removeItem = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id });
     if (!cart) return res.status(404).json({ success: false, message: "Cart not found" });
 
-    cart.items = cart.items.filter((i) => i.variantId.toString() !== req.params.variantId);
+    cart.items.pull(req.params.itemId);
     await cart.save();
 
     res.json({ success: true, data: cart });

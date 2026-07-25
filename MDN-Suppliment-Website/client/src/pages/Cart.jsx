@@ -34,14 +34,14 @@ export default function Cart() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const handleQuantityChange = async (variantId, quantity) => {
+  const handleQuantityChange = async (itemId, quantity) => {
     if (quantity < 1) return; // never allow dropping below 1 via the stepper
     try {
       if (token) {
-        await api.updateCartItem(token, variantId, quantity);
+        await api.updateCartItem(token, itemId, quantity);
         loadCart();
       } else {
-        guestCart.updateItem(variantId, quantity);
+        guestCart.updateItem(itemId, quantity);
         setCart(guestCart.getCart());
       }
     } catch (err) {
@@ -50,13 +50,13 @@ export default function Cart() {
     }
   };
 
-  const handleRemove = async (variantId) => {
+  const handleRemove = async (itemId) => {
     try {
       if (token) {
-        await api.removeCartItem(token, variantId);
+        await api.removeCartItem(token, itemId);
         loadCart();
       } else {
-        guestCart.removeItem(variantId);
+        guestCart.removeItem(itemId);
         setCart(guestCart.getCart());
       }
       success("Item removed from cart.");
@@ -115,21 +115,24 @@ export default function Cart() {
       <div className="mt-6 space-y-3">
         {cart.items.map((item) => {
           // Logged-in carts only populate `product` (name/thumbnail/slug/
-          // variants/brand) — the specific flavor/weight has to be looked
-          // up from the variant matching this line item. Guest carts
-          // instead carry a denormalized snapshot (name/image/flavor/
-          // weight/brand) taken at the moment the item was added, since
-          // there's no live product join for a logged-out cart.
-          const variant = item.product?.variants?.find((v) => String(v._id) === String(item.variantId));
+          // sizes/flavors/brand) — the specific size/flavor has to be
+          // looked up from the entries matching this line item. Guest
+          // carts instead carry a denormalized snapshot (name/image/
+          // flavor/weight/brand) taken at the moment the item was added,
+          // since there's no live product join for a logged-out cart.
+          const size = item.product?.sizes?.find((s) => String(s._id) === String(item.sizeId));
+          const flavorObj = item.flavorId
+            ? item.product?.flavors?.find((f) => String(f._id) === String(item.flavorId))
+            : null;
           const name = item.product?.name || item.name || "Product";
           const brand = item.product?.brand || item.brand;
-          const image = variant?.flavorImage || item.product?.thumbnail || item.image;
-          const flavor = variant?.flavor || item.flavor;
-          const weight = variant?.weight || item.weight;
+          const image = flavorObj?.image || item.product?.thumbnail || item.image;
+          const flavor = flavorObj?.name || item.flavor;
+          const weight = size?.weight || item.weight;
           const slug = item.product?.slug || item.slug;
 
           return (
-          <div key={item.variantId} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+          <div key={item._id} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
             {/* Image + text always sit side by side, even on mobile —
                 only the stepper/price/remove group below moves from its
                 own full-width row (mobile) to inline on the right
@@ -172,7 +175,7 @@ export default function Cart() {
               <div className="flex shrink-0 items-center rounded-lg border border-white/10 bg-mdn-charcoal2">
                 <button
                   type="button"
-                  onClick={() => handleQuantityChange(item.variantId, item.quantity - 1)}
+                  onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
                   disabled={item.quantity <= 1}
                   aria-label="Decrease quantity"
                   className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
@@ -184,7 +187,7 @@ export default function Cart() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleQuantityChange(item.variantId, item.quantity + 1)}
+                  onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
                   aria-label="Increase quantity"
                   className="flex h-8 w-8 items-center justify-center rounded-r-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5"
                 >
@@ -196,7 +199,7 @@ export default function Cart() {
                 ₹{item.priceAtAddition * item.quantity}
               </p>
               <button
-                onClick={() => handleRemove(item.variantId)}
+                onClick={() => handleRemove(item._id)}
                 className="shrink-0 text-xs font-semibold text-red-400 transition-colors hover:text-red-300"
               >
                 Remove

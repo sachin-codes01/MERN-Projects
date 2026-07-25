@@ -1,23 +1,37 @@
 const mongoose = require("mongoose");
 
-// Each product can have multiple buyable variants (flavor + weight combo)
-const variantSchema = new mongoose.Schema(
+// Pack sizes and flavors are independent choices (not a combined
+// flavor+weight matrix) — a customer picks a size AND, separately, a
+// flavor. Stock/SKU/price live on the size; a flavor only ever adds a
+// price delta on top and carries its own swatch photo. There is a single
+// shared stock pool per size across every flavor.
+const sizeSchema = new mongoose.Schema(
   {
-    flavor: { type: String }, // e.g. "Chocolate", "Unflavored"
     weight: { type: String, required: true }, // e.g. "1kg", "500g", "60 capsules"
     price: { type: Number, required: true },
     discountPrice: { type: Number },
     stock: { type: Number, required: true, default: 0 },
-    sku: { type: String, required: true, unique: true },
-    images: [{ type: String }],
-    flavorImage: { type: String }, // swatch photo for the flavor picker; reuse the same URL across weights of the same flavor
-    servings: { type: Number }, // optional — powers "N servings" + per-serving price on the weight/pack cards
+    // Uniqueness is enforced per-product client-side (AdminProducts.jsx
+    // validateSizes) — NOT `unique: true` here. Mongoose turns a
+    // unique:true on a field inside an embedded array into a
+    // collection-wide index (sizes.sku unique across every product's
+    // every size), which silently fails saves the moment two DIFFERENT
+    // products happen to reuse the same SKU pattern.
+    sku: { type: String, required: true },
+    servings: { type: Number }, // optional — powers "N servings" + per-serving price on the size cards
     supplyLabel: { type: String }, // optional free text, e.g. "2-month supply"
-    // Added on top of `price`/`discountPrice` to get this variant's final,
-    // customer-facing price (e.g. base 500 + 50 for Chocolate = 550).
-    // Lets flavors cost more without re-entering the full price per
-    // weight/flavor combo — only the delta needs setting.
-    flavorPriceAdjustment: { type: Number, default: 0 },
+  },
+  { _id: true }
+);
+
+const flavorSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true }, // e.g. "Chocolate", "Unflavored"
+    image: { type: String }, // swatch photo for the flavor picker
+    // Added on top of whichever size is selected to get the final,
+    // customer-facing price (e.g. size price 500 + 50 for Chocolate =
+    // 550). Set once per flavor here — not re-entered per size.
+    priceAdjustment: { type: Number, default: 0 },
   },
   { _id: true }
 );
@@ -88,7 +102,8 @@ const productSchema = new mongoose.Schema(
       default: [],
     },
 
-    variants: { type: [variantSchema], validate: (v) => v.length > 0 },
+    sizes: { type: [sizeSchema], validate: (v) => v.length > 0 },
+    flavors: { type: [flavorSchema], default: [] }, // optional — products without flavor variety just leave this empty
 
     nutrition: nutritionSchema,
     ingredients: { type: String }, // full ingredient list text

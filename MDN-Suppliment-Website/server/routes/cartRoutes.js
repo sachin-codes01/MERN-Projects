@@ -6,8 +6,8 @@ router.use(isAuth);
 
 router.get("/", ctrl.getCart);
 router.post("/items", ctrl.addItem);
-router.put("/items/:variantId", ctrl.updateItemQuantity);
-router.delete("/items/:variantId", ctrl.removeItem);
+router.put("/items/:itemId", ctrl.updateItemQuantity);
+router.delete("/items/:itemId", ctrl.removeItem);
 router.delete("/", ctrl.clearCart);
 
 router.post("/coupon", ctrl.applyCoupon);

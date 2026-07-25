@@ -3,8 +3,13 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
 
-const emptyVariant = {
-  flavor: "",
+// Fixed gallery slots — image #1 is always what customers see first in the
+// product-page carousel AND doubles as the product's thumbnail (listing
+// card photo), #2 second, etc. Simpler than a dynamic add/reorder list:
+// each slot is its own upload button at a fixed spot.
+const GALLERY_SLOT_LABELS = ["1st image (Front / Thumbnail)", "2nd image", "3rd image", "4th image", "5th image"];
+
+const emptySize = {
   weight: "",
   price: "",
   discountPrice: "",
@@ -12,8 +17,12 @@ const emptyVariant = {
   sku: "",
   servings: "",
   supplyLabel: "",
-  flavorImage: "",
-  flavorPriceAdjustment: "",
+};
+
+const emptyFlavor = {
+  name: "",
+  image: "",
+  priceAdjustment: "",
 };
 
 const emptyForm = {
@@ -23,8 +32,10 @@ const emptyForm = {
   brand: "",
   category: "",
   productType: "",
+  tags: "",
   sections: [],
-  variants: [{ ...emptyVariant }],
+  sizes: [{ ...emptySize }],
+  flavors: [],
   images: [],
   ingredients: "",
   directionsOfUse: "",
@@ -42,11 +53,18 @@ export default function AdminProducts() {
   const [message, setMessage] = useState("");
 
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
+  const [catEditingId, setCatEditingId] = useState(null);
+  const [catSaving, setCatSaving] = useState(false);
 
   const [form, setForm] = useState(emptyForm);
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
-  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [uploading, setUploading] = useState(false);
+  // Which gallery slot (0-4) is currently uploading, for a per-slot spinner.
+  const [uploadingSlot, setUploadingSlot] = useState(null);
+  // { [sizeIndex]: { weight: true, price: true, ... } } — which size fields
+  // failed validation, so the exact input can get a red border instead of
+  // just a generic message at the top of the page.
+  const [sizeErrors, setSizeErrors] = useState({});
+  const [thumbnailMissing, setThumbnailMissing] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
 
@@ -67,6 +85,9 @@ export default function AdminProducts() {
   const handleCatChange = (e) => setCatForm({ ...catForm, [e.target.name]: e.target.value });
   const handleFormChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const sizeFieldClass = (index, field) =>
+    `input-field ${sizeErrors[index]?.[field] ? "!border-red-500/60 focus:!border-red-500 focus:!ring-red-500/25" : ""}`;
+
   const toggleSection = (value) => {
     setForm((f) => ({
       ...f,
@@ -76,81 +97,103 @@ export default function AdminProducts() {
     }));
   };
 
-  /* ---------- Variant helpers ---------- */
-  const handleVariantChange = (index, e) => {
+  /* ---------- Size helpers (independent of flavor) ---------- */
+  const handleSizeChange = (index, e) => {
     const { name, value } = e.target;
     setForm((f) => {
-      const variants = [...f.variants];
-      variants[index] = { ...variants[index], [name]: value };
-      return { ...f, variants };
+      const sizes = [...f.sizes];
+      sizes[index] = { ...sizes[index], [name]: value };
+      return { ...f, sizes };
+    });
+    // Clear just this field's red border as soon as it's edited, rather
+    // than making the admin re-submit before seeing it's fixed.
+    setSizeErrors((prev) => {
+      if (!prev[index]?.[name]) return prev;
+      const rowErrors = { ...prev[index] };
+      delete rowErrors[name];
+      return { ...prev, [index]: rowErrors };
     });
   };
 
-  const addVariant = () => {
-    setForm((f) => ({ ...f, variants: [...f.variants, { ...emptyVariant }] }));
+  const addSize = () => {
+    setForm((f) => ({ ...f, sizes: [...f.sizes, { ...emptySize }] }));
   };
 
-  const removeVariant = (index) => {
+  const removeSize = (index) => {
+    // Row indices shift after a removal, so any existing error highlights
+    // would point at the wrong row — clear them rather than carry stale
+    // ones forward.
+    setSizeErrors({});
     setForm((f) => ({
       ...f,
-      variants: f.variants.length > 1 ? f.variants.filter((_, i) => i !== index) : f.variants,
+      sizes: f.sizes.length > 1 ? f.sizes.filter((_, i) => i !== index) : f.sizes,
     }));
   };
 
-  // ---------- Cloudinary image upload ----------
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // instant local preview jab tak upload chal raha hai
-    setThumbnailPreview(URL.createObjectURL(file));
-
-    try {
-      setUploading(true);
-      const { url } = await api.uploadImage(token, file);
-      setThumbnailUrl(url); // Cloudinary ka secure URL, DB me yahi store hoga
-    } catch (err) {
-      toastError("Image upload failed: " + err.message);
-      setThumbnailPreview("");
-      setThumbnailUrl("");
-    } finally {
-      setUploading(false);
-    }
+  /* ---------- Flavor helpers (independent of size, optional) ---------- */
+  const handleFlavorChange = (index, e) => {
+    const { name, value } = e.target;
+    setForm((f) => {
+      const flavors = [...f.flavors];
+      flavors[index] = { ...flavors[index], [name]: value };
+      return { ...f, flavors };
+    });
   };
 
-  // Gallery images shown in the PDP swipeable carousel — multi-file, uploads
-  // each to Cloudinary and appends the URL.
-  const handleGalleryUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const addFlavor = () => {
+    setForm((f) => ({ ...f, flavors: [...f.flavors, { ...emptyFlavor }] }));
+  };
+
+  const removeFlavor = (index) => {
+    setForm((f) => ({ ...f, flavors: f.flavors.filter((_, i) => i !== index) }));
+  };
+
+  // Gallery images — also doubles as the thumbnail source (slot 0 = the
+  // product's thumbnail). Each of the 5 slots uploads straight into its
+  // own fixed position in product.images.
+  const handleGallerySlotUpload = async (index, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     try {
       setUploading(true);
-      const uploaded = await Promise.all(files.map((f) => api.uploadImage(token, f)));
-      setForm((f) => ({ ...f, images: [...f.images, ...uploaded.map((u) => u.url)] }));
+      setUploadingSlot(index);
+      const { url } = await api.uploadImage(token, file);
+      setForm((f) => {
+        const images = [...f.images];
+        while (images.length <= index) images.push(""); // pad earlier empty slots
+        images[index] = url;
+        return { ...f, images };
+      });
+      if (index === 0) setThumbnailMissing(false);
     } catch (err) {
       toastError("Image upload failed: " + err.message);
     } finally {
       setUploading(false);
+      setUploadingSlot(null);
       e.target.value = "";
     }
   };
 
-  const removeGalleryImage = (index) => {
-    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  const removeGallerySlot = (index) => {
+    setForm((f) => {
+      const images = [...f.images];
+      images[index] = "";
+      return { ...f, images };
+    });
   };
 
-  // Per-variant flavor swatch photo — reuse the same image across every
-  // weight of the same flavor rather than re-uploading it each time.
-  const handleVariantImageUpload = async (index, e) => {
+  // Flavor swatch photo — one per flavor now (not per size), since flavor
+  // is independent of size.
+  const handleFlavorImageUpload = async (index, e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
       setUploading(true);
       const { url } = await api.uploadImage(token, file);
       setForm((f) => {
-        const variants = [...f.variants];
-        variants[index] = { ...variants[index], flavorImage: url };
-        return { ...f, variants };
+        const flavors = [...f.flavors];
+        flavors[index] = { ...flavors[index], image: url };
+        return { ...f, flavors };
       });
     } catch (err) {
       toastError("Image upload failed: " + err.message);
@@ -176,44 +219,93 @@ export default function AdminProducts() {
     }
   };
 
-  const handleCreateCategory = async (e) => {
+  const handleSaveCategory = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
+    setCatSaving(true);
     try {
-      await api.adminCreateCategory(token, catForm);
-      setMessage("Category created.");
-      success("Category created successfully.");
+      if (catEditingId) {
+        await api.adminUpdateCategory(token, catEditingId, catForm);
+        setMessage("Category updated.");
+        success("Category updated successfully.");
+      } else {
+        await api.adminCreateCategory(token, catForm);
+        setMessage("Category created.");
+        success("Category created successfully.");
+      }
       setCatForm({ name: "", slug: "" });
+      setCatEditingId(null);
       loadData();
     } catch (err) {
       setError(err.message);
+      toastError(err.message);
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const startEditCategory = (cat) => {
+    setCatForm({ name: cat.name || "", slug: cat.slug || "" });
+    setCatEditingId(cat._id);
+  };
+
+  const cancelEditCategory = () => {
+    setCatForm({ name: "", slug: "" });
+    setCatEditingId(null);
+  };
+
+  const handleToggleCategoryActive = async (cat) => {
+    const action = cat.isActive ? "Deactivate" : "Reactivate";
+    if (!window.confirm(`${action} the "${cat.name}" category?`)) return;
+    try {
+      if (cat.isActive) {
+        await api.adminDeleteCategory(token, cat._id); // soft delete (sets isActive: false)
+      } else {
+        await api.adminUpdateCategory(token, cat._id, { isActive: true });
+      }
+      success(`Category ${cat.isActive ? "deactivated" : "reactivated"}.`);
+      loadData();
+    } catch (err) {
       toastError(err.message);
     }
   };
 
   const resetForm = () => {
     setForm(emptyForm);
-    setThumbnailUrl("");
-    setThumbnailPreview("");
     setEditingId(null);
+    setSizeErrors({});
+    setThumbnailMissing(false);
   };
 
   const startEdit = (product) => {
-    const variants = product.variants?.length
-      ? product.variants.map((v) => ({
-          flavor: v.flavor || "",
-          weight: v.weight || "",
-          price: v.price ?? "",
-          discountPrice: v.discountPrice ?? "",
-          stock: v.stock ?? "",
-          sku: v.sku || "",
-          servings: v.servings ?? "",
-          supplyLabel: v.supplyLabel || "",
-          flavorImage: v.flavorImage || "",
-          flavorPriceAdjustment: v.flavorPriceAdjustment ?? "",
+    const sizes = product.sizes?.length
+      ? product.sizes.map((s) => ({
+          weight: s.weight || "",
+          price: s.price ?? "",
+          discountPrice: s.discountPrice ?? "",
+          stock: s.stock ?? "",
+          sku: s.sku || "",
+          servings: s.servings ?? "",
+          supplyLabel: s.supplyLabel || "",
         }))
-      : [{ ...emptyVariant }];
+      : [{ ...emptySize }];
+
+    const flavors = (product.flavors || []).map((f) => ({
+      name: f.name || "",
+      image: f.image || "",
+      priceAdjustment: f.priceAdjustment ?? "",
+    }));
+
+    // Older products were saved with a thumbnail uploaded separately from
+    // the gallery, so it may not already be images[0] — put it there so
+    // slot 1 shows what's actually the live thumbnail instead of silently
+    // swapping it out the next time this product is saved.
+    const galleryImages = product.images || [];
+    const images =
+      product.thumbnail && galleryImages[0] !== product.thumbnail
+        ? [product.thumbnail, ...galleryImages.filter((img) => img !== product.thumbnail)]
+        : galleryImages;
 
     setForm({
       name: product.name || "",
@@ -222,17 +314,17 @@ export default function AdminProducts() {
       brand: product.brand || "",
       category: product.category?._id || product.category || "",
       productType: product.productType || "",
+      tags: (product.tags || []).join(", "),
       sections: product.sections || [],
-      variants,
-      images: product.images || [],
+      sizes,
+      flavors,
+      images,
       ingredients: product.ingredients || "",
       directionsOfUse: product.directionsOfUse || "",
       whoIsThisFor: product.whoIsThisFor || "",
       posterTop: product.posterTop || "",
       posterBottom: product.posterBottom || "",
     });
-    setThumbnailUrl(product.thumbnail || "");
-    setThumbnailPreview(product.thumbnail || "");
     setEditingId(product._id);
     setError("");
     setMessage("");
@@ -246,36 +338,69 @@ export default function AdminProducts() {
     brand: form.brand,
     category: form.category,
     productType: form.productType,
-    thumbnail: thumbnailUrl, // ab Cloudinary URL jayega, base64 nahi
-    images: form.images,
+    tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+    thumbnail: form.images[0] || "", // slot 1 doubles as the thumbnail
+    images: form.images.filter(Boolean), // drop empty slots, keep the fixed order
     ingredients: form.ingredients,
     directionsOfUse: form.directionsOfUse,
     whoIsThisFor: form.whoIsThisFor,
     posterTop: form.posterTop,
     posterBottom: form.posterBottom,
     sections: form.sections,
-    variants: form.variants.map((v) => ({
-      flavor: v.flavor,
-      weight: v.weight,
-      price: Number(v.price),
-      discountPrice: v.discountPrice ? Number(v.discountPrice) : undefined,
-      stock: Number(v.stock),
-      sku: v.sku,
-      servings: v.servings ? Number(v.servings) : undefined,
-      supplyLabel: v.supplyLabel,
-      flavorImage: v.flavorImage,
-      flavorPriceAdjustment: v.flavorPriceAdjustment ? Number(v.flavorPriceAdjustment) : 0,
+    sizes: form.sizes.map((s) => ({
+      weight: s.weight,
+      price: Number(s.price),
+      discountPrice: s.discountPrice ? Number(s.discountPrice) : undefined,
+      stock: Number(s.stock),
+      sku: s.sku,
+      servings: s.servings ? Number(s.servings) : undefined,
+      supplyLabel: s.supplyLabel,
     })),
+    // Flavors are optional — a row left with no name is just an unused
+    // blank row, not a real flavor, so it's dropped rather than saved.
+    flavors: form.flavors
+      .filter((f) => f.name.trim())
+      .map((f) => ({
+        name: f.name.trim(),
+        image: f.image,
+        priceAdjustment: f.priceAdjustment ? Number(f.priceAdjustment) : 0,
+      })),
   });
 
-  const validateVariants = () => {
-    for (const v of form.variants) {
-      if (!v.weight || v.price === "" || v.stock === "" || !v.sku) {
-        return false;
+  // Computes per-field errors (for red borders on the exact inputs at
+  // fault) and returns an overall verdict: true (valid), "duplicate", or
+  // false (missing required fields).
+  const validateSizes = () => {
+    const errors = {};
+    form.sizes.forEach((s, i) => {
+      const rowErrors = {};
+      if (!s.weight) rowErrors.weight = true;
+      if (s.price === "") rowErrors.price = true;
+      if (s.stock === "") rowErrors.stock = true;
+      if (!s.sku) rowErrors.sku = true;
+      if (Object.keys(rowErrors).length) errors[i] = rowErrors;
+    });
+
+    // Duplicate SKUs — mark every row sharing the value, not just the 2nd+.
+    const skuRows = {};
+    form.sizes.forEach((s, i) => {
+      const key = s.sku.trim().toLowerCase();
+      if (!key) return;
+      (skuRows[key] ||= []).push(i);
+    });
+    let hasDuplicates = false;
+    Object.values(skuRows).forEach((indices) => {
+      if (indices.length > 1) {
+        hasDuplicates = true;
+        indices.forEach((i) => {
+          errors[i] = { ...errors[i], sku: true };
+        });
       }
-    }
-    const skus = form.variants.map((v) => v.sku.trim().toLowerCase());
-    if (new Set(skus).size !== skus.length) return "duplicate";
+    });
+
+    setSizeErrors(errors);
+    if (hasDuplicates) return "duplicate";
+    if (Object.keys(errors).length) return false;
     return true;
   };
 
@@ -284,21 +409,22 @@ export default function AdminProducts() {
     setError("");
     setMessage("");
 
-    if (!thumbnailUrl) {
-      setError("Please choose a thumbnail image.");
-      toastError("Please choose a thumbnail image.");
+    setThumbnailMissing(!form.images[0]);
+    if (!form.images[0]) {
+      setError("Please upload the 1st image (it's used as the thumbnail).");
+      toastError("Please upload the 1st image (it's used as the thumbnail).");
       return;
     }
 
-    const variantsValid = validateVariants();
-    if (variantsValid === "duplicate") {
-      setError("Each variant needs a unique SKU.");
-      toastError("Each variant needs a unique SKU.");
+    const sizesValid = validateSizes();
+    if (sizesValid === "duplicate") {
+      setError("Each size needs a unique SKU.");
+      toastError("Each size needs a unique SKU.");
       return;
     }
-    if (!variantsValid) {
-      setError("Please fill in weight, price, stock, and SKU for every variant.");
-      toastError("Please fill in weight, price, stock, and SKU for every variant.");
+    if (!sizesValid) {
+      setError("Please fill in weight, price, stock, and SKU for every size.");
+      toastError("Please fill in weight, price, stock, and SKU for every size.");
       return;
     }
 
@@ -346,10 +472,10 @@ export default function AdminProducts() {
       {error && <p className="mt-4 text-center text-sm text-red-400 sm:text-left">{error}</p>}
       {message && <p className="mt-4 text-center text-sm text-mdn-green sm:text-left">{message}</p>}
 
-      {/* Create Category */}
+      {/* Categories */}
       <div className="card mt-8 p-6">
-        <h3 className="text-lg font-bold text-mdn-white">Create Category</h3>
-        <form onSubmit={handleCreateCategory} className="mt-4 grid gap-4 sm:grid-cols-2">
+        <h3 className="text-lg font-bold text-mdn-white">{catEditingId ? "Edit Category" : "Create Category"}</h3>
+        <form onSubmit={handleSaveCategory} className="mt-4 grid gap-4 sm:grid-cols-2">
           <input
             name="name"
             placeholder="Category name"
@@ -366,12 +492,58 @@ export default function AdminProducts() {
             required
             className="input-field"
           />
-          <div className="sm:col-span-2">
-            <button type="submit" className="btn-primary w-full sm:w-auto">
-              Create Category
+          <div className="flex gap-3 sm:col-span-2">
+            <button type="submit" disabled={catSaving} className="btn-primary w-full disabled:opacity-50 sm:w-auto">
+              {catSaving ? "Saving..." : catEditingId ? "Save Changes" : "Create Category"}
             </button>
+            {catEditingId && (
+              <button type="button" onClick={cancelEditCategory} className="btn-secondary w-full sm:w-auto">
+                Cancel Edit
+              </button>
+            )}
           </div>
         </form>
+
+        {categories.length > 0 && (
+          <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full min-w-[480px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-mdn-charcoal2 text-left text-xs uppercase tracking-wide text-mdn-gray">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Slug</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map((c) => (
+                  <tr key={c._id} className={`border-b border-white/5 ${!c.isActive ? "opacity-50" : ""}`}>
+                    <td className="px-4 py-3 text-mdn-white">{c.name}</td>
+                    <td className="px-4 py-3 text-mdn-gray">{c.slug}</td>
+                    <td className="px-4 py-3 text-mdn-gray">{c.isActive ? "Active" : "Inactive"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button onClick={() => startEditCategory(c)} className="btn-secondary !px-3 !py-1 text-xs">
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleToggleCategoryActive(c)}
+                          className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
+                            c.isActive
+                              ? "border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                              : "border-mdn-green/40 bg-mdn-green/10 text-mdn-green hover:bg-mdn-green/20"
+                          }`}
+                        >
+                          {c.isActive ? "Deactivate" : "Reactivate"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Create / Edit Product */}
@@ -397,11 +569,14 @@ export default function AdminProducts() {
             <input name="brand" placeholder="Brand" value={form.brand} onChange={handleFormChange} required className="input-field" />
             <select name="category" value={form.category} onChange={handleFormChange} required className="input-field">
               <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
-                </option>
-              ))}
+              {categories
+                .filter((c) => c.isActive || c._id === form.category)
+                .map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                    {!c.isActive ? " (inactive)" : ""}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -415,55 +590,66 @@ export default function AdminProducts() {
           />
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-mdn-white">Thumbnail image</label>
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <input type="file" accept="image/*" onChange={handleImageChange} className="input-field w-full sm:w-auto" />
-              {thumbnailPreview && (
-                <div className="relative h-20 w-20 shrink-0">
-                  <img
-                    src={thumbnailPreview}
-                    alt="preview"
-                    className="h-20 w-20 rounded-lg border border-white/10 object-cover"
-                  />
-                  {uploading && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-[10px] text-white">
-                      Uploading...
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {uploading && <p className="mt-1 text-xs text-mdn-gray">Uploading to Cloudinary…</p>}
+            <label className="mb-2 block text-sm font-medium text-mdn-white">
+              Tags <span className="text-mdn-gray">(comma-separated — used for search, e.g. the "Peanut Butter" or "Vegan Protein" links in the Shop menu only find products tagged this way)</span>
+            </label>
+            <input
+              name="tags"
+              placeholder="e.g. peanut butter, vegan, high-protein"
+              value={form.tags}
+              onChange={handleFormChange}
+              className="input-field w-full"
+            />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-mdn-white">
-              Gallery images <span className="text-mdn-gray">(shown as a swipeable carousel on the product page)</span>
+              Product images <span className="text-mdn-gray">(shown as a swipeable carousel on the product page — the 1st image is also used as the thumbnail on listing cards)</span>
             </label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleGalleryUpload}
-              className="input-field w-full sm:w-auto"
-            />
-            {form.images.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-3">
-                {form.images.map((url, i) => (
-                  <div key={i} className="relative h-20 w-20 shrink-0">
-                    <img src={url} alt={`Gallery ${i + 1}`} className="h-20 w-20 rounded-lg border border-white/10 object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeGalleryImage(i)}
-                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
-                      aria-label="Remove image"
-                    >
-                      ×
-                    </button>
+            <div className="mt-2 flex flex-wrap gap-4">
+              {GALLERY_SLOT_LABELS.map((label, i) => {
+                const url = form.images[i] || "";
+                return (
+                  <div key={i} className="flex w-24 flex-col items-center gap-1.5 text-center">
+                    <span className="text-[11px] font-semibold text-mdn-gray">{label}</span>
+                    <div className="relative h-20 w-20">
+                      {url ? (
+                        <img src={url} alt={label} className="h-20 w-20 rounded-lg border border-white/10 object-cover" />
+                      ) : (
+                        <div
+                          className={`flex h-20 w-20 items-center justify-center rounded-lg border border-dashed text-[10px] text-mdn-gray ${
+                            i === 0 && thumbnailMissing ? "border-red-500/70" : "border-white/20"
+                          }`}
+                        >
+                          Empty
+                        </div>
+                      )}
+                      {uploadingSlot === i && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 text-[10px] text-white">
+                          Uploading...
+                        </div>
+                      )}
+                      {url && uploadingSlot !== i && (
+                        <button
+                          type="button"
+                          onClick={() => removeGallerySlot(i)}
+                          className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+                          aria-label={`Remove ${label}`}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleGallerySlotUpload(i, e)}
+                      className="w-24 text-[10px] file:mr-1 file:rounded file:border-0 file:bg-mdn-charcoal2 file:px-1.5 file:py-1 file:text-[10px] file:font-semibold file:text-mdn-white"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
           <div>
@@ -509,32 +695,33 @@ export default function AdminProducts() {
             className="input-field w-full resize-y"
           />
 
-          {/* ---------- Variants ---------- */}
+          {/* ---------- Sizes (independent of flavor) ---------- */}
           <div>
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-mdn-white">
-                Variants <span className="text-red-400">*</span>
+                Sizes <span className="text-red-400">*</span>
               </label>
               <span className="text-xs text-mdn-gray">
-                {form.variants.length} variant{form.variants.length === 1 ? "" : "s"}
+                {form.sizes.length} size{form.sizes.length === 1 ? "" : "s"}
               </span>
             </div>
             <p className="mt-1 text-xs text-mdn-gray/70">
-              Add one entry per flavor/weight/price combo customers can choose from (e.g. "Orange Burst — 390g" and
-              "Chocolate — 1kg").
+              Add one entry per pack size customers can choose from (e.g. "500g" and "1kg"). Price, stock, and SKU
+              are set here — flavor is a separate, independent choice below and never changes which sizes are
+              available.
             </p>
 
             <div className="mt-3 space-y-4">
-              {form.variants.map((v, i) => (
+              {form.sizes.map((s, i) => (
                 <div key={i} className="rounded-lg border border-white/10 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wide text-mdn-gray">
-                      Variant {i + 1}
+                      Size {i + 1}
                     </span>
-                    {form.variants.length > 1 && (
+                    {form.sizes.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => removeVariant(i)}
+                        onClick={() => removeSize(i)}
                         className="text-xs font-semibold text-red-400 transition-colors hover:text-red-300"
                       >
                         Remove
@@ -542,108 +729,159 @@ export default function AdminProducts() {
                     )}
                   </div>
 
-                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                    <input
-                      name="flavor"
-                      placeholder="Flavor (optional)"
-                      value={v.flavor}
-                      onChange={(e) => handleVariantChange(i, e)}
-                      className="input-field"
-                    />
-                    <input
-                      name="weight"
-                      placeholder="Weight (e.g. 1kg)"
-                      value={v.weight}
-                      onChange={(e) => handleVariantChange(i, e)}
-                      required
-                      className="input-field"
-                    />
-                  </div>
+                  <input
+                    name="weight"
+                    placeholder="Weight (e.g. 1kg)"
+                    value={s.weight}
+                    onChange={(e) => handleSizeChange(i, e)}
+                    required
+                    className={`${sizeFieldClass(i, "weight")} mt-3 w-full`}
+                  />
+                  {sizeErrors[i]?.weight && <p className="mt-1 text-xs text-red-400">Weight is required.</p>}
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                    <input
-                      name="price"
-                      type="number"
-                      placeholder="Price"
-                      value={v.price}
-                      onChange={(e) => handleVariantChange(i, e)}
-                      required
-                      className="input-field"
-                    />
+                    <div>
+                      <input
+                        name="price"
+                        type="number"
+                        placeholder="Price"
+                        value={s.price}
+                        onChange={(e) => handleSizeChange(i, e)}
+                        required
+                        className={sizeFieldClass(i, "price")}
+                      />
+                      {sizeErrors[i]?.price && <p className="mt-1 text-xs text-red-400">Price is required.</p>}
+                    </div>
                     <input
                       name="discountPrice"
                       type="number"
                       placeholder="Discount price (optional)"
-                      value={v.discountPrice}
-                      onChange={(e) => handleVariantChange(i, e)}
+                      value={s.discountPrice}
+                      onChange={(e) => handleSizeChange(i, e)}
                       className="input-field"
                     />
-                    <input
-                      name="stock"
-                      type="number"
-                      placeholder="Stock (admin only)"
-                      value={v.stock}
-                      onChange={(e) => handleVariantChange(i, e)}
-                      required
-                      className="input-field"
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="mb-1 block text-xs text-mdn-gray">
-                      Price increase for this flavor (optional) — added on top of the price above, e.g. price 500
-                      + 50 here = 550 charged when a customer picks this flavor
-                    </label>
-                    <input
-                      name="flavorPriceAdjustment"
-                      type="number"
-                      placeholder="e.g. 50 (leave blank or 0 for no change)"
-                      value={v.flavorPriceAdjustment}
-                      onChange={(e) => handleVariantChange(i, e)}
-                      className="input-field w-full sm:w-1/3"
-                    />
+                    <div>
+                      <input
+                        name="stock"
+                        type="number"
+                        placeholder="Stock (admin only)"
+                        value={s.stock}
+                        onChange={(e) => handleSizeChange(i, e)}
+                        required
+                        className={sizeFieldClass(i, "stock")}
+                      />
+                      {sizeErrors[i]?.stock && <p className="mt-1 text-xs text-red-400">Stock is required.</p>}
+                    </div>
                   </div>
 
                   <input
                     name="sku"
                     placeholder="SKU (unique code)"
-                    value={v.sku}
-                    onChange={(e) => handleVariantChange(i, e)}
+                    value={s.sku}
+                    onChange={(e) => handleSizeChange(i, e)}
                     required
-                    className="input-field mt-4 w-full"
+                    className={`${sizeFieldClass(i, "sku")} mt-4 w-full`}
                   />
+                  {sizeErrors[i]?.sku && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {!s.sku ? "SKU is required." : "This SKU is used by another size — SKUs must be unique."}
+                    </p>
+                  )}
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <input
                       name="servings"
                       type="number"
                       placeholder="Servings (optional)"
-                      value={v.servings}
-                      onChange={(e) => handleVariantChange(i, e)}
+                      value={s.servings}
+                      onChange={(e) => handleSizeChange(i, e)}
                       className="input-field"
                     />
                     <input
                       name="supplyLabel"
                       placeholder="Supply label (e.g. 2-month supply)"
-                      value={v.supplyLabel}
-                      onChange={(e) => handleVariantChange(i, e)}
+                      value={s.supplyLabel}
+                      onChange={(e) => handleSizeChange(i, e)}
                       className="input-field"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addSize}
+              className="btn-secondary mt-3 !px-4 !py-1.5 text-sm"
+            >
+              + Add Another Size
+            </button>
+          </div>
+
+          {/* ---------- Flavors (independent of size, optional) ---------- */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-mdn-white">Flavors</label>
+              <span className="text-xs text-mdn-gray">
+                {form.flavors.length} flavor{form.flavors.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-mdn-gray/70">
+              Optional. Leave empty if this product has no flavor options. Each flavor's price adjustment is set
+              once here and applies on top of whichever size the customer picks — e.g. size price ₹500 + ₹50 for
+              Chocolate = ₹550.
+            </p>
+
+            <div className="mt-3 space-y-4">
+              {form.flavors.map((f, i) => (
+                <div key={i} className="rounded-lg border border-white/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-mdn-gray">
+                      Flavor {i + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFlavor(i)}
+                      className="text-xs font-semibold text-red-400 transition-colors hover:text-red-300"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <input
+                    name="name"
+                    placeholder="Flavor name (e.g. Chocolate)"
+                    value={f.name}
+                    onChange={(e) => handleFlavorChange(i, e)}
+                    className="input-field mt-3 w-full"
+                  />
+
+                  <div className="mt-4">
+                    <label className="mb-1 block text-xs text-mdn-gray">
+                      Price adjustment (optional) — added to (or subtracted from, if negative) whichever size's
+                      price is currently selected
+                    </label>
+                    <input
+                      name="priceAdjustment"
+                      type="number"
+                      placeholder="e.g. 50, or -20 (leave blank or 0 for no change)"
+                      value={f.priceAdjustment}
+                      onChange={(e) => handleFlavorChange(i, e)}
+                      className="input-field w-full sm:w-1/3"
                     />
                   </div>
 
                   <div className="mt-4">
-                    <label className="mb-1 block text-xs text-mdn-gray">
-                      Flavor photo — reuse the same image across every weight of this flavor
-                    </label>
+                    <label className="mb-1 block text-xs text-mdn-gray">Flavor swatch photo</label>
                     <div className="flex items-center gap-3">
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => handleVariantImageUpload(i, e)}
+                        onChange={(e) => handleFlavorImageUpload(i, e)}
                         className="input-field w-full sm:w-auto"
                       />
-                      {v.flavorImage && (
-                        <img src={v.flavorImage} alt="Flavor preview" className="h-12 w-12 shrink-0 rounded-lg border border-white/10 object-cover" />
+                      {f.image && (
+                        <img src={f.image} alt="Flavor preview" className="h-12 w-12 shrink-0 rounded-lg border border-white/10 object-cover" />
                       )}
                     </div>
                   </div>
@@ -653,10 +891,10 @@ export default function AdminProducts() {
 
             <button
               type="button"
-              onClick={addVariant}
+              onClick={addFlavor}
               className="btn-secondary mt-3 !px-4 !py-1.5 text-sm"
             >
-              + Add Another Variant
+              + Add Another Flavor
             </button>
           </div>
 
@@ -716,7 +954,7 @@ export default function AdminProducts() {
                 <th className="px-4 py-3">Thumbnail</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Brand</th>
-                <th className="px-4 py-3">Variants</th>
+                <th className="px-4 py-3">Sizes</th>
                 <th className="px-4 py-3">Sections</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Actions</th>
@@ -736,10 +974,11 @@ export default function AdminProducts() {
                   <td className="px-4 py-3 text-mdn-white">{p.name}</td>
                   <td className="px-4 py-3 text-mdn-gray">{p.brand}</td>
                   <td className="px-4 py-3 text-mdn-gray">
-                    {p.variants?.length || 0} variant{(p.variants?.length || 0) === 1 ? "" : "s"}
-                    {p.variants?.length > 0 && (
+                    {p.sizes?.length || 0} size{(p.sizes?.length || 0) === 1 ? "" : "s"}
+                    {p.flavors?.length > 0 && `, ${p.flavors.length} flavor${p.flavors.length === 1 ? "" : "s"}`}
+                    {p.sizes?.length > 0 && (
                       <span className="block text-xs text-mdn-gray/70">
-                        Total stock: {p.variants.reduce((sum, v) => sum + (v.stock || 0), 0)}
+                        Total stock: {p.sizes.reduce((sum, s) => sum + (s.stock || 0), 0)}
                       </span>
                     )}
                   </td>

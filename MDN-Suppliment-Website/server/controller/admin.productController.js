@@ -1,6 +1,5 @@
-// Example: Admin CRUD controller for Products
-// Same pattern applies to Category, Coupon, and Order status updates.
-// Protect all routes below with `isAuth` + `isAdmin` middleware.
+// Admin CRUD controller for Products — wired up in routes/adminRoutes.js
+// (that file also applies isAuth + isAdmin to everything below it).
 
 const Product = require("../models/Product");
 
@@ -75,20 +74,3 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-/*
-Routes file (admin.productRoutes.js):
-
-const router = require("express").Router();
-const ctrl = require("./admin.productController");
-const { isAuth, isAdmin } = require("../middleware/auth");
-
-router.use(isAuth, isAdmin);
-router.post("/products", ctrl.createProduct);
-router.get("/products", ctrl.getAllProducts);
-router.get("/products/:id", ctrl.getProductById);
-router.put("/products/:id", ctrl.updateProduct);
-router.delete("/products/:id", ctrl.deleteProduct);
-
-module.exports = router;
-*/

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from "../api/api";
 import ProductCard from "../components/ProductCard";
+import MDNLoader from "../components/MDNLoader";
 
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
@@ -44,25 +45,31 @@ export default function SearchResults() {
 
   if (!query.trim()) {
     return (
-      <div>
-        <p>No search query provided.</p>
-        <button onClick={() => navigate("/")}>Back to Home</button>
+      <div className="mx-auto max-w-lg px-4 py-24 text-center">
+        <p className="text-lg font-semibold text-mdn-white">No search query provided.</p>
+        <button onClick={() => navigate("/")} className="btn-primary mt-4">
+          Back to Home
+        </button>
       </div>
     );
   }
 
   return (
-    <div>
-      <h2>Results for "{query}"</h2>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Search</p>
+      <h2 className="mt-1 break-words text-2xl font-bold text-mdn-white sm:text-3xl">
+        Results for "{query}"
+      </h2>
 
       {products.length > 0 && (
-        <div className="filter-bar">
+        <div className="mt-6 flex flex-wrap gap-3">
           <select
             value={sort}
             onChange={(e) => {
               setSort(e.target.value);
               setPage(1);
             }}
+            className="input-field w-auto"
           >
             <option value="">Newest</option>
             <option value="price_low">Price: Low to High</option>
@@ -72,29 +79,42 @@ export default function SearchResults() {
         </div>
       )}
 
-      {loading && <p>Searching...</p>}
+      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+
+      {loading && <MDNLoader label="Searching" className="py-16" />}
+
       {!loading && products.length === 0 && (
         <div className="mx-auto max-w-lg px-4 py-16 text-center">
-          <p className="text-lg font-semibold text-mdn-white">This product is currently not available.</p>
-          <p className="mt-2 text-sm text-mdn-gray">We will add this soon.</p>
+          <p className="text-lg font-semibold text-mdn-white">No products found for "{query}".</p>
+          <p className="mt-2 text-sm text-mdn-gray">Try a different search term or browse our categories.</p>
         </div>
       )}
 
-      <div className="product-grid">
-        {products.map((p) => (
-          <ProductCard key={p._id} product={p} />
-        ))}
-      </div>
+      {!loading && products.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {products.map((p) => (
+            <ProductCard key={p._id} product={p} />
+          ))}
+        </div>
+      )}
 
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+      {totalPages > 1 && !loading && (
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+            className="btn-secondary !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
             Previous
           </button>
-          <span>
+          <span className="text-sm text-mdn-gray">
             Page {page} of {totalPages}
           </span>
-          <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+            className="btn-secondary !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
             Next
           </button>
         </div>

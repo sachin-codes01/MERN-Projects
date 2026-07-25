@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getVariantPrice } from "../utils/pricing";
+import { getSizePrice } from "../utils/pricing";
 
 /**
  * Fixed "Add to Cart" bar — shown on every screen size (not just
@@ -15,7 +15,7 @@ import { getVariantPrice } from "../utils/pricing";
  * `boundingClientRect.top < 0` distinguishes "scrolled past above" from
  * "hasn't been scrolled to yet".
  */
-export default function StickyAddToCart({ atcRef, product, currentVariant, outOfStock, adding, onAddToCart }) {
+export default function StickyAddToCart({ atcRef, product, currentSize, currentFlavor, outOfStock, adding, onAddToCart }) {
   const [scrolledPastAtc, setScrolledPastAtc] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
 
@@ -47,7 +47,10 @@ export default function StickyAddToCart({ atcRef, product, currentVariant, outOf
   }, [atcRef]);
 
   const show = scrolledPastAtc && !footerVisible;
-  const { price, discountPrice, effectivePrice, discountPct: pct } = getVariantPrice(currentVariant);
+  const { price, discountPrice, effectivePrice, discountPct: pct } = getSizePrice(
+    currentSize,
+    currentFlavor?.priceAdjustment || 0
+  );
 
   return (
     <div
@@ -64,7 +67,7 @@ export default function StickyAddToCart({ atcRef, product, currentVariant, outOf
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-mdn-white">{product.name}</p>
-          {currentVariant && (
+          {currentSize && (
             <p className="flex items-center gap-1.5 font-mono text-sm font-bold text-mdn-green">
               ₹{effectivePrice}
               {discountPrice && <span className="text-xs font-medium text-mdn-gray line-through">₹{price}</span>}
@@ -81,7 +84,13 @@ export default function StickyAddToCart({ atcRef, product, currentVariant, outOf
           disabled={outOfStock || adding}
           className="btn-primary shrink-0 !px-4 !py-2 text-sm"
         >
-          {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
+          {!currentSize
+            ? "Unavailable"
+            : outOfStock
+            ? "Out of Stock"
+            : adding
+            ? "Adding..."
+            : "Add to Cart"}
         </button>
       </div>
     </div>

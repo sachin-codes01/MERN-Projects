@@ -13,8 +13,8 @@ exports.getProducts = async (req, res) => {
     if (search) filter.$text = { $search: search };
 
     let sortOption = { createdAt: -1 };
-    if (sort === "price_low") sortOption = { "variants.0.price": 1 };
-    if (sort === "price_high") sortOption = { "variants.0.price": -1 };
+    if (sort === "price_low") sortOption = { "sizes.0.price": 1 };
+    if (sort === "price_high") sortOption = { "sizes.0.price": -1 };
     if (sort === "rating") sortOption = { ratingsAverage: -1 };
 
     const products = await Product.find(filter)

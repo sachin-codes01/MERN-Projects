@@ -145,7 +145,7 @@ export default function Footer() {
                 {/* New: dedicated Customer Support page, listed first */}
                 <li><Link to="/support" className="hover:text-mdn-green">Customer Support</Link></li>
                 <li><Link to="/orders" className="hover:text-mdn-green">Track Order</Link></li>
-                <li><a href="#faq" className="hover:text-mdn-green">FAQs</a></li>
+                <li><Link to="/#faq" className="hover:text-mdn-green">FAQs</Link></li>
                 <li><Link to="/support?topic=contact" className="hover:text-mdn-green">Contact Us</Link></li>
                 <li><Link to="/support?topic=shipping" className="hover:text-mdn-green">Shipping and Returns</Link></li>
               </ul>

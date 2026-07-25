@@ -30,6 +30,7 @@ export default function Profile() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [settingDefaultId, setSettingDefaultId] = useState(null);
   // Same fix as Navbar.jsx: some Google avatar URLs fail to load, and a
   // failed <img> falls back to the browser's broken-image glyph + alt
   // text instead of the letter-avatar badge — this tracks that failure
@@ -147,6 +148,19 @@ export default function Profile() {
       toastError(err.message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleSetDefault = async (addressId) => {
+    setSettingDefaultId(addressId);
+    try {
+      await api.updateAddress(token, addressId, { isDefault: true });
+      success("Default address updated.");
+      loadAddresses();
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setSettingDefaultId(null);
     }
   };
 
@@ -296,7 +310,16 @@ export default function Profile() {
                 </p>
                 <p className="text-sm text-mdn-gray">{addr.country}</p>
 
-                <div className="mt-3 flex gap-3 pt-1">
+                <div className="mt-3 flex flex-wrap gap-3 pt-1">
+                  {!addr.isDefault && (
+                    <button
+                      onClick={() => handleSetDefault(addr._id)}
+                      disabled={settingDefaultId === addr._id}
+                      className="text-xs font-semibold text-mdn-silver hover:underline disabled:opacity-50"
+                    >
+                      {settingDefaultId === addr._id ? "Setting..." : "Set as Default"}
+                    </button>
+                  )}
                   <button
                     onClick={() => openEditForm(addr)}
                     className="text-xs font-semibold text-mdn-green hover:underline"

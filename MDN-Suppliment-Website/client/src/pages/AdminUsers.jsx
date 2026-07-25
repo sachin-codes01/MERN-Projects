@@ -40,6 +40,7 @@ export default function AdminUsers() {
   }
 
   const handleBlock = async (id) => {
+    if (!window.confirm("Block this user? They won't be able to log in or place orders until unblocked.")) return;
     setError("");
     setMessage("");
     try {
@@ -224,10 +225,6 @@ export default function AdminUsers() {
                           <div className="flex gap-2">
                             <strong className="w-36 shrink-0 text-mdn-white">Phone:</strong>
                             <span>{userDetails.phone || "Not provided"}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <strong className="w-36 shrink-0 text-mdn-white">Email verified:</strong>
-                            <span>{userDetails.isVerified ? "Yes" : "No"}</span>
                           </div>
                           <div className="flex gap-2">
                             <strong className="w-36 shrink-0 text-mdn-white">Fitness goal:</strong>

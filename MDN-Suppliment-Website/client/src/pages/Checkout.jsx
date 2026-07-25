@@ -169,7 +169,10 @@ export default function Checkout() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               shippingAddress,
-              saveAddress: saveAddress ? { label: "Home" } : null,
+              saveAddress: saveAddress
+                ? { label: addresses.find((a) => a._id === selectedAddressId)?.label || "Home" }
+                : null,
+              addressId: selectedAddressId || null,
             });
             navigate("/orders", { state: { justPlaced: data.data.orderNumber } });
           } catch (err) {

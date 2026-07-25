@@ -10,18 +10,18 @@ import Accordion from "../components/Accordion";
 import ProductReviews from "../components/ProductReviews";
 import StickyAddToCart from "../components/StickyAddToCart";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import { getVariantPrice } from "../utils/pricing";
+import { getSizePrice } from "../utils/pricing";
 
-const perServing = (v, effectivePrice) => (v.servings ? Math.round(effectivePrice / v.servings) : null);
+const perServing = (size, effectivePrice) => (size.servings ? Math.round(effectivePrice / size.servings) : null);
 
 export default function ProductDetail() {
   const { slug } = useParams();
   const [product, setProduct] = useState(null);
-  const [selectedFlavor, setSelectedFlavor] = useState(null);
-  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedSizeId, setSelectedSizeId] = useState(null);
+  const [selectedFlavorId, setSelectedFlavorId] = useState(null);
   const [error, setError] = useState("");
   const [adding, setAdding] = useState(false);
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { markNewItem } = useCartBadge();
   const { success, error: toastError } = useToast();
   const atcRef = useRef(null);
@@ -31,60 +31,49 @@ export default function ProductDetail() {
       .getProductBySlug(slug)
       .then((data) => {
         setProduct(data.data);
-        const firstVariant = data.data.variants?.[0];
-        setSelectedFlavor(firstVariant?.flavor || null);
-        setSelectedVariant(firstVariant?._id || null);
+        setSelectedSizeId(data.data.sizes?.[0]?._id || null);
+        setSelectedFlavorId(data.data.flavors?.[0]?._id || null);
       })
       .catch((err) => setError(err.message));
   }, [slug]);
 
-  // Unique flavors (in first-appearance order), each carrying its swatch
-  // photo — only rendered as a picker row when there's more than one.
-  const flavors = [];
-  const seenFlavors = new Set();
-  for (const v of product?.variants || []) {
-    if (v.flavor && !seenFlavors.has(v.flavor)) {
-      seenFlavors.add(v.flavor);
-      flavors.push({ flavor: v.flavor, image: v.flavorImage });
-    }
-  }
+  const sizes = product?.sizes || [];
+  const flavors = product?.flavors || [];
+  const hasSizes = sizes.length > 0;
 
-  const variantsForFlavor =
-    flavors.length > 0
-      ? product?.variants?.filter((v) => v.flavor === selectedFlavor)
-      : product?.variants || [];
-
-  const currentVariant = product?.variants?.find((v) => v._id === selectedVariant);
-  const outOfStock = currentVariant && currentVariant.stock <= 0;
-
-  const handleSelectFlavor = (flavor) => {
-    setSelectedFlavor(flavor);
-    const match = product.variants.find((v) => v.flavor === flavor);
-    if (match) setSelectedVariant(match._id);
-  };
+  const currentSize = sizes.find((s) => s._id === selectedSizeId);
+  const currentFlavor = selectedFlavorId ? flavors.find((f) => f._id === selectedFlavorId) : null;
+  // Products can be saved without any size (e.g. mid-setup in admin) —
+  // treat "no purchasable size" the same as out-of-stock so Add to Cart
+  // stays disabled instead of throwing when it reads currentSize fields.
+  const outOfStock = !currentSize || currentSize.stock <= 0;
 
   const handleAddToCart = async () => {
+    if (!currentSize) return;
     setError("");
     try {
       setAdding(true);
+      const { effectivePrice } = getSizePrice(currentSize, currentFlavor?.priceAdjustment || 0);
       if (token) {
         await api.addToCart(token, {
           productId: product._id,
-          variantId: selectedVariant,
+          sizeId: selectedSizeId,
+          flavorId: selectedFlavorId,
           quantity: 1,
         });
       } else {
         guestCart.addItem({
           productId: product._id,
-          variantId: selectedVariant,
+          sizeId: selectedSizeId,
+          flavorId: selectedFlavorId,
           quantity: 1,
           name: product.name,
-          image: currentVariant.flavorImage || product.thumbnail,
-          price: getVariantPrice(currentVariant).effectivePrice,
+          image: currentFlavor?.image || product.thumbnail,
+          price: effectivePrice,
           slug: product.slug,
-          stock: currentVariant.stock,
-          flavor: currentVariant.flavor,
-          weight: currentVariant.weight,
+          stock: currentSize.stock,
+          flavor: currentFlavor?.name || null,
+          weight: currentSize.weight,
           brand: product.brand,
         });
       }
@@ -95,6 +84,19 @@ export default function ProductDetail() {
       toastError(err.message);
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleSubmitReview = async ({ rating, comment }) => {
+    try {
+      await api.addProductReview(token, product._id, { rating, comment });
+      const data = await api.getProductBySlug(slug);
+      setProduct(data.data);
+      success("Review submitted — thanks for sharing!");
+      return true;
+    } catch (err) {
+      toastError(err.message);
+      return false;
     }
   };
 
@@ -170,88 +172,95 @@ export default function ProductDetail() {
 
           {teaser && <p className="mt-2 break-words text-sm leading-relaxed text-mdn-gray sm:text-base">{teaser}</p>}
 
-          {/* Weight / pack picker */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-mdn-white">Choose Pack Size</label>
-            <div className="mt-2 space-y-1.5 sm:space-y-2">
-              {variantsForFlavor.map((v) => {
-                const { price, discountPrice, effectivePrice, discountPct: pct } = getVariantPrice(v);
-                const perServ = perServing(v, effectivePrice);
-                const isSelected = selectedVariant === v._id;
-                return (
-                  <button
-                    key={v._id}
-                    type="button"
-                    disabled={v.stock <= 0}
-                    onClick={() => setSelectedVariant(v._id)}
-                    className={`relative flex w-full items-center justify-between gap-3 rounded-xl border-2 px-2.5 pb-3.5 pt-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:gap-4 sm:px-3 sm:pb-4 sm:pt-3 ${
-                      isSelected ? "border-mdn-green bg-mdn-green/5" : "border-white/10 hover:border-mdn-green/40"
-                    }`}
-                  >
-                    {pct > 0 && (
-                      <span className="absolute -top-2 right-3 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                        Save {pct}%
-                      </span>
-                    )}
-                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                      <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 sm:h-5 sm:w-5 ${
-                          isSelected ? "border-mdn-green" : "border-mdn-silver/40"
-                        }`}
-                      >
-                        {isSelected && <span className="h-2 w-2 rounded-full bg-mdn-green sm:h-2.5 sm:w-2.5" />}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-mdn-white sm:text-base">{v.weight}</p>
-                        {v.supplyLabel && <p className="truncate text-xs text-mdn-gray">{v.supplyLabel}</p>}
+          {/* Size picker — independent of flavor: every size is always
+              shown here. Its price already reflects whichever flavor is
+              currently selected below (base size price +/- that flavor's
+              adjustment), so switching flavor updates these prices live. */}
+          {hasSizes && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-mdn-white">Choose Size</label>
+              <div className="mt-2 space-y-1.5 sm:space-y-2">
+                {sizes.map((s) => {
+                  const { price, discountPrice, effectivePrice, discountPct: pct } = getSizePrice(
+                    s,
+                    currentFlavor?.priceAdjustment || 0
+                  );
+                  const perServ = perServing(s, effectivePrice);
+                  const isSelected = selectedSizeId === s._id;
+                  return (
+                    <button
+                      key={s._id}
+                      type="button"
+                      disabled={s.stock <= 0}
+                      onClick={() => setSelectedSizeId(s._id)}
+                      className={`relative flex w-full items-center justify-between gap-3 rounded-xl border-2 px-2.5 pb-3.5 pt-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:gap-4 sm:px-3 sm:pb-4 sm:pt-3 ${
+                        isSelected ? "border-mdn-green bg-mdn-green/5" : "border-white/10 hover:border-mdn-green/40"
+                      }`}
+                    >
+                      {pct > 0 && (
+                        <span className="absolute -top-2 right-3 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                          Save {pct}%
+                        </span>
+                      )}
+                      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 sm:h-5 sm:w-5 ${
+                            isSelected ? "border-mdn-green" : "border-mdn-silver/40"
+                          }`}
+                        >
+                          {isSelected && <span className="h-2 w-2 rounded-full bg-mdn-green sm:h-2.5 sm:w-2.5" />}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-mdn-white sm:text-base">{s.weight}</p>
+                          {s.supplyLabel && <p className="truncate text-xs text-mdn-gray">{s.supplyLabel}</p>}
+                        </div>
                       </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="font-mono text-sm font-bold text-mdn-green sm:text-base">
-                        ₹{effectivePrice}
-                        {discountPrice && (
-                          <span className="ml-1.5 text-xs font-medium text-mdn-gray line-through">₹{price}</span>
-                        )}
-                      </p>
-                      {v.servings && (
-                        <p className="text-[11px] text-mdn-gray">
-                          ({v.servings} servings; ₹{perServ}/serving)
+                      <div className="shrink-0 text-right">
+                        <p className="font-mono text-sm font-bold text-mdn-green sm:text-base">
+                          ₹{effectivePrice}
+                          {discountPrice && (
+                            <span className="ml-1.5 text-xs font-medium text-mdn-gray line-through">₹{price}</span>
+                          )}
                         </p>
-                      )}
-                      {/* Per-card, not a shared line elsewhere on the page —
-                          so it's unambiguous exactly which pack size it's
-                          talking about. */}
-                      {v.stock <= 0 ? (
-                        <p className="text-[11px] font-semibold text-red-400">Out of stock</p>
-                      ) : (
-                        v.stock <= 10 && (
-                          <p className="text-[11px] font-semibold text-orange-400">Only {v.stock} left</p>
-                        )
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+                        {s.servings && (
+                          <p className="text-[11px] text-mdn-gray">
+                            ({s.servings} servings; ₹{perServ}/serving)
+                          </p>
+                        )}
+                        {/* Per-card, not a shared line elsewhere on the page —
+                            so it's unambiguous exactly which size it's
+                            talking about. */}
+                        {s.stock <= 0 ? (
+                          <p className="text-[11px] font-semibold text-red-400">Out of stock</p>
+                        ) : (
+                          s.stock <= 10 && (
+                            <p className="text-[11px] font-semibold text-orange-400">Only {s.stock} left</p>
+                          )
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Flavor picker — shown whenever at least one variant has a
-              flavor set. Uses `>= 1` (not `> 1`) because two variants can
-              share the same flavor name yet still carry different swatch
-              photos worth showing (e.g. two pack sizes of one flavor). */}
+          {/* Flavor picker — fully independent of size: choosing a flavor
+              never changes which sizes are available, it only shifts the
+              price of whichever size is currently selected. */}
           {flavors.length >= 1 && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-mdn-white">
-                Choose Flavor{selectedFlavor ? ` — ${selectedFlavor}` : ""}
+                Choose Flavor{currentFlavor ? ` — ${currentFlavor.name}` : ""}
               </label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {flavors.map((f) => {
-                  const isSelected = selectedFlavor === f.flavor;
+                  const isSelected = selectedFlavorId === f._id;
                   return (
                     <button
-                      key={f.flavor}
+                      key={f._id}
                       type="button"
-                      onClick={() => handleSelectFlavor(f.flavor)}
+                      onClick={() => setSelectedFlavorId(f._id)}
                       className={`w-20 shrink-0 overflow-hidden rounded-xl border-2 text-center transition-all duration-200 ${
                         isSelected ? "border-mdn-green shadow-green-glow" : "border-white/10 hover:border-mdn-green/50"
                       }`}
@@ -260,7 +269,7 @@ export default function ProductDetail() {
                           the card border, `overflow-hidden` on the button
                           itself clips it to the rounded corners. */}
                       <span className="relative block h-16 w-full bg-white">
-                        {f.image && <img src={f.image} alt={f.flavor} className="h-full w-full object-fill" />}
+                        {f.image && <img src={f.image} alt={f.name} className="h-full w-full object-fill" />}
                         {isSelected && (
                           <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mdn-green text-black">
                             <CheckRoundedIcon sx={{ fontSize: 11 }} />
@@ -268,7 +277,7 @@ export default function ProductDetail() {
                         )}
                       </span>
                       <span className="block bg-white px-1 py-1 line-clamp-1 text-xs font-bold text-black">
-                        {f.flavor}
+                        {f.name}
                       </span>
                     </button>
                   );
@@ -283,7 +292,13 @@ export default function ProductDetail() {
             disabled={outOfStock || adding}
             className="btn-primary mt-4 w-full py-2.5 text-base"
           >
-            {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
+            {!hasSizes
+              ? "Currently Unavailable"
+              : outOfStock
+              ? "Out of Stock"
+              : adding
+              ? "Adding..."
+              : "Add to Cart"}
           </button>
 
           {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
@@ -330,12 +345,16 @@ export default function ProductDetail() {
         reviews={product.reviews || []}
         ratingsAverage={product.ratingsAverage || 0}
         ratingsCount={product.ratingsCount || 0}
+        currentUserId={user?.id || null}
+        canReview={!!token}
+        onSubmitReview={handleSubmitReview}
       />
 
       <StickyAddToCart
         atcRef={atcRef}
         product={product}
-        currentVariant={currentVariant}
+        currentSize={currentSize}
+        currentFlavor={currentFlavor}
         outOfStock={outOfStock}
         adding={adding}
         onAddToCart={handleAddToCart}

@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import MDNLoader from "./components/MDNLoader";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -94,11 +95,46 @@ export default function App() {
               />
 
               {/* Admin */}
-              <Route path="/admin/products" element={<AdminProducts />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/coupons" element={<AdminCoupons />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route
+                path="/admin/products"
+                element={
+                  <AdminRoute>
+                    <AdminProducts />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/orders"
+                element={
+                  <AdminRoute>
+                    <AdminOrders />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <AdminUsers />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/coupons"
+                element={
+                  <AdminRoute>
+                    <AdminCoupons />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <AdminRoute>
+                    <AdminSettings />
+                  </AdminRoute>
+                }
+              />
             </Routes>
           </Suspense>
         </ErrorBoundary>

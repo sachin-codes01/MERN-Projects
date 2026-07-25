@@ -7,10 +7,10 @@ const razorpay = require("../config/razorpay");
 const crypto = require("crypto");
 
 async function rollback(decrementedItems) {
-  for (const { productId, variantId, quantity } of decrementedItems) {
+  for (const { productId, sizeId, quantity } of decrementedItems) {
     await Product.updateOne(
-      { _id: productId, "variants._id": variantId },
-      { $inc: { "variants.$.stock": quantity } }
+      { _id: productId, "sizes._id": sizeId },
+      { $inc: { "sizes.$.stock": quantity } }
     ).catch(() => {});
   }
 }
@@ -86,6 +86,7 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
       razorpay_signature,
       shippingAddress,
       saveAddress,
+      addressId,
     } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -112,15 +113,15 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
 
     for (const item of cart.items) {
       const product = item.product;
-      const variant = product.variants.id(item.variantId);
-      if (!variant) {
+      const size = product.sizes.id(item.sizeId);
+      if (!size) {
         await rollback(decrementedItems);
-        return res.status(400).json({ success: false, message: `Variant no longer exists for ${product.name}` });
+        return res.status(400).json({ success: false, message: `Size no longer exists for ${product.name}` });
       }
 
       const updated = await Product.findOneAndUpdate(
-        { _id: product._id, "variants._id": item.variantId, "variants.stock": { $gte: item.quantity } },
-        { $inc: { "variants.$.stock": -item.quantity } },
+        { _id: product._id, "sizes._id": item.sizeId, "sizes.stock": { $gte: item.quantity } },
+        { $inc: { "sizes.$.stock": -item.quantity } },
         { new: true }
       );
       if (!updated) {
@@ -128,17 +129,21 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: `${product.name} out of stock now.` });
       }
 
-      decrementedItems.push({ productId: product._id, variantId: item.variantId, quantity: item.quantity });
+      decrementedItems.push({ productId: product._id, sizeId: item.sizeId, quantity: item.quantity });
 
-      const price = variant.discountPrice || variant.price;
+      // Re-derived from the live product (not just the cart's stored
+      // priceAtAddition) so a size/flavor price change between add-to-cart
+      // and checkout is reflected in the final order — same as before.
+      const flavor = item.flavorId ? product.flavors.id(item.flavorId) : null;
+      const price = (size.discountPrice || size.price) + (flavor?.priceAdjustment || 0);
       subtotal += price * item.quantity;
       orderItems.push({
         product: product._id,
-        variantId: item.variantId,
+        sizeId: item.sizeId,
         name: product.name,
-        flavor: variant.flavor,
-        weight: variant.weight,
-        image: variant.images?.[0] || product.thumbnail,
+        flavor: flavor?.name || item.flavor || null,
+        weight: size.weight,
+        image: flavor?.image || product.thumbnail,
         price,
         quantity: item.quantity,
       });
@@ -183,11 +188,19 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
     // Address save — sirf tabhi jab duplicate na ho
     if (saveAddress) {
       const userDoc = await User.findById(req.user._id);
-      const alreadyExists = isDuplicateAddress(userDoc.addresses, shippingAddress);
 
-      if (!alreadyExists) {
-        userDoc.addresses.push({ ...shippingAddress, label: saveAddress.label || "Home" });
+      // Checked out with an existing saved address and edited its fields —
+      // update that address in place instead of appending a near-duplicate.
+      const existing = addressId ? userDoc.addresses.id(addressId) : null;
+      if (existing) {
+        Object.assign(existing, shippingAddress, { label: saveAddress.label || existing.label || "Home" });
         await userDoc.save();
+      } else {
+        const alreadyExists = isDuplicateAddress(userDoc.addresses, shippingAddress);
+        if (!alreadyExists) {
+          userDoc.addresses.push({ ...shippingAddress, label: saveAddress.label || "Home" });
+          await userDoc.save();
+        }
       }
     }
 
@@ -228,8 +241,8 @@ exports.cancelOrder = async (req, res) => {
 
     for (const item of order.items) {
       await Product.updateOne(
-        { _id: item.product, "variants._id": item.variantId },
-        { $inc: { "variants.$.stock": item.quantity } }
+        { _id: item.product, "sizes._id": item.sizeId },
+        { $inc: { "sizes.$.stock": item.quantity } }
       ).catch(() => {});
     }
 

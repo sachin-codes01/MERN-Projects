@@ -509,6 +509,11 @@ export default function SplashCursor({
 
     initFramebuffers();
     let lastUpdateTime = Date.now();
+    // Tracked so the effect cleanup can cancel the loop — without this,
+    // every remount (window resize crossing the desktop breakpoint, the
+    // admin toggling this setting, an ErrorBoundary reset) leaves the
+    // previous WebGL fluid simulation running forever in the background.
+    let animationFrameId = null;
     update();
 
     function update() {
@@ -530,7 +535,7 @@ export default function SplashCursor({
       applyInputs();
       step(dt);
       render(null);
-      requestAnimationFrame(update);
+      animationFrameId = requestAnimationFrame(update);
     }
 
     function resizeCanvas() {
@@ -700,6 +705,7 @@ export default function SplashCursor({
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
     };
   }, [
     SIM_RESOLUTION, DYE_RESOLUTION, CAPTURE_RESOLUTION, DENSITY_DISSIPATION,

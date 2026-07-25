@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Button from "@mui/material/Button";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 
@@ -32,12 +33,88 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
+// Interactive 1-5 star picker for the review form (as opposed to the
+// read-only <Stars> above used to display existing ratings).
+function StarPicker({ value, onChange }) {
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: 5 }).map((_, i) => {
+        const starValue = i + 1;
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onChange(starValue)}
+            aria-label={`${starValue} star${starValue > 1 ? "s" : ""}`}
+            className="text-mdn-green transition-transform hover:scale-110"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={starValue <= value ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+              <path d="M12 2l2.9 6.4 7 .7-5.3 4.7 1.6 6.9L12 17.6 5.8 20.7l1.6-6.9L2.1 9.1l7-.7L12 2z" />
+            </svg>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WriteReviewForm({ onSubmitReview }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (rating === 0) {
+      setFormError("Please select a star rating.");
+      return;
+    }
+    setFormError("");
+    setSubmitting(true);
+    const ok = await onSubmitReview({ rating, comment: comment.trim() });
+    setSubmitting(false);
+    if (ok) {
+      setRating(0);
+      setComment("");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="card mt-6 space-y-3 p-4 sm:p-5">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Write a Review</h3>
+      <StarPicker value={rating} onChange={setRating} />
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Share your experience with this product (optional)"
+        rows={3}
+        className="input-field w-full resize-none"
+      />
+      {formError && <p className="text-xs text-red-400">{formError}</p>}
+      <button type="submit" disabled={submitting} className="btn-primary !px-5 !py-2 text-sm">
+        {submitting ? "Submitting..." : "Submit Review"}
+      </button>
+    </form>
+  );
+}
+
 // Product-specific customer reviews — real `product.reviews` data, styled
 // to match: stars row, avatar-initial circle, name + Verified pill, date,
 // then the comment text, each review separated by a divider. This is
 // intentionally separate from ReviewsSection.jsx (that one is a
 // hardcoded homepage/marketing testimonials carousel, not per-product).
-export default function ProductReviews({ reviews = [], ratingsAverage = 0, ratingsCount = 0 }) {
+export default function ProductReviews({
+  reviews = [],
+  ratingsAverage = 0,
+  ratingsCount = 0,
+  currentUserId = null,
+  canReview = false,
+  onSubmitReview = null,
+}) {
+  const alreadyReviewed = currentUserId
+    ? reviews.some((r) => (r.user?._id || r.user) === currentUserId)
+    : false;
   // Shows a random subset (20-24, or all of them if fewer exist) in random
   // order each time the page loads — recomputed only when the underlying
   // review list actually changes, not on every unrelated re-render. The
@@ -137,6 +214,19 @@ export default function ProductReviews({ reviews = [], ratingsAverage = 0, ratin
             Show More Reviews
           </Button>
         </div>
+      )}
+
+      {canReview && onSubmitReview && !alreadyReviewed && <WriteReviewForm onSubmitReview={onSubmitReview} />}
+      {canReview && alreadyReviewed && (
+        <p className="mt-6 text-sm text-mdn-gray">You've already reviewed this product — thanks for sharing!</p>
+      )}
+      {!canReview && (
+        <p className="mt-6 text-sm text-mdn-gray">
+          <Link to="/login" className="text-mdn-green hover:underline">
+            Log in
+          </Link>{" "}
+          to write a review.
+        </p>
       )}
     </section>
   );
