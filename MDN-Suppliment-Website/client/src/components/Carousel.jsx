@@ -37,7 +37,11 @@ export default function Carousel({
   // backward from last to first.
   const extended = count > 1 ? [slides[count - 1], ...slides, slides[0]] : slides;
 
-  const [position, setPosition] = useState(1);
+  // With a single slide there's no clone padding in `extended` (it's just
+  // `[slide]`, index 0) — starting at position 1 like the multi-slide case
+  // does would translateX(-100%) and push that one slide fully off-screen,
+  // rendering blank. Position 0 is the only valid index here.
+  const [position, setPosition] = useState(count > 1 ? 1 : 0);
   const [transitionOn, setTransitionOn] = useState(true);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);

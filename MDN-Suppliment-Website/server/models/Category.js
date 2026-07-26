@@ -3,7 +3,21 @@ const mongoose = require("mongoose");
 const categorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true }, // "Protein", "Creatine", "Vitamins"
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    // See Product.js slug for why this uses a custom setter instead of
+    // just `lowercase`/`trim`.
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      set: (v) =>
+        typeof v === "string"
+          ? v
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "")
+          : v,
+    },
     description: { type: String },
     image: { type: String },
     parentCategory: {

@@ -69,7 +69,25 @@ const reviewSchema = new mongoose.Schema(
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    // Custom setter (not just `lowercase`/`trim`) so a slug typed with spaces
+    // or mixed case in the admin form always lands as a clean, URL-safe
+    // "mdn-collagen" — not "mdn collagen " — which would 404 on the storefront
+    // since GET /products/:slug does an exact string match. Runs on both
+    // Product.create() AND findByIdAndUpdate(), since Mongoose applies
+    // SchemaType setters on update casting too, not just on .save().
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      set: (v) =>
+        typeof v === "string"
+          ? v
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "")
+          : v,
+    },
     description: { type: String, required: true },
     shortDescription: { type: String },
 
