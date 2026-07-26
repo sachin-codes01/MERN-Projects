@@ -462,6 +462,27 @@ export default function AdminProducts() {
     }
   };
 
+  const handleToggleProductActive = async (p) => {
+    const action = p.isActive ? "Deactivate" : "Reactivate";
+    if (!window.confirm(`${action} the "${p.name}" product?`)) return;
+    setError("");
+    setMessage("");
+    try {
+      if (p.isActive) {
+        await api.adminDeleteProduct(token, p._id); // soft delete (sets isActive: false)
+      } else {
+        await api.adminUpdateProduct(token, p._id, { isActive: true });
+      }
+      setMessage(`Product ${p.isActive ? "deactivated" : "reactivated"}.`);
+      success(`Product ${p.isActive ? "deactivated" : "reactivated"}.`);
+      if (editingId === p._id) resetForm();
+      loadData();
+    } catch (err) {
+      setError(err.message);
+      toastError(err.message);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <p className="text-center text-xs font-semibold uppercase tracking-widest text-mdn-green sm:text-left">
@@ -992,10 +1013,14 @@ export default function AdminProducts() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteProduct(p._id)}
-                        className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+                        onClick={() => handleToggleProductActive(p)}
+                        className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
+                          p.isActive
+                            ? "border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                            : "border-mdn-green/40 bg-mdn-green/10 text-mdn-green hover:bg-mdn-green/20"
+                        }`}
                       >
-                        Delete
+                        {p.isActive ? "Deactivate" : "Reactivate"}
                       </button>
                     </div>
                   </td>
