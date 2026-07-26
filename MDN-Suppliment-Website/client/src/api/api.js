@@ -118,6 +118,10 @@ export const api = {
     const qs = new URLSearchParams(params).toString();
     return request(`/products${qs ? `?${qs}` : ""}`);
   },
+  // Autocomplete feed for the navbar search box — a few ranked rows for
+  // a partial term, not a full paginated listing.
+  suggestProducts: (q, limit = 8) =>
+    request(`/products/suggest?${new URLSearchParams({ q, limit }).toString()}`),
   getProductBySlug: (slug) => request(`/products/${slug}`),
   addProductReview: (token, productId, payload) =>
     request(`/products/${productId}/reviews`, { method: "POST", body: payload, token }),
@@ -203,6 +207,17 @@ export const api = {
     request(`/admin/users/${id}/block`, { method: "PUT", token }),
   adminUnblockUser: (token, id) =>
     request(`/admin/users/${id}/unblock`, { method: "PUT", token }),
+
+  // ---------- CONTACT / ENQUIRIES ----------
+  createEnquiry: (token, payload) => request("/enquiries", { method: "POST", body: payload, token }),
+  markEnquiryChannel: (token, id, channel) =>
+    request(`/enquiries/${id}/channel`, { method: "PUT", body: { channel }, token }),
+  adminGetEnquiries: (token, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/admin/enquiries${qs ? `?${qs}` : ""}`, { token });
+  },
+  adminUpdateEnquiryStatus: (token, id, status) =>
+    request(`/admin/enquiries/${id}/status`, { method: "PUT", body: { status }, token }),
 
   // ---------- SETTINGS ----------
   getSettings: () => request("/settings"),

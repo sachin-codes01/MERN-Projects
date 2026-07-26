@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCartBadge } from "../context/CartBadgeContext";
 import ThemeToggle from "./ThemeToggle";
+import SearchSuggest from "./SearchSuggest";
 import mdnLogo from "../assets/mdn-logo.png";
 import SplashCursor from "./SplashCursor";
 import ErrorBoundary from "./ErrorBoundary";
@@ -75,10 +76,8 @@ export default function Navbar() {
   const { user, token } = useAuth();
   const { hasNewItem, clearNewItem } = useCartBadge();
   const location = useLocation();
-  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
-  const [search, setSearch] = useState("");
   // Some Google accounts' avatar URLs occasionally fail to load (dead
   // link, hotlink block, etc). Without this, a failed <img> falls back
   // to the browser's broken-image glyph + alt text instead of the
@@ -98,13 +97,6 @@ export default function Navbar() {
     `text-sm font-medium tracking-wide transition-colors duration-200 hover:text-mdn-green ${
       active ? "text-mdn-green" : "text-mdn-white/90"
     }`;
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const q = search.trim();
-    if (!q) return;
-    navigate(`/search?q=${encodeURIComponent(q)}`);
-  };
 
   // Close the mobile menu on navigation.
   useEffect(() => {
@@ -141,7 +133,7 @@ export default function Navbar() {
       </div>
 
       {/* Main Bar Top Grid */}
-      <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
+      <div className="relative z-10 mx-auto grid max-w-shell grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-[34px] md:grid-cols-[1fr_auto_1fr]">
         {/* Left — hamburger (mobile) / search (desktop) */}
         <div className="flex items-center">
           <button
@@ -152,17 +144,7 @@ export default function Navbar() {
             {mobileOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
 
-          <form onSubmit={handleSearchSubmit} className="relative hidden max-w-xs md:block">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mdn-gray">
-              <SearchGlyph />
-            </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search supplements..."
-              className="input-field w-full !py-2 pl-9 text-sm"
-            />
-          </form>
+          <SearchSuggest className="hidden w-full max-w-xs md:block" />
         </div>
 
         {/* Center — logo + tagline underneath */}
@@ -246,7 +228,7 @@ export default function Navbar() {
 
       {/* Bottom Desktop Category Strip */}
       <div className="relative z-10 hidden justify-center border-t border-white/5 md:flex">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-2.5">
+        <div className="mx-auto flex max-w-shell flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 sm:px-6 lg:px-[34px] py-2.5">
           <Link
             to="/"
             className="group relative text-sm font-semibold uppercase tracking-wide text-mdn-white/90 transition-colors duration-200 hover:text-mdn-green"
@@ -360,6 +342,12 @@ export default function Navbar() {
       >
         <div className="min-h-0 overflow-hidden">
         <div className="flex flex-col gap-1 px-4 py-3">
+          {/* The search box previously existed only on md+ (`hidden md:block`
+              on the desktop bar), so phone users had no way to search at
+              all — the same autocomplete component is mounted here, and
+              closes the drawer once it navigates. */}
+          <SearchSuggest className="mb-3" onNavigate={() => setMobileOpen(false)} />
+
           <p className="mb-1 mt-1 text-[10px] font-semibold uppercase tracking-widest text-mdn-gray">Explore</p>
           {QUICK_LINKS.map((l) => (
             <Link
@@ -476,6 +464,7 @@ export default function Navbar() {
             ["/admin/orders", "Orders"],
             ["/admin/users", "Users"],
             ["/admin/coupons", "Coupons"],
+            ["/admin/enquiries", "Enquiries"],
             ["/admin/settings", "Settings"],
           ].map(([to, label]) => (
             <Link
@@ -494,14 +483,6 @@ export default function Navbar() {
   );
 }
 
-function SearchGlyph() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
-    </svg>
-  );
-}
 function CartIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">

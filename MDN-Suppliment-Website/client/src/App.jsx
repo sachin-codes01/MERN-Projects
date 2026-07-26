@@ -28,6 +28,8 @@ const SearchResults = lazy(() => import("./pages/SearchResults"));
 // New: Customer Support page (linked from Navbar "Customer Support" and
 // Footer "Customer Support"), lazy-loaded like the other secondary pages.
 const CustomerSupportPage = lazy(() => import("./pages/CustomerSupportPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const AdminEnquiries = lazy(() => import("./pages/AdminEnquiries"));
 const Blogs = lazy(() => import("./pages/Blogs"));
 const BlogDetail = lazy(() => import("./pages/BlogDetail"));
 
@@ -38,7 +40,15 @@ export default function App() {
     <div className="flex min-h-screen flex-col bg-mdn-black">
       <ScrollToTop />
       <Navbar />
-      <main className="container mx-auto flex-1">
+      {/* No `container` here on purpose. Tailwind's `container` caps width
+          at the CURRENT BREAKPOINT's value rather than the viewport, so a
+          1023px-wide window was pinned to 768px and a 1279px one to
+          1024px — that's the empty band down both sides of every page, at
+          its worst just below each breakpoint. It also silently overrode
+          the per-section `max-w-shell`, which only lined up by coincidence
+          at >=1536px. Width and gutters belong to the sections themselves
+          (`mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]`), so main just fills. */}
+      <main className="flex-1">
         {/* Wraps the routed page content only (not Navbar/Footer) — a
             render-time crash on one page (e.g. unexpected API shape) now
             shows this fallback instead of unmounting the entire app to a
@@ -67,6 +77,18 @@ export default function App() {
               <Route path="/support" element={<CustomerSupportPage />} />
               <Route path="/blogs" element={<Blogs />} />
               <Route path="/blogs/:slug" element={<BlogDetail />} />
+
+              {/* Requires login — contacting support is gated so every
+                  enquiry is tied to a real account and the email field can
+                  be trusted (and therefore locked) in the form. */}
+              <Route
+                path="/contact"
+                element={
+                  <ProtectedRoute>
+                    <ContactPage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Requires login */}
               <Route
@@ -132,6 +154,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminSettings />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/enquiries"
+                element={
+                  <AdminRoute>
+                    <AdminEnquiries />
                   </AdminRoute>
                 }
               />

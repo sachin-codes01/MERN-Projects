@@ -151,10 +151,14 @@ export default function ProductCard({ product }) {
         <button
           onClick={handleAddToCart}
           disabled={adding || outOfStock}
-          // Fixed dark button regardless of light/dark theme — matches the
-          // reference card's solid dark "View Product" button, while
-          // keeping this one functional as Add to Cart.
-          className={`mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black disabled:cursor-not-allowed disabled:opacity-60 ${
+          // Solid neutral button that INVERTS with the theme. It used to be
+          // a fixed #14151a in both modes, which is within a couple of
+          // shades of the dark-mode card surface (--mdn-charcoal #16181a) —
+          // so in dark mode the button was effectively invisible against
+          // the card it sat on. Light mode keeps the original dark button;
+          // dark mode flips to a light fill with dark text for the same
+          // contrast the design intended. Hover still goes green in both.
+          className={`mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black dark:bg-mdn-white dark:text-mdn-black dark:hover:bg-mdn-green dark:hover:text-black disabled:cursor-not-allowed disabled:opacity-60 ${
             justAdded ? "animate-pop" : ""
           }`}
         >

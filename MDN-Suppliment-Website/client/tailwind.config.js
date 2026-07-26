@@ -24,6 +24,16 @@ export default {
         body: ["Inter", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
+      maxWidth: {
+        // The single content width every storefront section aligns to —
+        // navbar, home sections, product pages and footer all share it, so
+        // they line up on one edge instead of the old mix of max-w-7xl
+        // (1280px), max-w-6xl (1152px) and max-w-3xl (768px), which left
+        // large gutters on wide screens and a ragged left/right edge
+        // between sections. Narrow reading surfaces (cart, checkout,
+        // profile, admin forms) deliberately keep their own smaller caps.
+        shell: "1536px",
+      },
       boxShadow: {
         "green-glow": "0 0 0 1px rgba(34,177,76,0.4), 0 8px 24px -8px rgba(34,177,76,0.35)",
         card: "0 4px 16px -4px rgba(0,0,0,0.25)",

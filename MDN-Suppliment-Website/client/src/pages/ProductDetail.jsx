@@ -110,7 +110,7 @@ export default function ProductDetail() {
   }
   if (!product) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 lg:px-[34px]">
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="aspect-square animate-pulse rounded-xl bg-mdn-charcoal2" />
           <div className="space-y-3">
@@ -130,7 +130,7 @@ export default function ProductDetail() {
       : "");
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
       <div className="grid min-w-0 gap-10 lg:grid-cols-2">
         {/* Gallery — a plain, always-square image, capped so it never
             grows past a sane size on wide desktop columns. */}

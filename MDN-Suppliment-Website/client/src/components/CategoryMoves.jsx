@@ -22,7 +22,7 @@ export default function CategoryMoves() {
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-16">
+    <section className="mx-auto max-w-shell px-4 py-6 sm:px-6 lg:px-[34px] sm:py-16">
       <SectionHeading eyebrow="Explore" title="Shop by" accent="Collection" />
 
       {/* Large screens: every card shown at once in a static grid — no
@@ -59,9 +59,13 @@ function CollectionCard({ item, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="card group flex h-full w-full flex-col items-center gap-1.5 px-1.5 py-3 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:gap-3 sm:px-4 sm:py-6"
+      className="card group flex h-full w-full flex-col items-center gap-1.5 px-1.5 py-3 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:gap-3 sm:px-4 sm:py-6 2xl:py-8"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mdn-green/10 text-mdn-green transition-all duration-300 group-hover:scale-110 group-hover:bg-mdn-green group-hover:text-black group-hover:rotate-6 sm:h-12 sm:w-12">
+      {/* The 2xl icon/padding step keeps these cards from reading as
+          short, flat bars now that the section spans the full 1536px
+          shell — five columns at that width are noticeably wider than
+          they were at max-w-7xl, so the box grows vertically to match. */}
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mdn-green/10 text-mdn-green transition-all duration-300 group-hover:scale-110 group-hover:bg-mdn-green group-hover:text-black group-hover:rotate-6 sm:h-12 sm:w-12 2xl:h-14 2xl:w-14">
         <Glyph name={item.glyph} />
       </span>
       {/* Fixed min-height reserves the same 2-line space for every card

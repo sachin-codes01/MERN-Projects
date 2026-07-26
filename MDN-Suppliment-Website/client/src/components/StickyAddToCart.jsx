@@ -59,7 +59,7 @@ export default function StickyAddToCart({ atcRef, product, currentSize, currentF
       }`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+      <div className="mx-auto flex max-w-shell items-center gap-3 px-4 sm:px-6 lg:px-[34px] py-3">
         <img
           src={product.thumbnail}
           alt={product.name}

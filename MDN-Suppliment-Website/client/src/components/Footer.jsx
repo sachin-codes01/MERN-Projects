@@ -10,30 +10,17 @@ import { hasWebGLSupport } from "../utils/hasWebGLSupport";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useSettings } from "../context/SettingsContext";
 
-const CONTACT_EMAIL = "sachin.codes01@gmail.com";
-
-// Pre-filled on WhatsApp/email so a message that lands from the site is
-// immediately recognizable as a lead from here rather than a cold
-// contact. Instagram has no equivalent public "pre-filled DM" link — its
-// API only allows that for approved business integrations — so its link
-// below just opens the profile/DM thread as-is.
-const CONTACT_MESSAGE = "Hi MDN! I'm reaching out from your website — I'd like to know more.";
-
+// WhatsApp and Email now point INTERNALLY at /contact rather than opening
+// a chat straight away: contacting support is login-gated so every enquiry
+// is tied to a real account, and the form is what pre-fills the chat with
+// the customer's details. `internal: true` makes the row render as a
+// react-router <Link> instead of an <a>. Instagram/Facebook stay external
+// — they're profile links, not support channels.
 const FOOTER_SOCIALS = [
-  {
-    name: "WhatsApp",
-    href: `https://wa.me/917217344896?text=${encodeURIComponent(CONTACT_MESSAGE)}`,
-    Icon: WhatsAppIcon,
-    hoverColor: "#25D366",
-  },
+  { name: "WhatsApp", href: "/contact", internal: true, Icon: WhatsAppIcon, hoverColor: "#25D366" },
   { name: "Instagram", href: "https://www.instagram.com/sachin_28022005?igsh=MTNtY2kzaTlqaDl6cw==", Icon: InstagramIcon, hoverColor: "#E1306C" },
   { name: "Facebook", href: "https://facebook.com/mdn.nutrition", Icon: FacebookIcon, hoverColor: "#1877F2" },
-  {
-    name: "Email",
-    href: `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Inquiry from MDN Website")}&body=${encodeURIComponent(CONTACT_MESSAGE)}`,
-    Icon: EmailIcon,
-    hoverColor: "#22B14C",
-  },
+  { name: "Email", href: "/contact", internal: true, Icon: EmailIcon, hoverColor: "#22B14C" },
 ];
 
 const TICKER_ITEMS = [
@@ -93,7 +80,7 @@ export default function Footer() {
 
         {/* Main Links/Grid Area */}
         <div className="pointer-events-auto border-t border-white/5 bg-mdn-charcoal/40 backdrop-blur-[2px]">
-          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto grid max-w-shell gap-8 px-4 py-12 sm:px-6 lg:px-[34px] sm:grid-cols-2 lg:grid-cols-4">
             <div>
               {/* Same reserved-box + overflow technique as Navbar, and the
                   exact same box/image sizes, so the logo reads as
@@ -112,15 +99,25 @@ export default function Footer() {
               <div className="mt-4 flex gap-3">
                 {FOOTER_SOCIALS.map((social) => {
                   const Icon = social.Icon;
-                  return (
+                  const iconClass =
+                    "group flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-mdn-gray transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:text-[var(--hover-color)] hover:shadow-[0_0_10px_var(--hover-color)]";
+                  const style = { "--hover-color": social.hoverColor };
+
+                  // Support channels route through the in-app contact form
+                  // (login-gated); profile links stay plain external <a>.
+                  return social.internal ? (
+                    <Link key={social.name} to={social.href} aria-label={social.name} style={style} className={iconClass}>
+                      <Icon sx={{ fontSize: 16 }} />
+                    </Link>
+                  ) : (
                     <a
                       key={social.name}
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={social.name}
-                      style={{ "--hover-color": social.hoverColor }}
-                      className="group flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-mdn-gray transition-all duration-200 hover:-translate-y-0.5 hover:border-transparent hover:text-[var(--hover-color)] hover:shadow-[0_0_10px_var(--hover-color)]"
+                      style={style}
+                      className={iconClass}
                     >
                       <Icon sx={{ fontSize: 16 }} />
                     </a>
@@ -146,30 +143,24 @@ export default function Footer() {
                 <li><Link to="/support" className="hover:text-mdn-green">Customer Support</Link></li>
                 <li><Link to="/orders" className="hover:text-mdn-green">Track Order</Link></li>
                 <li><Link to="/#faq" className="hover:text-mdn-green">FAQs</Link></li>
-                <li><Link to="/support?topic=contact" className="hover:text-mdn-green">Contact Us</Link></li>
+                <li><Link to="/contact" className="hover:text-mdn-green">Contact Us</Link></li>
                 <li><Link to="/support?topic=shipping" className="hover:text-mdn-green">Shipping and Returns</Link></li>
               </ul>
             </div>
 
+            {/* Replaced the old "Get in Touch" column. Publishing the email,
+                WhatsApp number and hours here undercut the login-gated
+                contact flow — anyone could skip the form and message
+                directly. Those details now live on the /contact success
+                screen, shown once an enquiry is on record. */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-mdn-white">Get in Touch</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-mdn-white">Company</h4>
               <ul className="mt-3 space-y-2 text-sm text-mdn-gray">
-                <li>
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-mdn-green">
-                    {CONTACT_EMAIL}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={FOOTER_SOCIALS[0].href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-mdn-green"
-                  >
-                    WhatsApp: +91 72173 44896
-                  </a>
-                </li>
-                <li className="text-mdn-gray/80">Mon–Sat, 10am–7pm IST</li>
+                <li><Link to="/#story" className="hover:text-mdn-green">Our Story</Link></li>
+                <li><Link to="/blogs" className="hover:text-mdn-green">Blogs</Link></li>
+                <li><Link to="/products/section/fitness_combo" className="hover:text-mdn-green">Build Your Bundle</Link></li>
+                <li><Link to="/search?q=wholesale" className="hover:text-mdn-green">Wholesale</Link></li>
+                <li><Link to="/#why-one" className="hover:text-mdn-green">Why One Ingredient</Link></li>
               </ul>
             </div>
           </div>

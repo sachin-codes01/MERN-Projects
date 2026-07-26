@@ -4,6 +4,7 @@ const upload = require("../middleware/upload");
 const uploadCtrl = require("../controller/uploadController");
 
 const productCtrl = require("../controller/admin.productController"); // from earlier
+const enquiryCtrl = require("../controller/enquiryController");
 const Category = require("../models/Category");
 const Coupon = require("../models/Coupon");
 const Order = require("../models/Order");
@@ -20,6 +21,10 @@ router.get("/products", productCtrl.getAllProducts);
 router.get("/products/:id", productCtrl.getProductById);
 router.put("/products/:id", productCtrl.updateProduct);
 router.delete("/products/:id", productCtrl.deleteProduct);
+
+/* ---------- ENQUIRIES (contact form submissions) ---------- */
+router.get("/enquiries", enquiryCtrl.adminGetEnquiries);
+router.put("/enquiries/:id/status", enquiryCtrl.adminUpdateEnquiryStatus);
 
 /* ---------- CATEGORIES ---------- */
 router.post("/categories", async (req, res) => {

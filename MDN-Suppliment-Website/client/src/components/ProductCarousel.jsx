@@ -29,7 +29,7 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
 
   if (loading) {
     return (
-      <section id={sectionId} className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+      <section id={sectionId} className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px]">
         <div className="mx-auto h-6 w-48 animate-pulse rounded bg-mdn-charcoal2" />
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -43,7 +43,7 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
   if (products.length === 0) return null;
 
   return (
-    <section id={sectionId} className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16">
+    <section id={sectionId} className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px] sm:py-16">
       <SectionHeading eyebrow={eyebrow} title={titleMain} accent={titleAccent} />
 
       <div className="mt-8">

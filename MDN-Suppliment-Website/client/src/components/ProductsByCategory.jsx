@@ -30,7 +30,7 @@ export default function ProductsByCategory() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
         <div className="h-6 w-40 animate-pulse rounded bg-mdn-charcoal2" />
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -46,7 +46,7 @@ export default function ProductsByCategory() {
   return (
     <div>
       {groups.map((g) => (
-        <section key={g.id} className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <section key={g.id} className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-bold text-mdn-white sm:text-2xl">{g.name}</h2>
             <Link

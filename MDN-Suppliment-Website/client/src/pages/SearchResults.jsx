@@ -55,7 +55,7 @@ export default function SearchResults() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
       <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Search</p>
       <h2 className="mt-1 break-words text-2xl font-bold text-mdn-white sm:text-3xl">
         Results for "{query}"

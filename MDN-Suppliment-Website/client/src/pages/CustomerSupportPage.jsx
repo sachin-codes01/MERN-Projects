@@ -1,55 +1,51 @@
 import { Link, useSearchParams } from "react-router-dom";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import InstagramIcon from "@mui/icons-material/Instagram";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
+import ContactForm from "../components/ContactForm";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
-import qrCodeImg from "../assets/QrCode.jpeg";
 
-const WHATSAPP_NUMBER = "+91 72173 44896";
-// Pre-filled text so a chat landing from the site reads as a website
-// lead, not a cold message — same idea as Footer.jsx's contact links.
-// Instagram has no public "pre-filled DM" link (that's business-API
-// only), so its link below just opens the profile/DM thread as-is.
-const CONTACT_MESSAGE = "Hi MDN! I'm reaching out from your website — I'd like to know more.";
-const WHATSAPP_LINK = `https://wa.me/917217344896?text=${encodeURIComponent(CONTACT_MESSAGE)}`;
-const INSTAGRAM_LINK = "https://www.instagram.com/sachin_28022005?igsh=MTNtY2kzaTlqaDl6cw==";
-const EMAIL = "sachin.codes01@gmail.com";
-const EMAIL_LINK = `mailto:${EMAIL}?subject=${encodeURIComponent("Inquiry from MDN Website")}&body=${encodeURIComponent(CONTACT_MESSAGE)}`;
+// No contact details live on this page. They used to sit in a "Get in
+// Touch" card here — number, email, Instagram handle and a QR, all visible
+// before anyone filled anything, which made the login gate pointless: a
+// visitor could just read them and message directly. They are now revealed
+// only by ContactForm's success panel, once an enquiry is on record.
 
 // Footer links (Contact Us / Shipping and Returns) both land here via
 // `?topic=`, and each just swaps the eyebrow/heading/intro text below —
-// the contact card and quick-link grid underneath stay the same for
-// every topic, we just point the visitor at the right one.
+// the form and quick-link grid underneath stay the same for every topic.
 const TOPICS = {
   support: {
     eyebrow: "We're here for you",
     title: "Customer Support",
     intro:
-      "Questions about an order, a product, tracking, or returns? Reach us directly below — real people, real answers.",
+      "Questions about an order, a product, tracking, or returns? Send us a message below and we'll pick it up from there — real people, real answers.",
   },
   contact: {
     eyebrow: "Get in touch",
     title: "Contact Us",
     intro:
-      "Have a question about an order, a product, or anything else? Reach our team directly below — real people, real answers.",
+      "Have a question about an order, a product, or anything else? Send us a message below and we'll get straight back to you.",
   },
   shipping: {
     eyebrow: "Delivery & returns",
     title: "Shipping & Returns",
     intro:
-      "Free shipping over ₹999 with same-day dispatch. Unopened products can be returned within 7 days of delivery — details below, or message us directly.",
+      "Free shipping over ₹999 with same-day dispatch. Unopened products can be returned within 7 days of delivery. Send us the details below and we'll sort it out.",
     highlightCard: "Shipping & Returns",
   },
 };
 
+// Arriving from "Shipping and Returns" pre-selects that subject so the
+// visitor doesn't have to restate why they came.
+const TOPIC_SUBJECT = { shipping: "shipping", contact: "", support: "" };
+
 export default function CustomerSupportPage() {
   const [searchParams] = useSearchParams();
-  const topic = TOPICS[searchParams.get("topic")] || TOPICS.support;
+  const topicKey = searchParams.get("topic") || "support";
+  const topic = TOPICS[topicKey] || TOPICS.support;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-[34px]">
       <p className="text-center text-xs font-semibold uppercase tracking-widest text-mdn-green sm:text-left">
         {topic.eyebrow}
       </p>
@@ -60,71 +56,21 @@ export default function CustomerSupportPage() {
         {topic.intro}
       </p>
 
-      {/* Contact card */}
-      <div className="card relative mt-8 overflow-hidden p-5 sm:p-10">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-mdn-green/10 blur-3xl sm:-right-16 sm:-top-16 sm:h-56 sm:w-56" />
-        <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-mdn-green/10 blur-3xl sm:-bottom-16 sm:-left-16 sm:h-56 sm:w-56" />
-
-        <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-10">
-          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Talk to us directly</p>
-            <h2 className="mt-1 text-2xl font-bold text-mdn-white sm:text-3xl">Get in Touch</h2>
-
-            <div className="mt-6 w-full space-y-3">
-              <a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-lg border border-white/10 bg-mdn-charcoal2 px-4 py-3 text-left transition-colors hover:border-[#25D366]/50"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#25D366]/15 text-[#25D366]">
-                  <WhatsAppIcon sx={{ fontSize: 18 }} />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wide text-mdn-gray">WhatsApp</p>
-                  <p className="truncate text-sm font-semibold text-mdn-white">{WHATSAPP_NUMBER}</p>
-                </div>
-              </a>
-
-              <a
-                href={EMAIL_LINK}
-                className="flex items-center gap-3 rounded-lg border border-white/10 bg-mdn-charcoal2 px-4 py-3 text-left transition-colors hover:border-mdn-green/50"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mdn-green/15 text-mdn-green">
-                  <EmailRoundedIcon sx={{ fontSize: 18 }} />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wide text-mdn-gray">Email</p>
-                  <p className="truncate text-sm font-semibold text-mdn-white">{EMAIL}</p>
-                </div>
-              </a>
-
-              <a
-                href={INSTAGRAM_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-lg border border-white/10 bg-mdn-charcoal2 px-4 py-3 text-left transition-colors hover:border-[#E1306C]/50"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E1306C]/15 text-[#E1306C]">
-                  <InstagramIcon sx={{ fontSize: 18 }} />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wide text-mdn-gray">Instagram</p>
-                  <p className="truncate text-sm font-semibold text-mdn-white">@sachin_28022005</p>
-                </div>
-              </a>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center justify-center rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 p-6 text-center">
-            <div className="rounded-lg border border-mdn-silver/30 bg-white p-2">
-              <img src={qrCodeImg} alt="Scan to chat on WhatsApp" className="h-32 w-32 rounded-md object-contain sm:h-44 sm:w-44" />
-            </div>
-            <p className="mt-4 text-sm font-semibold text-mdn-white">Scan to chat on WhatsApp</p>
-            <p className="mt-1 text-xs text-mdn-gray">Fastest way to reach our team</p>
-          </div>
+      {/* The form itself, inline — visitors kept looking for it on this
+          page rather than clicking through to /contact. Same component as
+          the /contact route, and it renders its own sign-in prompt when
+          signed out (this page is public). */}
+      <section id="contact-form" className="mt-8">
+        <h2 className="font-display text-xl font-bold uppercase tracking-wide text-mdn-white sm:text-2xl">
+          Send us a message
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-mdn-gray">
+          Fill this in once and we'll carry your details straight into the chat — no retyping.
+        </p>
+        <div className="card mt-5 p-5 sm:p-8">
+          <ContactForm defaultSubject={TOPIC_SUBJECT[topicKey] || ""} />
         </div>
-      </div>
+      </section>
 
       {/* Quick links */}
       <div className="mt-8 grid gap-4 sm:grid-cols-3">

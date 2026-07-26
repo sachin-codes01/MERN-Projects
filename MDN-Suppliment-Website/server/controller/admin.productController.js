@@ -20,7 +20,16 @@ exports.getAllProducts = async (req, res) => {
     const filter = {};
     if (category) filter.category = category;
     if (productType) filter.productType = productType;
-    if (search) filter.$text = { $search: search };
+    // Same partial-match fix as the storefront listing — see
+    // buildSearchConditions in productController.js for why $text was
+    // dropped (it only ever matched whole words).
+    if (search) {
+      const clean = String(search).trim();
+      if (clean) {
+        const rx = new RegExp(clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        filter.$or = [{ name: rx }, { brand: rx }, { productType: rx }, { tags: rx }];
+      }
+    }
 
     const products = await Product.find(filter)
       .skip((page - 1) * limit)

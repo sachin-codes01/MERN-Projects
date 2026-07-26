@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ItemCarousel from "./ItemCarousel";
 import SectionHeading from "./SectionHeading";
+import targetImg from "../assets/Target.png";
 
 const TARGETS = [
   {
@@ -38,8 +39,11 @@ const TARGETS = [
 export default function TargetSection() {
   const navigate = useNavigate();
 
+  // Gutters live on the <section> here (not on the inner max-w-shell div)
+  // because the decorative glow/grid behind it must run full bleed — so
+  // this element carries the same px steps as every other shell.
   return (
-    <section className="relative overflow-hidden px-4 py-14 sm:px-6 sm:py-16">
+    <section className="relative overflow-hidden px-4 py-14 sm:px-6 sm:py-16 lg:px-[34px]">
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[100px]" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -50,7 +54,7 @@ export default function TargetSection() {
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl">
+      <div className="relative mx-auto max-w-shell">
         <SectionHeading
           eyebrow="Goal-based stacks"
           title="What's Your"
@@ -72,7 +76,27 @@ export default function TargetSection() {
                 onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)}
                 className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/5 bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow"
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-mdn-black via-mdn-black/70 via-40% to-transparent" />
+                {/* object-fill, not object-cover/contain: the card is
+                    aspect-[3/4] (0.750) and Target.png is 896x1200
+                    (0.747), so filling the box stretches it by under half
+                    a percent — imperceptible, and unlike `cover` it never
+                    crops an edge, unlike `contain` it never leaves bars.
+                    Sits under the gradient below, which is what keeps the
+                    title/description legible over the artwork. */}
+                <img
+                  src={targetImg}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-fill"
+                />
+                {/* Scrim, lightened now that there's real artwork behind
+                    it. Was solid black at the base fading through 70% at
+                    40% height, which greyed out most of the image. Now it
+                    holds 85% only right at the bottom edge and drops to
+                    30% by 30% height, so the text stays legible while the
+                    photo reads clearly above it. */}
+                <div className="absolute inset-0 bg-gradient-to-t from-mdn-black/85 via-mdn-black/30 via-30% to-transparent" />
                 <span className="absolute inset-x-0 bottom-0 p-3 text-left sm:p-4">
                   <span className="block text-sm font-bold leading-tight text-mdn-white sm:text-base">
                     {t.title}

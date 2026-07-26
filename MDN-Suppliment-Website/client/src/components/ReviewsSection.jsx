@@ -61,7 +61,7 @@ export default function ReviewsSection() {
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+      <div className="relative mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
         <SectionHeading
           title="Real People,"
           accent="Real Stories"

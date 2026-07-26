@@ -8,11 +8,11 @@ import img4 from "../assets/Artboard_5onecards.jpg";
 import img5 from "../assets/Artboard_6onecards_1.png";
 
 const TILE_CLASS =
-  "card h-40 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-48 lg:h-56";
+  "card h-40 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-48 lg:h-56 2xl:h-64";
 
 export default function WhyOne() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+    <section id="why-one" className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px] sm:py-16">
       <SectionHeading title="WHY" accent="One" subtitle="One ingredient. Zero compromise." />
 
       {/* The 4 small tiles live in their own self-contained 2x2 grid, and
@@ -23,14 +23,20 @@ export default function WhyOne() {
           total of the two small-tile rows stacked together:
             small tile height (lg:h-56 = 224px) x 2 + gap (gap-4 = 16px)
             = 464px
+          and again at `2xl`, where the tiles grow to h-64 (256px):
+            256 x 2 + 16 = 528px
+          The `2xl` step exists because the section now spans the full
+          content shell (1536px) rather than the old 1152px — without a
+          taller box the tiles get much wider at the same height, and
+          `object-fill` would stretch each poster noticeably flatter.
           This is deliberate, not a stretch/auto trick — with an auto
           height, the card has nothing forcing its size, so it ends up
           sizing itself off the raw image's own (tall) aspect ratio
           instead of matching the small tiles, which was the visible gap.
-          If you change the small tile height or gap below, update this
-          number to match (new total = tileHeight × 2 + gap). */}
+          If you change the small tile height or gap below, update these
+          numbers to match (new total = tileHeight × 2 + gap). */}
       <div className="mt-10 grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
-        <div className="card h-56 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-72 lg:h-[464px]">
+        <div className="card h-56 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-72 lg:h-[464px] 2xl:h-[528px]">
           {/* object-fill stretches each crop to the box's exact
               dimensions — whole poster visible, no cropping, and no side
               gaps either. */}

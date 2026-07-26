@@ -1,5 +1,4 @@
 import { useState } from "react";
-import SectionHeading from "./SectionHeading";
 
 const FAQS = [
   { q: "Is MDN Whey Protein Isolate suitable for beginners?", a: "Yes. Isolate is gentler on digestion than concentrate and works well whether you're just starting out or training at an advanced level." },
@@ -13,41 +12,51 @@ export default function FAQ() {
   const [open, setOpen] = useState(-1);
 
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-16">
-      <SectionHeading title="Frequently Asked" accent="Questions" />
+    <section id="faq" className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px] sm:py-16">
+      {/* Flat editorial list — heading flush top-left, one full-width
+          column, a hairline rule under every row, and a +/− on the right.
+          No card, no border box, no fill. */}
+      <h2 className="font-display text-3xl font-bold text-mdn-white sm:text-4xl lg:text-5xl">FAQs</h2>
 
-      {/* Padding/text sizes bumped up unconditionally (not just at sm:)
-          so the dropdowns read as comfortably tappable on small screens
-          instead of the old cramped text-sm / px-5 py-4. */}
-      <div className="mt-8 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
+      <div className="mt-8 sm:mt-10">
         {FAQS.map((item, i) => {
           const isOpen = open === i;
           return (
-            <div key={i} className="bg-mdn-charcoal">
+            <div key={i} className="border-b border-white/10">
               <button
                 onClick={() => setOpen(isOpen ? -1 : i)}
-                className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition-colors hover:bg-white/5 sm:py-6"
+                aria-expanded={isOpen}
+                className="group flex w-full items-center justify-between gap-6 py-5 text-left sm:py-6"
               >
-                <span className="text-base font-medium text-mdn-white sm:text-lg">{item.q}</span>
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className={`flex-shrink-0 text-mdn-green transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
-                >
-                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <span className="text-base font-bold leading-snug text-mdn-white transition-colors duration-200 group-hover:text-mdn-green sm:text-lg">
+                  {item.q}
+                </span>
+
+                {/* Two bars: the vertical one collapses to nothing when the
+                    row opens, turning the + into a −. Cheaper and steadier
+                    than rotating a chevron, and it matches the flat look. */}
+                <span className="relative h-5 w-5 flex-shrink-0 text-mdn-white transition-colors duration-200 group-hover:text-mdn-green">
+                  <span className="absolute left-0 top-1/2 h-[1.5px] w-5 -translate-y-1/2 bg-current" />
+                  <span
+                    className={`absolute left-1/2 top-0 h-5 w-[1.5px] -translate-x-1/2 bg-current transition-transform duration-300 ${
+                      isOpen ? "scale-y-0" : "scale-y-100"
+                    }`}
+                  />
+                </span>
               </button>
+
               <div
                 className={`grid transition-all duration-300 ease-in-out ${
                   isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                 }`}
               >
                 <div className="overflow-hidden">
-                  <p className="px-5 pb-5 text-sm leading-relaxed text-mdn-gray sm:text-base sm:pb-6">{item.a}</p>
+                  {/* The rule spans the whole column, but the answer keeps a
+                      reading measure — a very long line of body copy is
+                      uncomfortable to track back from. */}
+                  <p className="max-w-3xl pb-5 pr-10 text-sm leading-relaxed text-mdn-gray sm:pb-6 sm:text-base">
+                    {item.a}
+                  </p>
                 </div>
               </div>
             </div>

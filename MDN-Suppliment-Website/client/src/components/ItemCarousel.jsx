@@ -28,6 +28,11 @@ export default function ItemCarousel({
   const [stepPx, setStepPx] = useState(0);
   const [maxScroll, setMaxScroll] = useState(0);
   const [maxIndex, setMaxIndex] = useState(Math.max(0, items.length - 1));
+  // Starts false so the first paint never guesses a layout: `maxScroll`
+  // is 0 before anything is measured, which is indistinguishable from
+  // "everything fits", and centering on that guess makes a full row snap
+  // from centred to left-aligned on the frame after mount.
+  const [measured, setMeasured] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
@@ -61,6 +66,7 @@ export default function ItemCarousel({
     const maxScrollPx = Math.max(0, track.scrollWidth - containerWidth);
     setMaxScroll(maxScrollPx);
     setMaxIndex(Math.max(0, Math.ceil(maxScrollPx / itemWidth)));
+    setMeasured(true);
   }, []);
 
   useEffect(() => {
@@ -96,6 +102,13 @@ export default function ItemCarousel({
   // overshoot past the real end or stop short of it depending on how
   // evenly the items divide into the container width.
   const positionFor = (i) => Math.min(i * stepPx, maxScroll);
+
+  // When the whole set already fits the container there is nothing to
+  // scroll, so the row is centred instead of left-aligned. Without this a
+  // section that returns fewer products than fit across (e.g. a single
+  // bestseller) rendered one card pinned to the far left with the rest of
+  // the row empty. Only applies once measured — see `measured` above.
+  const fitsInRow = measured && maxScroll <= 0;
 
   const onPointerDown = (e) => {
     if (maxIndex <= 0) return;
@@ -181,7 +194,7 @@ export default function ItemCarousel({
       >
         <div
           ref={trackRef}
-          className={`flex py-4 ${gapClassName}`}
+          className={`flex py-4 ${gapClassName} ${fitsInRow ? "justify-center" : ""}`}
           style={{
             transform: `translateX(calc(-${positionFor(index)}px + ${dragOffset}px))`,
             transition: isDragging ? "none" : "transform 0.5s cubic-bezier(.4,0,.2,1)",

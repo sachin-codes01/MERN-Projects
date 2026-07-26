@@ -10,6 +10,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes"); // ADD THIS
 const settingsRoutes = require("./routes/settingsRoutes");
+const enquiryRoutes = require("./routes/enquiryRoutes");
 
 const app = express();
 app.use(express.json({ limit: "15mb" }));
@@ -40,6 +41,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes); // ADD THIS
 app.use("/api/settings", settingsRoutes);
+app.use("/api/enquiries", enquiryRoutes);
 
 app.get("/", (req, res) => res.send("Supplement Store API running"));
 
