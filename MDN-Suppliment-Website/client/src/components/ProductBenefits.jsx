@@ -42,12 +42,16 @@ export const MAX_BENEFITS = 4;
  * lines on a 375px screen.
  */
 export default function ProductBenefits({ benefits = [] }) {
-  if (!benefits.length) return null;
+  // Sliced, not just capped in the admin: products saved before the limit
+  // existed (or edited straight through the API) can still carry more, and
+  // a 5th item would drop onto a second row on its own.
+  const shown = benefits.slice(0, MAX_BENEFITS);
+  if (!shown.length) return null;
 
   return (
     <div className="mt-12 rounded-xl border border-white/10 bg-mdn-charcoal2/40 px-2 py-6 sm:px-4">
       <div className="grid grid-cols-2 gap-y-6 divide-white/10 sm:divide-x lg:grid-cols-4">
-        {benefits.map((b, i) => {
+        {shown.map((b, i) => {
           // Falls back to cycling the icon set when a benefit has no icon
           // chosen, so an admin can type claims and skip the picker
           // entirely and still get variety rather than four identical marks.

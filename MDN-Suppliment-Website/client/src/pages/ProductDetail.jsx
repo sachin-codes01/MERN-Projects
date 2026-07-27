@@ -10,6 +10,7 @@ import Accordion from "../components/Accordion";
 import ProductReviews from "../components/ProductReviews";
 import StickyAddToCart from "../components/StickyAddToCart";
 import ProductBenefits from "../components/ProductBenefits";
+import ProductFacts, { ProductTagRow } from "../components/ProductFacts";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { getSizePrice } from "../utils/pricing";
 
@@ -141,8 +142,28 @@ export default function ProductDetail() {
     <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
       <div className="grid min-w-0 gap-10 lg:grid-cols-2">
         {/* Gallery — a plain, always-square image, capped so it never
-            grows past a sane size on wide desktop columns. */}
-        <div className="relative min-w-0 animate-fade-up lg:mx-auto lg:max-h-[561px] lg:max-w-[561px]">
+            grows past a sane size on wide desktop columns.
+
+            Pinned while the details column scrolls past it (desktop only —
+            the two columns are stacked below `lg`, where sticking would
+            just cover the content). Three things make it work:
+
+            • `self-start` — grid items stretch to the row height by
+              default, and a stretched item fills its track, so it has no
+              room to move within it and can never stick.
+            • `top-[120px]` — clears the 112px sticky navbar, plus 8px so
+              the image doesn't sit flush against it.
+            • no `max-h` — the old `lg:max-h-[561px]` capped the box below
+              its real content now that the thumbnail strip sits inside it,
+              which would make sticky release at the wrong scroll point.
+              `max-w-[561px]` still bounds the size, and the carousel is
+              square, so the height is capped by width anyway.
+
+            Release happens on its own: the grid's bottom is the bottom of
+            the taller (details) column, so the gallery unpins exactly when
+            Add to Cart reaches its lower edge, and re-pins on the way back
+            up. No scroll listener involved. */}
+        <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[120px] lg:mx-auto lg:max-w-[561px] lg:self-start">
           <div className="overflow-hidden rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 shadow-green-glow">
             <Carousel
               ref={galleryRef}
@@ -221,6 +242,12 @@ export default function ProductDetail() {
           )}
 
           {teaser && <p className="mt-2 break-words text-sm leading-relaxed text-mdn-gray sm:text-base">{teaser}</p>}
+
+          {/* Dietary/goal suitability — sits above price because "is this
+              vegan / gluten-free" is a filter a buyer applies before they
+              look at anything else. Data already existed on the product;
+              it just wasn't rendered anywhere. */}
+          <ProductTagRow product={product} />
 
           {/* Nutrition highlights — per-product stat cards set in the
               admin panel (Product.nutritionHighlights). Values carry their
@@ -391,6 +418,11 @@ export default function ProductDetail() {
             { title: "Ingredients", content: product.ingredients },
           ]}
         />
+
+        {/* Nutrition table, shelf-life dates and safety warnings. All of
+            it was already stored on the product and captured in the admin
+            panel — none of it reached this page before. */}
+        <ProductFacts product={product} />
 
         {/* Per-product claim strip, directly under the accordion it
             summarises. Renders nothing until benefits are set in the

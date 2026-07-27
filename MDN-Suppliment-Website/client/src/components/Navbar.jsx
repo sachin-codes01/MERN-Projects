@@ -19,10 +19,6 @@ import ErrorBoundary from "./ErrorBoundary";
 import { hasWebGLSupport } from "../utils/hasWebGLSupport";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useSettings } from "../context/SettingsContext";
-import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
-import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
-import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
-import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
 const QUICK_LINKS = [
   { label: "Home", to: "/" },
@@ -54,24 +50,6 @@ const SHOP_CATEGORIES = [
 // The mega-menu header already has a "View All" button, so the card row
 // itself skips the "All Products" entry to avoid showing it twice.
 const SHOP_ROW_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.label !== "All Products");
-
-// Footer row of the Shop mega-menu. Kept to claims that are actually true
-// of this store rather than generic marketing: the ₹999 free-shipping
-// threshold and tax-inclusive totals are the real rules in
-// server/utils/orderPricing.js, checkout really is Razorpay, and the
-// lab-tested/QR-verified line matches the badges already used in
-// TrustStrip.jsx.
-const SHOP_PROMISES = [
-  { label: "Free shipping over ₹999", Icon: LocalShippingRoundedIcon },
-  { label: "Lab-tested & QR-verified", Icon: VerifiedRoundedIcon },
-  // Deliberately NOT "all taxes included": next to a row of product
-  // categories that reads as "the prices you see include tax", and today
-  // the server adds 5% GST on top at checkout (see orderPricing.js), so
-  // it would be false. Order cancellation until dispatch is real —
-  // orderController.cancelOrder blocks only once shipped.
-  { label: "Cancel before dispatch", Icon: ReceiptLongRoundedIcon },
-  { label: "Secure Razorpay checkout", Icon: LockRoundedIcon },
-];
 
 // Image-first "shop by category" tile used in both the desktop Shop
 // mega-menu and the mobile Shop accordion. Name sits below the image —
@@ -387,24 +365,6 @@ export default function Navbar() {
                   ))}
                 </div>
 
-                {/* Store promises, full panel width, one equal column each
-                    with a divider between — matches the strip used on the
-                    product pages. Every claim here is a real rule from the
-                    codebase: free shipping over ₹999 and tax-inclusive
-                    totals both come from server/utils/orderPricing.js, and
-                    checkout is Razorpay. */}
-                <div className="mt-5 grid grid-cols-2 divide-white/10 border-t border-white/10 pt-4 sm:grid-cols-4 sm:divide-x">
-                  {SHOP_PROMISES.map(({ label, Icon }) => (
-                    <div key={label} className="flex flex-col items-center gap-2 px-2 py-2 text-center">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-mdn-green">
-                        <Icon sx={{ fontSize: 18 }} />
-                      </span>
-                      <span className="text-[10px] font-bold uppercase leading-tight tracking-wide text-mdn-white/80">
-                        {label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

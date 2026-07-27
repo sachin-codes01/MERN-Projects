@@ -4,7 +4,10 @@ import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
 // Imported from the storefront strip itself so the picker can only ever
 // offer icon keys that actually render there.
-import { BENEFIT_ICONS, BENEFIT_ICON_KEYS } from "../components/ProductBenefits";
+import { BENEFIT_ICONS, BENEFIT_ICON_KEYS, MAX_BENEFITS } from "../components/ProductBenefits";
+// Same source the product page labels these with, so the checkboxes can
+// only offer values the storefront knows how to render.
+import { GOAL_LABELS, DIET_LABELS } from "../components/ProductFacts";
 
 // Fixed gallery slots — image #1 is always what customers see first in the
 // product-page carousel AND doubles as the product's thumbnail (listing
@@ -47,6 +50,8 @@ const emptyForm = {
   productType: "",
   tags: "",
   sections: [],
+  goal: [],
+  dietaryTags: [],
   sizes: [{ ...emptySize }],
   flavors: [],
   nutritionHighlights: [],
@@ -109,6 +114,17 @@ export default function AdminProducts() {
       sections: f.sections.includes(value)
         ? f.sections.filter((s) => s !== value)
         : [...f.sections, value],
+    }));
+  };
+
+  // Same toggle for any array-of-enum field on the form (goal,
+  // dietaryTags) rather than a near-identical copy of the above per field.
+  const toggleInArray = (field, value) => {
+    setForm((f) => ({
+      ...f,
+      [field]: f[field].includes(value)
+        ? f[field].filter((v) => v !== value)
+        : [...f[field], value],
     }));
   };
 
@@ -195,7 +211,11 @@ export default function AdminProducts() {
   };
 
   const addBenefit = () => {
-    setForm((f) => ({ ...f, benefits: [...f.benefits, { ...emptyBenefit }] }));
+    setForm((f) =>
+      f.benefits.length >= MAX_BENEFITS
+        ? f
+        : { ...f, benefits: [...f.benefits, { ...emptyBenefit }] }
+    );
   };
 
   const removeBenefit = (index) => {
@@ -370,6 +390,11 @@ export default function AdminProducts() {
       productType: product.productType || "",
       tags: (product.tags || []).join(", "),
       sections: product.sections || [],
+      // Filtered to keys we can actually label — a legacy/seeded value
+      // outside the enum would otherwise sit in state invisibly and get
+      // written straight back on the next save.
+      goal: (product.goal || []).filter((g) => GOAL_LABELS[g]),
+      dietaryTags: (product.dietaryTags || []).filter((t) => DIET_LABELS[t]),
       sizes,
       flavors,
       nutritionHighlights: (product.nutritionHighlights || []).map((h) => ({
@@ -413,10 +438,16 @@ export default function AdminProducts() {
     // unfinished blank, and a blank icon is fine (the strip cycles them).
     benefits: form.benefits
       .filter((b) => b.text.trim())
+      .slice(0, MAX_BENEFITS)
       .map((b) => ({ text: b.text.trim(), icon: b.icon || undefined })),
     posterTop: form.posterTop,
     posterBottom: form.posterBottom,
     sections: form.sections,
+    // Always sent, including when empty — that's what lets unticking every
+    // box actually clear a product's tags. Omitting the key would leave
+    // the old value untouched, since updateProduct patches with req.body.
+    goal: form.goal,
+    dietaryTags: form.dietaryTags,
     sizes: form.sizes.map((s) => ({
       weight: s.weight,
       price: Number(s.price),
@@ -1060,13 +1091,14 @@ export default function AdminProducts() {
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-mdn-white">Key benefits</label>
               <span className="text-xs text-mdn-gray">
-                {form.benefits.length} benefit{form.benefits.length === 1 ? "" : "s"}
+                {form.benefits.length} / {MAX_BENEFITS}
               </span>
             </div>
             <p className="mt-1 text-xs text-mdn-gray/70">
-              Optional. Shown as an icon + claim strip at the bottom of the product page, under the info
-              accordion — e.g. "Fast-absorbing for quick recovery", "Supports lean muscle growth". Four per row
-              on desktop, so multiples of 4 look tidiest. Leave the icon on "Auto" to have them cycle.
+              Optional, up to {MAX_BENEFITS}. Shown as an icon + claim strip at the bottom of the product page,
+              under the info accordion — e.g. "Fast-absorbing for quick recovery", "Supports lean muscle
+              growth". It's a single {MAX_BENEFITS}-column row on desktop, which is why it caps at{" "}
+              {MAX_BENEFITS}. Leave the icon on "Auto" to have them cycle.
             </p>
 
             <div className="mt-3 space-y-3">
@@ -1106,10 +1138,55 @@ export default function AdminProducts() {
             <button
               type="button"
               onClick={addBenefit}
-              className="btn-secondary mt-3 !px-4 !py-1.5 text-sm"
+              disabled={form.benefits.length >= MAX_BENEFITS}
+              className="btn-secondary mt-3 !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
             >
-              + Add Benefit
+              {form.benefits.length >= MAX_BENEFITS ? `Limit reached (${MAX_BENEFITS})` : "+ Add Benefit"}
             </button>
+          </div>
+
+          {/* ---------- Dietary tags (shown publicly on the PDP) ---------- */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-mdn-white">Dietary tags</label>
+            <p className="mb-2 text-xs text-amber-400/80">
+              These publish as claims on the product page. Vegan and Gluten Free in particular are read as
+              allergen/dietary guarantees — only tick what you can stand behind for this exact formulation.
+              Leave all unticked to show nothing.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(DIET_LABELS).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-mdn-gray">
+                  <input
+                    type="checkbox"
+                    checked={form.dietaryTags.includes(key)}
+                    onChange={() => toggleInArray("dietaryTags", key)}
+                    className="h-4 w-4 accent-mdn-green"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* ---------- Training goals (shown publicly on the PDP) ---------- */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-mdn-white">Training goals</label>
+            <p className="mb-2 text-xs text-mdn-gray/70">
+              Shown as pills beside the dietary tags on the product page. Leave all unticked to show nothing.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(GOAL_LABELS).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-mdn-gray">
+                  <input
+                    type="checkbox"
+                    checked={form.goal.includes(key)}
+                    onChange={() => toggleInArray("goal", key)}
+                    className="h-4 w-4 accent-mdn-green"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>

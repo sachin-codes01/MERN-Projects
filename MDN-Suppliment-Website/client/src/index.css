@@ -39,10 +39,20 @@ html {
      wider than the actual visible/scrollable area on desktop browsers —
      that tiny overflow is exactly what let the whole page be dragged
      left/right, and revealed a sliver of the green ticker strip's
-     background past the right edge. overflow-x: hidden clips that
-     invisible overflow instead of turning it into a scrollable/draggable
-     strip. */
+     background past the right edge. overflow-x clips that invisible
+     overflow instead of turning it into a scrollable/draggable strip.
+
+     `clip` rather than `hidden`, with hidden left as the fallback for
+     browsers that don't know `clip` (Safari < 16). `hidden` makes the
+     element a SCROLL CONTAINER — the spec computes the other axis from
+     `visible` to `auto` — and body's scrollport then equals its own
+     content height, so it never scrolls. Any `position: sticky`
+     descendant resolves against that non-scrolling ancestor and silently
+     never sticks (this is what broke the product page's pinned gallery).
+     `clip` does the same clipping WITHOUT creating a scroll container,
+     so sticky keeps working. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 html.dark {
   color-scheme: dark;
@@ -50,7 +60,11 @@ html.dark {
 
 body {
   @apply bg-mdn-black text-mdn-white font-body antialiased transition-colors duration-300;
+  /* See the note on html above — `clip` keeps the horizontal clipping
+     without turning body into a scroll container, which is what stops
+     position: sticky from working anywhere in the page. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 h1, h2, h3, h4 {
