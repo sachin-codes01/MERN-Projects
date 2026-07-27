@@ -55,6 +55,33 @@ const nutritionSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// The stat cards shown above the size picker on the PDP (Kcal 116,
+// Protein 27Gms, Carbs 1.3G, BCAAs 5.75, Protein % 82% …). Deliberately
+// free-form label/value pairs rather than fixed columns: which stats
+// matter differs per product — a whey lists Protein %, a pre-workout
+// lists caffeine — and the values carry their own units ("27Gms",
+// "1.3G", "82%") so admins control exactly how each one reads.
+const nutritionHighlightSchema = new mongoose.Schema(
+  {
+    label: { type: String, required: true }, // "Protein"
+    value: { type: String, required: true }, // "27Gms"
+  },
+  { _id: false }
+);
+
+// The icon + claim strip under the PDP info accordion ("Fast-absorbing
+// for quick recovery", "Supports lean muscle growth", …). Per-product
+// rather than a fixed site-wide list, since the claims describe THIS
+// product. `icon` is an optional key into BENEFIT_ICONS on the client;
+// left blank, the strip cycles the icon set so the row still varies.
+const benefitSchema = new mongoose.Schema(
+  {
+    text: { type: String, required: true },
+    icon: { type: String },
+  },
+  { _id: false }
+);
+
 const reviewSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -124,6 +151,8 @@ const productSchema = new mongoose.Schema(
     flavors: { type: [flavorSchema], default: [] }, // optional — products without flavor variety just leave this empty
 
     nutrition: nutritionSchema,
+    nutritionHighlights: { type: [nutritionHighlightSchema], default: [] },
+    benefits: { type: [benefitSchema], default: [] },
     ingredients: { type: String }, // full ingredient list text
     directionsOfUse: { type: String },
     warnings: { type: String },

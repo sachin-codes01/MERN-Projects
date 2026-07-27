@@ -9,6 +9,7 @@ import Carousel from "../components/Carousel";
 import Accordion from "../components/Accordion";
 import ProductReviews from "../components/ProductReviews";
 import StickyAddToCart from "../components/StickyAddToCart";
+import ProductBenefits from "../components/ProductBenefits";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { getSizePrice } from "../utils/pricing";
 
@@ -26,6 +27,11 @@ export default function ProductDetail() {
   const { success, error: toastError } = useToast();
   const navigate = useNavigate();
   const atcRef = useRef(null);
+  // Drives the gallery from the thumbnail strip, and tracks which slide
+  // is showing so the matching thumbnail can be highlighted — including
+  // when autoplay or a swipe moved it rather than a click.
+  const galleryRef = useRef(null);
+  const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
     api
@@ -139,23 +145,65 @@ export default function ProductDetail() {
         <div className="relative min-w-0 animate-fade-up lg:mx-auto lg:max-h-[561px] lg:max-w-[561px]">
           <div className="overflow-hidden rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 shadow-green-glow">
             <Carousel
+              ref={galleryRef}
               slides={galleryImages.map((src, i) => (
                 <img
                   key={i}
                   src={src}
                   alt={`${product.name} photo ${i + 1}`}
                   onError={(e) => (e.target.style.display = "none")}
-                  className="h-full w-full object-cover"
+                  // object-contain, not object-cover: product photos come
+                  // in whatever ratio they were shot at, and cover crops
+                  // whichever edge doesn't fit — cutting off lids, labels
+                  // and text. Contain fits the whole image inside the
+                  // square instead, so nothing is ever cut.
+                  className="h-full w-full object-contain"
                 />
               ))}
-              autoPlay={false}
+              // Auto-advances on its own, and `pauseOnHover` (the
+              // Carousel default) holds it while the pointer is over the
+              // gallery so it can't slide out from under someone
+              // inspecting a photo.
+              autoPlay
+              interval={3500}
               showDots={galleryImages.length > 1}
               dotsPosition="overlay"
               showArrows
-              pauseOnHover={false}
+              onIndexChange={setActiveImage}
               slideClassName="aspect-square"
             />
           </div>
+
+          {/* Thumbnail strip — 5 per row, wrapping to further rows when a
+              product has more shots. Clicking one drives the big carousel
+              above via its imperative `goTo`. */}
+          {galleryImages.length > 1 && (
+            <div className="mt-3 grid grid-cols-5 gap-2">
+              {galleryImages.map((src, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => galleryRef.current?.goTo(i)}
+                  aria-label={`Show photo ${i + 1}`}
+                  aria-current={i === activeImage}
+                  className={`overflow-hidden rounded-lg border-2 bg-mdn-charcoal2 transition-all duration-200 ${
+                    i === activeImage
+                      ? "border-mdn-green shadow-green-glow"
+                      : "border-white/10 hover:border-mdn-green/50"
+                  }`}
+                >
+                  <img
+                    src={src}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    onError={(e) => (e.target.style.display = "none")}
+                    className="aspect-square h-full w-full object-contain"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Details */}
@@ -173,6 +221,30 @@ export default function ProductDetail() {
           )}
 
           {teaser && <p className="mt-2 break-words text-sm leading-relaxed text-mdn-gray sm:text-base">{teaser}</p>}
+
+          {/* Nutrition highlights — per-product stat cards set in the
+              admin panel (Product.nutritionHighlights). Values carry their
+              own units, so they print exactly as entered. auto-fit rather
+              than a fixed column count because the number of stats varies
+              per product — 5 for a whey, fewer for an accessory — and a
+              fixed grid would leave gaps or squeeze them. */}
+          {product.nutritionHighlights?.length > 0 && (
+            <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(76px,1fr))] gap-2">
+              {product.nutritionHighlights.map((h) => (
+                <div
+                  key={h.label}
+                  className="rounded-lg border border-white/10 bg-mdn-charcoal2 px-2 py-2.5 text-center"
+                >
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-mdn-gray">
+                    {h.label}
+                  </p>
+                  <p className="mt-0.5 truncate font-mono text-sm font-bold text-mdn-green sm:text-base">
+                    {h.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Size picker — independent of flavor: every size is always
               shown here. Its price already reflects whichever flavor is
@@ -319,6 +391,11 @@ export default function ProductDetail() {
             { title: "Ingredients", content: product.ingredients },
           ]}
         />
+
+        {/* Per-product claim strip, directly under the accordion it
+            summarises. Renders nothing until benefits are set in the
+            admin panel. */}
+        <ProductBenefits benefits={product.benefits} />
       </div>
 
       {/* Two stacked promo posters — top is full width at half the

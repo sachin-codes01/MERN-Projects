@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import SliderArrow from "./SliderArrow";
 
 const TRANSITION_MS = 600;
@@ -12,8 +12,14 @@ const TRANSITION_MS = 600;
  * `slides` is an array of already-built React nodes — one node per
  * slide. Callers decide what a "slide" contains (a single image, a
  * grid of 4 product cards, a row of badges, etc).
+ *
+ * Stays uncontrolled (it owns `position`), but two optional hooks let a
+ * parent drive and follow it without that changing: `onIndexChange`
+ * reports the active slide whenever it moves for ANY reason (autoplay,
+ * drag, arrows, dots), and a forwarded ref exposes `goTo(i)` for jumping
+ * to a slide from outside — used by the product page's thumbnail strip.
  */
-export default function Carousel({
+const Carousel = forwardRef(function Carousel({
   slides,
   autoPlay = true,
   interval = 4000,
@@ -21,9 +27,10 @@ export default function Carousel({
   showDots = true,
   dotsPosition = "below", // "below" (default, adds space under the track) | "overlay" (floats over the bottom of the slide)
   pauseOnHover = true,
+  onIndexChange,
   className = "",
   slideClassName = "",
-}) {
+}, ref) {
   const count = slides.length;
 
   // Seamless infinite loop: a clone of the last slide is prepended and a
@@ -173,6 +180,27 @@ export default function Carousel({
   const prev = () => move((p) => p - 1);
   const goTo = (i) => move((((i % count) + count) % count) + 1);
 
+  // Report the active slide to the parent on every change, whatever
+  // caused it. Deliberately keyed on `realIndex` only — including
+  // `onIndexChange` would re-fire whenever a parent passes a fresh inline
+  // callback, which is every render.
+  useEffect(() => {
+    onIndexChange?.(realIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realIndex]);
+
+  // No dependency array on purpose: rebuilt each render so `goTo` and
+  // `startAutoplay` are always the current closures rather than ones
+  // captured on mount. Restarting autoplay after an external jump matches
+  // what the dots/arrows already do, so the timer doesn't fire again
+  // immediately after the user picks a slide.
+  useImperativeHandle(ref, () => ({
+    goTo: (i) => {
+      goTo(i);
+      startAutoplay();
+    },
+  }));
+
   const onPointerDown = (e) => {
     if (count <= 1) return;
     // Deliberately NOT calling setPointerCapture here — see ItemCarousel.jsx
@@ -311,4 +339,6 @@ export default function Carousel({
       )}
     </div>
   );
-}
+});
+
+export default Carousel;

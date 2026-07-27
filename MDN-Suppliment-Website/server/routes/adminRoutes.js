@@ -21,6 +21,9 @@ router.get("/products", productCtrl.getAllProducts);
 router.get("/products/:id", productCtrl.getProductById);
 router.put("/products/:id", productCtrl.updateProduct);
 router.delete("/products/:id", productCtrl.deleteProduct);
+// Distinct path (not a flag on the route above) so an accidental plain
+// DELETE can only ever deactivate — never destroy.
+router.delete("/products/:id/permanent", productCtrl.permanentlyDeleteProduct);
 
 /* ---------- ENQUIRIES (contact form submissions) ---------- */
 router.get("/enquiries", enquiryCtrl.adminGetEnquiries);

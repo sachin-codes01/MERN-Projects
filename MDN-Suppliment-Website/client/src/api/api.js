@@ -178,7 +178,9 @@ export const api = {
   adminUpdateProduct: (token, id, payload) =>
     request(`/admin/products/${id}`, { method: "PUT", body: payload, token }),
   adminDeleteProduct: (token, id) =>
-    request(`/admin/products/${id}`, { method: "DELETE", token }),
+    request(`/admin/products/${id}`, { method: "DELETE", token }), // soft — sets isActive:false
+  adminPermanentlyDeleteProduct: (token, id) =>
+    request(`/admin/products/${id}/permanent`, { method: "DELETE", token }), // irreversible
 
   // ---------- ADMIN: COUPONS ----------
   adminGetCoupons: (token) => request("/admin/coupons", { token }),

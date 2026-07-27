@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
+// Imported from the storefront strip itself so the picker can only ever
+// offer icon keys that actually render there.
+import { BENEFIT_ICONS, BENEFIT_ICON_KEYS } from "../components/ProductBenefits";
 
 // Fixed gallery slots — image #1 is always what customers see first in the
 // product-page carousel AND doubles as the product's thumbnail (listing
@@ -25,6 +28,16 @@ const emptyFlavor = {
   priceAdjustment: "",
 };
 
+const emptyHighlight = {
+  label: "",
+  value: "",
+};
+
+const emptyBenefit = {
+  text: "",
+  icon: "",
+};
+
 const emptyForm = {
   name: "",
   slug: "",
@@ -36,6 +49,8 @@ const emptyForm = {
   sections: [],
   sizes: [{ ...emptySize }],
   flavors: [],
+  nutritionHighlights: [],
+  benefits: [],
   images: [],
   ingredients: "",
   directionsOfUse: "",
@@ -146,6 +161,45 @@ export default function AdminProducts() {
 
   const removeFlavor = (index) => {
     setForm((f) => ({ ...f, flavors: f.flavors.filter((_, i) => i !== index) }));
+  };
+
+  /* ---------- Nutrition highlight helpers (PDP stat cards) ---------- */
+  const handleHighlightChange = (index, e) => {
+    const { name, value } = e.target;
+    setForm((f) => {
+      const nutritionHighlights = [...f.nutritionHighlights];
+      nutritionHighlights[index] = { ...nutritionHighlights[index], [name]: value };
+      return { ...f, nutritionHighlights };
+    });
+  };
+
+  const addHighlight = () => {
+    setForm((f) => ({ ...f, nutritionHighlights: [...f.nutritionHighlights, { ...emptyHighlight }] }));
+  };
+
+  const removeHighlight = (index) => {
+    setForm((f) => ({
+      ...f,
+      nutritionHighlights: f.nutritionHighlights.filter((_, i) => i !== index),
+    }));
+  };
+
+  /* ---------- Benefit helpers (PDP icon + claim strip) ---------- */
+  const handleBenefitChange = (index, e) => {
+    const { name, value } = e.target;
+    setForm((f) => {
+      const benefits = [...f.benefits];
+      benefits[index] = { ...benefits[index], [name]: value };
+      return { ...f, benefits };
+    });
+  };
+
+  const addBenefit = () => {
+    setForm((f) => ({ ...f, benefits: [...f.benefits, { ...emptyBenefit }] }));
+  };
+
+  const removeBenefit = (index) => {
+    setForm((f) => ({ ...f, benefits: f.benefits.filter((_, i) => i !== index) }));
   };
 
   // Gallery images — also doubles as the thumbnail source (slot 0 = the
@@ -318,6 +372,11 @@ export default function AdminProducts() {
       sections: product.sections || [],
       sizes,
       flavors,
+      nutritionHighlights: (product.nutritionHighlights || []).map((h) => ({
+        label: h.label || "",
+        value: h.value || "",
+      })),
+      benefits: (product.benefits || []).map((b) => ({ text: b.text || "", icon: b.icon || "" })),
       images,
       ingredients: product.ingredients || "",
       directionsOfUse: product.directionsOfUse || "",
@@ -344,6 +403,17 @@ export default function AdminProducts() {
     ingredients: form.ingredients,
     directionsOfUse: form.directionsOfUse,
     whoIsThisFor: form.whoIsThisFor,
+    // Both fields are required by the schema, so a row missing either one
+    // is an unfinished blank row rather than a real stat — dropped instead
+    // of failing the whole save with a validation error.
+    nutritionHighlights: form.nutritionHighlights
+      .filter((h) => h.label.trim() && h.value.trim())
+      .map((h) => ({ label: h.label.trim(), value: h.value.trim() })),
+    // Only `text` is required by the schema — a row with no text is an
+    // unfinished blank, and a blank icon is fine (the strip cycles them).
+    benefits: form.benefits
+      .filter((b) => b.text.trim())
+      .map((b) => ({ text: b.text.trim(), icon: b.icon || undefined })),
     posterTop: form.posterTop,
     posterBottom: form.posterBottom,
     sections: form.sections,
@@ -446,15 +516,30 @@ export default function AdminProducts() {
     }
   };
 
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm("Deactivate this product? It will no longer show in the storefront.")) return;
+  // Irreversible, unlike the Deactivate toggle below — so it asks for the
+  // product's name to be typed back rather than a single OK click. Past
+  // orders keep their own snapshot of the item and are unaffected; the
+  // server also pulls the product out of any live carts.
+  const handlePermanentDeleteProduct = async (p) => {
+    const typed = window.prompt(
+      `PERMANENTLY DELETE "${p.name}"?\n\n` +
+        `This cannot be undone. The product is removed from the database and from any customer carts. ` +
+        `Past orders are not affected.\n\n` +
+        `To confirm, type the product name exactly:`
+    );
+    if (typed === null) return; // cancelled
+    if (typed.trim() !== p.name.trim()) {
+      toastError("Name didn't match — nothing was deleted.");
+      return;
+    }
+
     setError("");
     setMessage("");
     try {
-      await api.adminDeleteProduct(token, id);
-      setMessage("Product deactivated.");
-      success("Product deactivated.");
-      if (editingId === id) resetForm();
+      await api.adminPermanentlyDeleteProduct(token, p._id);
+      setMessage(`"${p.name}" permanently deleted.`);
+      success("Product permanently deleted.");
+      if (editingId === p._id) resetForm();
       loadData();
     } catch (err) {
       setError(err.message);
@@ -919,6 +1004,114 @@ export default function AdminProducts() {
             </button>
           </div>
 
+          {/* ---------- Nutrition highlights (PDP stat cards) ---------- */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-mdn-white">Nutrition highlights</label>
+              <span className="text-xs text-mdn-gray">
+                {form.nutritionHighlights.length} stat{form.nutritionHighlights.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-mdn-gray/70">
+              Optional. Shown as a row of small cards above the size picker on the product page — e.g. Kcal /
+              116, Protein / 27Gms, Carbs / 1.3G, BCAAs / 5.75, Protein % / 82%. Include the unit in the value
+              so it reads exactly as you type it. Rows left half-filled are ignored.
+            </p>
+
+            <div className="mt-3 space-y-3">
+              {form.nutritionHighlights.map((h, i) => (
+                <div key={i} className="flex flex-col gap-3 rounded-lg border border-white/10 p-3 sm:flex-row sm:items-center">
+                  <input
+                    name="label"
+                    placeholder="Label (e.g. Protein)"
+                    value={h.label}
+                    onChange={(e) => handleHighlightChange(i, e)}
+                    className="input-field w-full sm:flex-1"
+                  />
+                  <input
+                    name="value"
+                    placeholder="Value (e.g. 27Gms)"
+                    value={h.value}
+                    onChange={(e) => handleHighlightChange(i, e)}
+                    className="input-field w-full sm:flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeHighlight(i)}
+                    className="shrink-0 text-xs font-semibold text-red-400 transition-colors hover:text-red-300 sm:px-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addHighlight}
+              className="btn-secondary mt-3 !px-4 !py-1.5 text-sm"
+            >
+              + Add Nutrition Stat
+            </button>
+          </div>
+
+          {/* ---------- Benefits (PDP icon + claim strip) ---------- */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-mdn-white">Key benefits</label>
+              <span className="text-xs text-mdn-gray">
+                {form.benefits.length} benefit{form.benefits.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-mdn-gray/70">
+              Optional. Shown as an icon + claim strip at the bottom of the product page, under the info
+              accordion — e.g. "Fast-absorbing for quick recovery", "Supports lean muscle growth". Four per row
+              on desktop, so multiples of 4 look tidiest. Leave the icon on "Auto" to have them cycle.
+            </p>
+
+            <div className="mt-3 space-y-3">
+              {form.benefits.map((b, i) => (
+                <div key={i} className="flex flex-col gap-3 rounded-lg border border-white/10 p-3 sm:flex-row sm:items-center">
+                  <input
+                    name="text"
+                    placeholder="Benefit (e.g. Fast-absorbing for quick recovery)"
+                    value={b.text}
+                    onChange={(e) => handleBenefitChange(i, e)}
+                    className="input-field w-full sm:flex-1"
+                  />
+                  <select
+                    name="icon"
+                    value={b.icon}
+                    onChange={(e) => handleBenefitChange(i, e)}
+                    className="input-field w-full sm:w-40"
+                  >
+                    <option value="">Auto icon</option>
+                    {BENEFIT_ICON_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {BENEFIT_ICONS[k].label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeBenefit(i)}
+                    className="shrink-0 text-xs font-semibold text-red-400 transition-colors hover:text-red-300 sm:px-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addBenefit}
+              className="btn-secondary mt-3 !px-4 !py-1.5 text-sm"
+            >
+              + Add Benefit
+            </button>
+          </div>
+
           <div>
             <label className="mb-2 block text-sm font-medium text-mdn-white">Show in sections</label>
             <div className="flex flex-wrap gap-4">
@@ -1021,6 +1214,16 @@ export default function AdminProducts() {
                         }`}
                       >
                         {p.isActive ? "Deactivate" : "Reactivate"}
+                      </button>
+                      {/* Visually distinct from Deactivate (solid red, not
+                          tinted) because it destroys the record rather than
+                          hiding it. */}
+                      <button
+                        onClick={() => handlePermanentDeleteProduct(p)}
+                        title="Permanently delete this product — cannot be undone"
+                        className="rounded-md border border-red-600 bg-red-600/90 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600"
+                      >
+                        Delete
                       </button>
                     </div>
                   </td>

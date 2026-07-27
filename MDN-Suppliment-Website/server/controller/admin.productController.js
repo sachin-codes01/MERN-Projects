@@ -2,6 +2,7 @@
 // (that file also applies isAuth + isAdmin to everything below it).
 
 const Product = require("../models/Product");
+const Cart = require("../models/Cart");
 
 // CREATE
 exports.createProduct = async (req, res) => {
@@ -69,7 +70,8 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// DELETE (soft delete recommended over hard delete)
+// DELETE (soft) — hides the product from the storefront but keeps the
+// document, so it can be reactivated and every reference to it stays intact.
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(
@@ -79,6 +81,32 @@ exports.deleteProduct = async (req, res) => {
     );
     if (!product) return res.status(404).json({ success: false, message: "Not found" });
     res.json({ success: true, message: "Product deactivated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// DELETE (permanent) — removes the document outright. Irreversible.
+//
+// Past orders are unaffected: Order.items stores its own snapshot of the
+// name/flavor/weight/image/price at purchase time, so order history still
+// renders correctly once the product row is gone.
+//
+// Live carts are NOT self-sufficient that way — a logged-in cart line only
+// holds a reference and reads the details off the populated product, which
+// would come back null and render an unbuyable blank row. So the product's
+// lines are pulled out of every cart as part of the delete.
+exports.permanentlyDeleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: "Not found" });
+
+    await Cart.updateMany(
+      { "items.product": req.params.id },
+      { $pull: { items: { product: req.params.id } } }
+    );
+
+    res.json({ success: true, message: "Product permanently deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
