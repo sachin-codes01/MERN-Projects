@@ -1,6 +1,7 @@
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
+const { calcOrderPricing, FREE_SHIPPING_ABOVE, TAX_RATE } = require("../utils/orderPricing");
 
 const calcCartTotals = async (cart) => {
   const subtotal = cart.items.reduce((sum, i) => sum + i.priceAtAddition * i.quantity, 0);
@@ -24,7 +25,21 @@ const calcCartTotals = async (cart) => {
     }
   }
 
-  return { subtotal, discount, total: subtotal - discount, couponDetails };
+  // `total` is the full amount payable — the same figure the Razorpay
+  // popup will show — so the checkout summary can display every line the
+  // customer is charged instead of only the item subtotal.
+  const { shippingFee, tax } = calcOrderPricing(subtotal, discount);
+
+  return {
+    subtotal,
+    discount,
+    shippingFee,
+    tax,
+    taxRate: TAX_RATE,
+    freeShippingAbove: FREE_SHIPPING_ABOVE,
+    total: subtotal - discount + shippingFee + tax,
+    couponDetails,
+  };
 };
 
 // Stock is a single shared pool per size, split across however many

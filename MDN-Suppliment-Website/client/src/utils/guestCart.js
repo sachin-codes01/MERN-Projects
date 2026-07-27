@@ -73,5 +73,10 @@ export const guestCart = {
     return items;
   },
 
+  // Overwrite the whole guest cart in one shot. Used by the post-login
+  // merge to put back only the lines that could NOT be moved onto the
+  // server cart, instead of clearing everything and losing them.
+  replace: (items) => writeCart(items),
+
   clear: () => writeCart([]),
 };

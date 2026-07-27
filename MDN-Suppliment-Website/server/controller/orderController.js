@@ -4,6 +4,7 @@ const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
 const User = require("../models/User");
 const razorpay = require("../config/razorpay");
+const { calcOrderPricing } = require("../utils/orderPricing");
 const crypto = require("crypto");
 
 async function rollback(decrementedItems) {
@@ -47,10 +48,7 @@ exports.createRazorpayOrder = async (req, res) => {
       }
     }
 
-    const afterDiscount = subtotal - discount;
-    const shippingFee = afterDiscount > 999 ? 0 : 79;
-    const tax = Math.round(afterDiscount * 0.05);
-    const finalTotal = afterDiscount + shippingFee + tax;
+    const { shippingFee, tax, total: finalTotal } = calcOrderPricing(subtotal, discount);
 
     const razorpayOrder = await razorpay.orders.create({
       amount: Math.round(finalTotal * 100),
@@ -162,9 +160,7 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
       }
     }
 
-    const shippingFee = subtotal - discount > 999 ? 0 : 79;
-    const tax = Math.round((subtotal - discount) * 0.05);
-    const total = subtotal - discount + shippingFee + tax;
+    const { shippingFee, tax, total } = calcOrderPricing(subtotal, discount);
 
     const order = await Order.create({
       orderNumber: "ORD" + Date.now() + Math.floor(Math.random() * 1000),

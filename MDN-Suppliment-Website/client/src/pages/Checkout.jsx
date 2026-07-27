@@ -312,21 +312,54 @@ export default function Checkout() {
           {couponMessage && <p className="mt-2 text-sm text-mdn-green">{couponMessage}</p>}
         </section>
 
+        {/* Every line the customer is actually charged, itemised — these
+            numbers come from the server's cart totals, which share one
+            calculation with the Razorpay order amount (see
+            server/utils/orderPricing.js), so what's shown here is exactly
+            what the payment popup will ask for. */}
         <section className="card space-y-1.5 p-4 sm:p-5">
+          <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-mdn-white">Price details</h3>
+
           <div className="flex items-center justify-between text-sm text-mdn-gray">
             <span>Subtotal</span><span>₹{cart.subtotal}</span>
           </div>
+
           {cart.discount > 0 && (
             <div className="flex items-center justify-between text-sm text-mdn-green">
-              <span>Discount</span><span>-₹{cart.discount}</span>
+              <span>Discount{cart.couponDetails?.code ? ` (${cart.couponDetails.code})` : ""}</span>
+              <span>-₹{cart.discount}</span>
             </div>
           )}
-          <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 text-base font-bold text-mdn-white">
-            <span>Total</span><span className="text-mdn-green">₹{cart.total}</span>
+
+          <div className="flex items-center justify-between text-sm text-mdn-gray">
+            <span>Shipping</span>
+            {cart.shippingFee > 0 ? (
+              <span>₹{cart.shippingFee}</span>
+            ) : (
+              <span className="font-semibold text-mdn-green">FREE</span>
+            )}
           </div>
+
+          <div className="flex items-center justify-between text-sm text-mdn-gray">
+            <span>GST ({Math.round((cart.taxRate ?? 0.05) * 100)}%)</span>
+            <span>₹{cart.tax}</span>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 text-base font-bold text-mdn-white">
+            <span>Total payable</span><span className="text-mdn-green">₹{cart.total}</span>
+          </div>
+
           <p className="pt-1 text-xs text-mdn-gray/70">
-            Final amount (shipping + tax included) payment popup me dikhega.
+            All taxes included. This is the final amount — the payment popup will show ₹{cart.total}, nothing extra
+            is added later.
           </p>
+
+          {cart.shippingFee > 0 && cart.freeShippingAbove && (
+            <p className="text-xs text-mdn-green/80">
+              Add items worth ₹{cart.freeShippingAbove - (cart.subtotal - cart.discount) + 1} more to get FREE
+              shipping.
+            </p>
+          )}
         </section>
 
         <button type="submit" disabled={placing} className="btn-primary w-full sm:w-auto">

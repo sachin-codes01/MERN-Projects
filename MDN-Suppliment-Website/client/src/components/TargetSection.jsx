@@ -1,38 +1,57 @@
 import { useNavigate } from "react-router-dom";
 import ItemCarousel from "./ItemCarousel";
 import SectionHeading from "./SectionHeading";
-import targetImg from "../assets/Target.png";
+import leanMusclesImg from "../assets/Lean Muscles.png";
+import guiltFreeGainsImg from "../assets/Guilt-Free Gains.png";
+import weightLossImg from "../assets/Weight Loss.png";
+import wellnessImmunityImg from "../assets/Wellness & Immunity.png";
+import strengthEnduranceImg from "../assets/Strength & Endurance.png";
+import bulkingUpImg from "../assets/Bulking Up.png";
 
+// Each goal carries its own artwork — every card used to render the same
+// generic Target.png, so the six tiles were visually indistinguishable.
+//
+// Order is deliberate: the two cards with a female model (Guilt-Free
+// Gains, Weight Loss) sit at positions 2 and 5 rather than side by side.
+// On a six-item loop that's three apart in BOTH directions, so they stay
+// evenly spaced no matter where the carousel wraps — instead of both
+// women appearing together in one screenful and none in the rest.
 const TARGETS = [
   {
     title: "Lean Muscles",
     query: "lean muscle",
     desc: "High-protein, low-carb stacks built for definition without the bulk.",
+    image: leanMusclesImg,
   },
   {
     title: "Guilt-Free Gains",
     query: "protein food",
     desc: "Clean whole-food nutrition that fits real macros, not marketing.",
-  },
-  {
-    title: "Weight Loss",
-    query: "fat loss",
-    desc: "Fat burners and low-sugar formulas to support a real calorie deficit.",
+    image: guiltFreeGainsImg,
   },
   {
     title: "Wellness & Immunity",
     query: "wellness",
     desc: "Daily essentials — multivitamins, omega-3s, gut and immune support.",
+    image: wellnessImmunityImg,
   },
   {
     title: "Strength & Endurance",
     query: "pre workout",
     desc: "Pre-workouts and creatine to push harder, longer, every session.",
+    image: strengthEnduranceImg,
+  },
+  {
+    title: "Weight Loss",
+    query: "fat loss",
+    desc: "Fat burners and low-sugar formulas to support a real calorie deficit.",
+    image: weightLossImg,
   },
   {
     title: "Bulking Up",
     query: "mass gainer",
     desc: "Calorie-dense mass gainers built for serious, sustained size gains.",
+    image: bulkingUpImg,
   },
 ];
 
@@ -76,19 +95,18 @@ export default function TargetSection() {
                 onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)}
                 className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/5 bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow"
               >
-                {/* object-fill, not object-cover/contain: the card is
-                    aspect-[3/4] (0.750) and Target.png is 896x1200
-                    (0.747), so filling the box stretches it by under half
-                    a percent — imperceptible, and unlike `cover` it never
-                    crops an edge, unlike `contain` it never leaves bars.
-                    Sits under the gradient below, which is what keeps the
-                    title/description legible over the artwork. */}
+                {/* The artwork is 1086x1448 — exactly the card's
+                    aspect-[3/4] — so `cover` neither crops nor distorts
+                    it here, and it stays correct if a future image is a
+                    slightly different ratio (which `fill` would visibly
+                    stretch). Sits under the gradient below, which is what
+                    keeps the title/description legible over the artwork. */}
                 <img
-                  src={targetImg}
+                  src={t.image}
                   alt=""
                   aria-hidden="true"
                   loading="lazy"
-                  className="absolute inset-0 h-full w-full object-fill"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
                 {/* Scrim, lightened now that there's real artwork behind
                     it. Was solid black at the base fading through 70% at

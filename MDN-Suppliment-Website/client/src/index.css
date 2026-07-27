@@ -139,6 +139,15 @@ html:not(.dark) [class*="hover\:border-mdn-green"]:hover {
 }
 
 @layer components {
+  /* The product page's sticky Add to Cart bar stays fixed over the footer
+     rather than hiding behind it (see StickyAddToCart.jsx). This reserves
+     just enough room underneath the footer's content that the bar never
+     covers its last row. Toggled on #site-footer only while the bar is
+     actually up. */
+  .has-sticky-atc {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
   .stat-chip {
     @apply flex flex-col items-center justify-center rounded-md border border-mdn-green/40
            bg-mdn-charcoal px-3 py-2 min-w-[64px] transition-colors duration-200;

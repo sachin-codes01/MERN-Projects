@@ -210,9 +210,36 @@ export default function Orders() {
                 ))}
               </ul>
 
-              <p className="mt-3 text-right font-bold text-mdn-white">
-                Total: <span className="text-mdn-green">₹{order.pricing.total}</span>
-              </p>
+              {/* Full breakdown of what was charged, not just the final
+                  figure — so the shipping fee and GST baked into the
+                  total are visible on the order record too. */}
+              <div className="mt-3 space-y-1 border-t border-white/5 pt-3 text-sm">
+                <div className="flex items-center justify-between text-mdn-gray">
+                  <span>Subtotal</span><span>₹{order.pricing.subtotal}</span>
+                </div>
+                {order.pricing.discount > 0 && (
+                  <div className="flex items-center justify-between text-mdn-green">
+                    <span>Discount{order.pricing.couponCode ? ` (${order.pricing.couponCode})` : ""}</span>
+                    <span>-₹{order.pricing.discount}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-mdn-gray">
+                  <span>Shipping</span>
+                  {order.pricing.shippingFee > 0 ? (
+                    <span>₹{order.pricing.shippingFee}</span>
+                  ) : (
+                    <span className="font-semibold text-mdn-green">FREE</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-mdn-gray">
+                  <span>GST</span><span>₹{order.pricing.tax}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/5 pt-1.5 font-bold text-mdn-white">
+                  <span>Total paid</span>
+                  <span className="text-mdn-green">₹{order.pricing.total}</span>
+                </div>
+                <p className="text-right text-[11px] text-mdn-gray/70">All taxes included</p>
+              </div>
 
               {!NON_CANCELLABLE.includes(order.orderStatus) && (
                 <button

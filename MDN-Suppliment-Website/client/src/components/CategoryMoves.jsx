@@ -1,21 +1,35 @@
 import { useNavigate } from "react-router-dom";
 import SectionHeading from "./SectionHeading";
 import ItemCarousel from "./ItemCarousel";
+import allProductsImg from "../assets/All Products.png";
+import wheyProteinImg from "../assets/Whey Protein.png";
+import creatineImg from "../assets/creatine.png";
+import preWorkoutImg from "../assets/pre workout.png";
+import bcaaImg from "../assets/bcaa.png";
+import massGainerImg from "../assets/mass gainer.png";
+import fatBurnerImg from "../assets/fat burner.png";
+import glutamineImg from "../assets/glutamine.png";
+import newLaunchesImg from "../assets/New Launches.png";
+import combosImg from "../assets/Combos.png";
 
 // Same 10 items/links as before. Large screens show every card at once
 // in a static grid (no carousel needed); small/medium screens use a
 // swipe-only carousel — no autoplay, no arrow buttons, just finger drag.
+//
+// Every collection now carries its own transparent cut-out, matched to
+// the title by name. `glyph` is kept as the fallback for any collection
+// added later before its artwork exists.
 const COLLECTIONS = [
-  { title: "All Products", to: "/products", glyph: "grid" },
-  { title: "Whey Protein", to: "/search?q=whey%20protein", glyph: "muscle" },
-  { title: "Creatine", to: "/search?q=creatine", glyph: "atom" },
-  { title: "Pre-Workout", to: "/search?q=pre%20workout", glyph: "bolt" },
-  { title: "BCAA", to: "/search?q=bcaa", glyph: "capsule" },
-  { title: "Mass Gainer", to: "/search?q=mass%20gainer", glyph: "gainer" },
-  { title: "Fat Burner", to: "/search?q=fat%20burner", glyph: "flame" },
-  { title: "Glutamine", to: "/search?q=glutamine", glyph: "leaf" },
-  { title: "New Launches", to: "/products/section/new_arrival", glyph: "sparkle" },
-  { title: "Combos", to: "/products/section/fitness_combo", glyph: "bundle" },
+  { title: "All Products", to: "/products", glyph: "grid", image: allProductsImg },
+  { title: "Whey Protein", to: "/search?q=whey%20protein", glyph: "muscle", image: wheyProteinImg },
+  { title: "Creatine", to: "/search?q=creatine", glyph: "atom", image: creatineImg },
+  { title: "Pre-Workout", to: "/search?q=pre%20workout", glyph: "bolt", image: preWorkoutImg },
+  { title: "BCAA", to: "/search?q=bcaa", glyph: "capsule", image: bcaaImg },
+  { title: "Mass Gainer", to: "/search?q=mass%20gainer", glyph: "gainer", image: massGainerImg },
+  { title: "Fat Burner", to: "/search?q=fat%20burner", glyph: "flame", image: fatBurnerImg },
+  { title: "Glutamine", to: "/search?q=glutamine", glyph: "leaf", image: glutamineImg },
+  { title: "New Launches", to: "/products/section/new_arrival", glyph: "sparkle", image: newLaunchesImg },
+  { title: "Combos", to: "/products/section/fitness_combo", glyph: "bundle", image: combosImg },
 ];
 
 export default function CategoryMoves() {
@@ -59,20 +73,57 @@ function CollectionCard({ item, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="card group flex h-full w-full flex-col items-center gap-1.5 px-1.5 py-3 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:gap-3 sm:px-4 sm:py-6 2xl:py-8"
+      className="card group flex h-full w-full flex-col items-center gap-1.5 px-1.5 py-2 text-center transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow sm:gap-1.5 sm:px-2 sm:py-2"
     >
-      {/* The 2xl icon/padding step keeps these cards from reading as
-          short, flat bars now that the section spans the full 1536px
-          shell — five columns at that width are noticeably wider than
-          they were at max-w-7xl, so the box grows vertically to match. */}
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mdn-green/10 text-mdn-green transition-all duration-300 group-hover:scale-110 group-hover:bg-mdn-green group-hover:text-black group-hover:rotate-6 sm:h-12 sm:w-12 2xl:h-14 2xl:w-14">
-        <Glyph name={item.glyph} />
+      {/* SQUARE box sized to ~71% of the desktop card. The cap has been
+          tuned by eye: at 112px the artwork filled only 43% of the card and
+          read as a small icon adrift in padding; uncapped it went to 234px
+          (90%) and dominated the card. 184px sits between the two.
+          The cap only binds from `sm` up — in the narrow mobile carousel
+          the slot is ~75px, so the box just fills it either way.
+          Both the image and the glyph fallback live in this same box, so
+          every card is identical in height whichever one renders — that's
+          what keeps the row aligned. */}
+      <span className="relative flex aspect-square w-full max-w-[184px] shrink-0 items-center justify-center">
+        {/* Glow behind the cut-out, pooled low so it sits under the
+            product's base rather than floating behind its middle. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[62%] w-[78%] -translate-x-1/2 rounded-full bg-mdn-green/25 blur-[16px] transition-all duration-300 group-hover:bg-mdn-green/50 group-hover:blur-[22px]"
+        />
+        {item.image ? (
+          // `absolute inset-0` rather than `h-full w-full` in flow: a
+          // percentage height has nothing definite to resolve against
+          // inside an aspect-ratio box, so an in-flow image falls back to
+          // its intrinsic height and stretches the box past square —
+          // which is exactly what staircased the navbar's tiles. Out of
+          // flow it can't affect the box, so every card stays square
+          // whatever the source ratio (these run 0.67 to 1.11).
+          //
+          // alt="" — the title below is inside the same button and
+          // already names it, so alt text would just double-announce.
+          <img
+            src={item.image}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-contain object-bottom drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover:scale-110"
+          />
+        ) : (
+          <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-mdn-green/10 text-mdn-green transition-all duration-300 group-hover:scale-110 group-hover:bg-mdn-green group-hover:text-black sm:h-12 sm:w-12">
+            <Glyph name={item.glyph} />
+          </span>
+        )}
       </span>
-      {/* Fixed min-height reserves the same 2-line space for every card
-          regardless of title length, and h-full above makes the button
-          fill its grid/carousel slot — together this is what keeps every
-          card the same size instead of shrinking to fit 1-line titles. */}
-      <span className="line-clamp-2 min-h-[2.5em] text-[10px] font-bold leading-tight text-mdn-white transition-colors duration-300 group-hover:text-mdn-green sm:text-xs">
+      {/* The 2-line reserve is only needed where titles actually wrap — in
+          the narrow mobile carousel. From `sm` up the card is wide enough
+          that every title fits on one line, so reserving a second line
+          there just left an empty row of dead space under each card. Cards
+          stay equal height without it: `h-full` above makes the button
+          fill its grid/carousel slot, and the fixed square image box keeps
+          every label starting at the same y. */}
+      <span className="line-clamp-2 min-h-[2.5em] text-[10px] font-bold leading-tight text-mdn-white transition-colors duration-300 group-hover:text-mdn-green sm:min-h-0 sm:text-xs">
         {item.title}
       </span>
     </button>

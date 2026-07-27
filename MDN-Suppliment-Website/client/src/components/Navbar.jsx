@@ -5,6 +5,15 @@ import { useCartBadge } from "../context/CartBadgeContext";
 import ThemeToggle from "./ThemeToggle";
 import SearchSuggest from "./SearchSuggest";
 import mdnLogo from "../assets/mdn-logo.png";
+import allProductsImg from "../assets/All Products.png";
+import wheyProteinImg from "../assets/Whey Protein.png";
+import newLaunchesImg from "../assets/New Launches.png";
+import veganProteinImg from "../assets/Vegan Protein.png";
+import aminoAcidsImg from "../assets/Amino Acids.png";
+import peanutButterImg from "../assets/Peanut Butter.png";
+import supplementsImg from "../assets/Supplements.png";
+import combosImg from "../assets/Combos.png";
+import accessoriesImg from "../assets/Accessories.png";
 import SplashCursor from "./SplashCursor";
 import ErrorBoundary from "./ErrorBoundary";
 import { hasWebGLSupport } from "../utils/hasWebGLSupport";
@@ -24,19 +33,18 @@ const QUICK_LINKS = [
 
 // In-site collection links (internal routes, react-router Links below —
 // these used to point at asitisnutrition.com by mistake).
-// `image` is left `null` until real category photos exist — drop a URL
-// (or an `import`-ed local asset) into any entry and its card below picks
-// it up automatically; until then it renders the placeholder tile.
+// Each entry carries its own transparent cut-out PNG, matched to the
+// category by name.
 const SHOP_CATEGORIES = [
-  { label: "All Products", to: "/products", image: null },
-  { label: "Whey Protein", to: "/search?q=whey%20protein", image: null },
-  { label: "New Launches", to: "/products/section/new_arrival", image: null },
-  { label: "Vegan Protein", to: "/search?q=vegan%20protein", image: null },
-  { label: "Amino Acids", to: "/search?q=amino%20acids", image: null },
-  { label: "Peanut Butter", to: "/search?q=peanut%20butter", image: null },
-  { label: "Supplements", to: "/search?q=supplements", image: null },
-  { label: "Combos", to: "/products/section/fitness_combo", image: null },
-  { label: "Accessories", to: "/search?q=accessories", image: null },
+  { label: "All Products", to: "/products", image: allProductsImg },
+  { label: "Whey Protein", to: "/search?q=whey%20protein", image: wheyProteinImg },
+  { label: "New Launches", to: "/products/section/new_arrival", image: newLaunchesImg },
+  { label: "Vegan Protein", to: "/search?q=vegan%20protein", image: veganProteinImg },
+  { label: "Amino Acids", to: "/search?q=amino%20acids", image: aminoAcidsImg },
+  { label: "Peanut Butter", to: "/search?q=peanut%20butter", image: peanutButterImg },
+  { label: "Supplements", to: "/search?q=supplements", image: supplementsImg },
+  { label: "Combos", to: "/products/section/fitness_combo", image: combosImg },
+  { label: "Accessories", to: "/search?q=accessories", image: accessoriesImg },
 ];
 
 // The mega-menu header already has a "View All" button, so the card row
@@ -44,28 +52,72 @@ const SHOP_CATEGORIES = [
 const SHOP_ROW_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.label !== "All Products");
 
 // Image-first "shop by category" tile used in both the desktop Shop
-// mega-menu and the mobile Shop accordion. Falls back to a soft branded
-// placeholder (no broken-image icon) until a real photo is set on the
-// category above. Name sits below the image (not overlaid on it) — the
-// whole tile is the hover target (`group/card`), so the image box, its
-// border/glow, and the label all respond together.
+// mega-menu and the mobile Shop accordion. Name sits below the image —
+// the whole tile is the hover target (`group/card`), so the artwork, its
+// glow, and the label all respond together.
+//
+// No card chrome: the artwork is a transparent cut-out that sits directly
+// on the menu surface, lit from behind by a soft green glow instead of
+// being boxed in by a border/fill.
+//
+// `object-contain` inside a fixed SQUARE box is what keeps the layout
+// stable — the source art ranges from 0.67 (tall tubs) through 1.54
+// (landscape gym bag), so `cover` would crop them and any height-driven
+// sizing would give every tile a different footprint and break the grid.
+// Contain letterboxes each cut-out inside an identical square, so all
+// nine tiles occupy exactly the same space whatever their source ratio.
 function ShopCategoryCard({ label, image }) {
   return (
     <div className="group/card flex flex-col items-center gap-1.5 transition-transform duration-200 hover:-translate-y-1">
-      <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-mdn-charcoal2 shadow-sm transition-all duration-200 group-hover/card:border-mdn-green/60 group-hover/card:shadow-green-glow">
+      <div className="relative flex aspect-square w-full items-center justify-center">
+        {/* Glow sits BEHIND the artwork (own layer, image is `relative`
+            above it). Blurred green disc rather than a box-shadow so it
+            reads as light spilling off the product, with no edge to hint
+            at a card that isn't there. Pooled low (not box-centred) so it
+            sits under the product's base now that the art is
+            bottom-aligned, like light cast on the surface it stands on. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[62%] w-[78%] -translate-x-1/2 rounded-full bg-mdn-green/25 blur-[14px] transition-all duration-300 group-hover/card:bg-mdn-green/50 group-hover/card:blur-[20px]"
+        />
         {image ? (
+          // alt="" — the visible label below is inside the same <Link> and
+          // already names it, so alt text would just double-announce.
+          //
+          // `object-bottom` stands every product on the same baseline
+          // whatever its ratio, instead of contain-centring each one at a
+          // different height inside its box.
+          //
+          // `absolute inset-0` (not `relative h-full w-full`) is what
+          // keeps the tiles square. In normal flow `h-full` (height:100%)
+          // has no definite parent height to resolve against — the box
+          // only sets aspect-ratio — so the image fell back to its
+          // intrinsic height and, since min-height is auto, stretched the
+          // box past square: 0.67-ratio art made it 92x138, 0.79 made it
+          // 92x116, while 1.0+ art stayed 92x92. Tiles ended up different
+          // heights and the labels staircased (tops at 307/330/353). Out
+          // of flow the image can't affect the box, so aspect-square
+          // always wins and every tile is exactly 92x92.
           <img
             src={image}
-            alt={label}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-110"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-contain object-bottom drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover/card:scale-110"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-mdn-green/20 to-mdn-charcoal2">
-            <PlaceholderBoxIcon className="h-1/3 w-1/3 text-mdn-green/60" />
-          </div>
+          <PlaceholderBoxIcon className="relative h-1/3 w-1/3 text-mdn-green/60" />
         )}
       </div>
-      <span className="block max-w-full truncate text-center text-[10.5px] font-semibold uppercase tracking-wide text-mdn-white/80 transition-colors duration-200 group-hover/card:text-mdn-green">
+      {/* Wraps to a second line instead of truncating. `truncate` cut off
+          7 of the 8 desktop labels ("Whey Protein" needs 84px in a 72px
+          tile); the longest unbreakable word is "SUPPLEMENTS" at 81px,
+          which is what sets the minimum tile width below. Every tile's
+          first line still starts at the same y, since the square image
+          box above it is a fixed height — so wrapping can't stagger the
+          row. */}
+      <span className="block w-full text-balance text-center text-[10.5px] font-semibold uppercase leading-tight tracking-wide text-mdn-white/80 transition-colors duration-200 line-clamp-2 group-hover/card:text-mdn-green">
         {label}
       </span>
     </div>
@@ -300,9 +352,14 @@ export default function Navbar() {
                     tiles a fixed, compact size — without it, a column just
                     stretches to fill the full panel width, which is what
                     made cards balloon up on tablet-width viewports. */}
+                {/* max-w-[92px] = the widest full label ("Peanut Butter"),
+                    so every name fits on one line here. The 8 columns of
+                    this panel are ~96.5px wide, so this still leaves
+                    breathing room — the old 72px cap was throwing away
+                    ~24px per column and truncating almost every label. */}
                 <div className="grid grid-cols-8 justify-items-center gap-3">
                   {SHOP_ROW_CATEGORIES.map((c) => (
-                    <Link key={c.label} to={c.to} className="w-full max-w-[72px]">
+                    <Link key={c.label} to={c.to} className="w-full max-w-[92px]">
                       <ShopCategoryCard label={c.label} image={c.image} />
                     </Link>
                   ))}
@@ -400,7 +457,11 @@ export default function Navbar() {
                   neither — cards stay a fixed size and the row just packs
                   as many as actually fit, `justify-center` centering
                   whatever's left over instead of leaving it blank on one side. */}
-              <div className="grid grid-cols-[repeat(auto-fill,64px)] justify-center gap-3 py-2 pr-2">
+              {/* 84px track (was 64px): "SUPPLEMENTS" is a single
+                  unbreakable 81px word, so anything narrower clipped it no
+                  matter how the label wraps. Longer two-word names wrap to
+                  a second line at this width instead of being cut. */}
+              <div className="grid grid-cols-[repeat(auto-fill,84px)] justify-center gap-3 py-2 pr-2">
                 {SHOP_CATEGORIES.map((c) => (
                   <Link key={c.label} to={c.to} onClick={() => setMobileOpen(false)}>
                     <ShopCategoryCard label={c.label} image={c.image} />

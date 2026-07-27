@@ -10,11 +10,15 @@ export default function Cart() {
   const [cart, setCart] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
+  const { token, cartSyncing } = useAuth();
   const { success, error: toastError } = useToast();
   const navigate = useNavigate();
 
   const loadCart = () => {
+    // Guest lines are still being moved onto the server cart — reading it
+    // now would show a half-merged (or empty) cart. The effect below
+    // re-runs once the merge settles.
+    if (cartSyncing) return;
     setLoading(true);
     setError("");
     if (token) {
@@ -32,7 +36,7 @@ export default function Cart() {
   useEffect(() => {
     loadCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, cartSyncing]);
 
   const handleQuantityChange = async (itemId, quantity) => {
     if (quantity < 1) return; // never allow dropping below 1 via the stepper
@@ -95,10 +99,10 @@ export default function Cart() {
           Your <span className="text-mdn-green">Cart</span> Is Empty
         </h2>
         <p className="mt-2 max-w-sm text-sm text-mdn-gray">
-          Looks like you haven't fueled up yet — browse the store and add something worth training for.
+          Nothing here right now — check what you've already ordered and track it from your orders page.
         </p>
-        <Link to="/products" className="btn-primary mt-6">
-          Browse Products
+        <Link to="/orders" className="btn-primary mt-6">
+          View Your Orders
         </Link>
       </div>
     );
@@ -211,9 +215,16 @@ export default function Cart() {
       </div>
 
       <div className="mt-6 flex flex-col items-center gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-lg font-bold text-mdn-white">
-          Total: <span className="text-mdn-green">₹{total}</span>
-        </h3>
+        {/* Labelled "Subtotal", not "Total" — shipping and GST are added
+            on top at checkout, where the full itemised breakdown is
+            shown. Calling this the total here would understate what the
+            customer ends up paying. */}
+        <div className="text-center sm:text-left">
+          <h3 className="text-lg font-bold text-mdn-white">
+            Subtotal: <span className="text-mdn-green">₹{total}</span>
+          </h3>
+          <p className="mt-0.5 text-xs text-mdn-gray">Shipping &amp; taxes calculated at checkout.</p>
+        </div>
         <button onClick={handleCheckoutClick} className="btn-primary w-full sm:w-auto">
           Proceed to Checkout
         </button>

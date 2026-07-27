@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
@@ -48,9 +48,9 @@ export default function ProductCard({ product }) {
   const { token } = useAuth();
   const { markNewItem } = useCartBadge();
   const { success, error: toastError } = useToast();
+  const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
-  const [justAdded, setJustAdded] = useState(false);
 
   // Product schema stores ratingsAverage/ratingsCount (there's no `rating`
   // field) — use the real average once the product has reviews, otherwise
@@ -92,9 +92,8 @@ export default function ProductCard({ product }) {
         });
       }
       markNewItem();
-      setJustAdded(true);
       success(`${product.name} added to cart!`);
-      setTimeout(() => setJustAdded(false), 1200);
+      navigate("/cart");
     } catch (err) {
       setError(err.message);
       toastError(err.message);
@@ -158,11 +157,9 @@ export default function ProductCard({ product }) {
           // the card it sat on. Light mode keeps the original dark button;
           // dark mode flips to a light fill with dark text for the same
           // contrast the design intended. Hover still goes green in both.
-          className={`mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black dark:bg-mdn-white dark:text-mdn-black dark:hover:bg-mdn-green dark:hover:text-black disabled:cursor-not-allowed disabled:opacity-60 ${
-            justAdded ? "animate-pop" : ""
-          }`}
+          className="mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black dark:bg-mdn-white dark:text-mdn-black dark:hover:bg-mdn-green dark:hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {outOfStock ? "Out of Stock" : adding ? "Adding..." : justAdded ? "Added ✓" : "Add to Cart"}
+          {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
         </button>
         {error && <span className="mt-1 text-xs text-red-400">{error}</span>}
       </div>

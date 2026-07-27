@@ -3,11 +3,14 @@ import { getSizePrice } from "../utils/pricing";
 
 /**
  * Fixed "Add to Cart" bar — shown on every screen size (not just
- * mobile). Only appears once the real Add to Cart button (`atcRef`) has
+ * mobile). Appears once the real Add to Cart button (`atcRef`) has
  * scrolled OFF THE TOP of the viewport (the user actively scrolled past
- * it), and hides again either when that real button scrolls back into
- * view or when the site footer (`#site-footer`, see Footer.jsx) enters
- * the viewport — so it never sits on top of the footer.
+ * it), and hides again when that button scrolls back into view.
+ *
+ * It deliberately stays up over the site footer too, so the bar is still
+ * reachable at the very bottom of the page. To keep it from covering the
+ * footer's last rows, the footer gets extra bottom padding (via the
+ * `has-sticky-atc` class, see index.css) for as long as the bar is up.
  *
  * Deliberately NOT just "button not intersecting" — on a short viewport
  * the button can start below the fold before any scrolling happens at
@@ -17,11 +20,9 @@ import { getSizePrice } from "../utils/pricing";
  */
 export default function StickyAddToCart({ atcRef, product, currentSize, currentFlavor, outOfStock, adding, onAddToCart }) {
   const [scrolledPastAtc, setScrolledPastAtc] = useState(false);
-  const [footerVisible, setFooterVisible] = useState(false);
 
   useEffect(() => {
     const atcEl = atcRef.current;
-    const footerEl = document.getElementById("site-footer");
     if (!atcEl) return;
 
     const atcObserver = new IntersectionObserver(
@@ -32,21 +33,20 @@ export default function StickyAddToCart({ atcRef, product, currentSize, currentF
     );
     atcObserver.observe(atcEl);
 
-    let footerObserver;
-    if (footerEl) {
-      footerObserver = new IntersectionObserver(([entry]) => setFooterVisible(entry.isIntersecting), {
-        threshold: 0,
-      });
-      footerObserver.observe(footerEl);
-    }
-
-    return () => {
-      atcObserver.disconnect();
-      footerObserver?.disconnect();
-    };
+    return () => atcObserver.disconnect();
   }, [atcRef]);
 
-  const show = scrolledPastAtc && !footerVisible;
+  const show = scrolledPastAtc;
+
+  // Reserve room at the bottom of the footer while the bar is up, and
+  // always release it when this page unmounts.
+  useEffect(() => {
+    const footerEl = document.getElementById("site-footer");
+    if (!footerEl) return;
+    footerEl.classList.toggle("has-sticky-atc", show);
+    return () => footerEl.classList.remove("has-sticky-atc");
+  }, [show]);
+
   const { price, discountPrice, effectivePrice, discountPct: pct } = getSizePrice(
     currentSize,
     currentFlavor?.priceAdjustment || 0

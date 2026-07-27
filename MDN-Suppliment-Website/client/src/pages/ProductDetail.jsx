@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useCartBadge } from "../context/CartBadgeContext";
@@ -24,6 +24,7 @@ export default function ProductDetail() {
   const { token, user } = useAuth();
   const { markNewItem } = useCartBadge();
   const { success, error: toastError } = useToast();
+  const navigate = useNavigate();
   const atcRef = useRef(null);
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function ProductDetail() {
       }
       markNewItem();
       success(`${product.name} added to cart!`);
+      navigate("/cart");
     } catch (err) {
       setError(err.message);
       toastError(err.message);
