@@ -1,4 +1,6 @@
 import SectionHeading from "./SectionHeading";
+import Reveal from "./motion/Reveal";
+import Parallax from "./motion/Parallax";
 import img1Mobile from "../assets/343×224px.png";
 import img1Tablet from "../assets/592×288px.png";
 import img1Desktop from "../assets/315×464px.png";
@@ -36,30 +38,38 @@ export default function WhyOne() {
           If you change the small tile height or gap below, update these
           numbers to match (new total = tileHeight × 2 + gap). */}
       <div className="mt-10 grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
-        <div className="card h-56 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-72 lg:h-[464px] 2xl:h-[528px]">
-          {/* object-fill stretches each crop to the box's exact
-              dimensions — whole poster visible, no cropping, and no side
-              gaps either. */}
-          <picture className="block h-full w-full">
-            <source media="(min-width: 1024px)" srcSet={img1Desktop} />
-            <source media="(min-width: 640px)" srcSet={img1Tablet} />
-            <img
-              src={img1Mobile}
-              alt="MDN ONE — why choose us"
-              className="h-full w-full object-fill"
-            />
-          </picture>
-        </div>
+        <Reveal
+          from="scale"
+          className="card h-56 overflow-hidden bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1 hover:border-mdn-green/40 hover:shadow-green-glow sm:h-72 lg:h-[464px] 2xl:h-[528px]"
+        >
+          {/* Parallax handles its own overflow-hidden + 1.16 scale for the
+              drift — the outer .card's overflow-hidden above just keeps
+              the rounded corners clean, it's not load-bearing for this. */}
+          <Parallax className="h-full w-full">
+            {/* object-fill stretches each crop to the box's exact
+                dimensions — whole poster visible, no cropping, and no side
+                gaps either. */}
+            <picture className="block h-full w-full">
+              <source media="(min-width: 1024px)" srcSet={img1Desktop} />
+              <source media="(min-width: 640px)" srcSet={img1Tablet} />
+              <img
+                src={img1Mobile}
+                alt="MDN ONE — why choose us"
+                className="h-full w-full object-fill"
+              />
+            </picture>
+          </Parallax>
+        </Reveal>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-span-2">
           {[img2, img3, img4, img5].map((src, i) => (
-            <div key={i} className={TILE_CLASS}>
+            <Reveal key={i} from="up" delay={i * 0.1} className={TILE_CLASS}>
               <img
                 src={src}
                 alt="MDN ONE — why choose us"
                 className={`h-full w-full ${src === img3 ? "object-contain" : "object-fill"}`}
               />
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

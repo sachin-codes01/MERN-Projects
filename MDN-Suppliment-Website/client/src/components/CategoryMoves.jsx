@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import SectionHeading from "./SectionHeading";
 import ItemCarousel from "./ItemCarousel";
+import Reveal from "./motion/Reveal";
 import allProductsImg from "../assets/All Products.png";
 import wheyProteinImg from "../assets/Whey Protein.png";
 import creatineImg from "../assets/creatine.png";
@@ -48,8 +49,10 @@ export default function CategoryMoves() {
           otherwise short. */}
       <div className="mt-4 sm:mt-10">
         <div className="hidden lg:grid lg:grid-cols-5 lg:gap-4">
-          {COLLECTIONS.map((c) => (
-            <CollectionCard key={c.title} item={c} onClick={() => navigate(c.to)} />
+          {COLLECTIONS.map((c, i) => (
+            <Reveal key={c.title} from="scale" delay={(i % 5) * 0.1} amount={0.35}>
+              <CollectionCard item={c} onClick={() => navigate(c.to)} />
+            </Reveal>
           ))}
         </div>
 

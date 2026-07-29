@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { MotionConfig } from "motion/react";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartBadgeProvider } from "./context/CartBadgeContext.jsx";
@@ -12,20 +13,25 @@ import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ThemeProvider>
-      <SettingsProvider>
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-          <BrowserRouter>
-            <AuthProvider>
-              <ToastProvider>
-                <CartBadgeProvider>
-                  <App />
-                </CartBadgeProvider>
-              </ToastProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        </GoogleOAuthProvider>
-      </SettingsProvider>
-    </ThemeProvider>
+    {/* `reducedMotion="user"` is what lets prefers-reduced-motion reach
+        Motion's inline transforms — a CSS @media block on its own only
+        touches CSS transitions, never Motion's animated `transform`. */}
+    <MotionConfig reducedMotion="user">
+      <ThemeProvider>
+        <SettingsProvider>
+          <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+            <BrowserRouter>
+              <AuthProvider>
+                <ToastProvider>
+                  <CartBadgeProvider>
+                    <App />
+                  </CartBadgeProvider>
+                </ToastProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </GoogleOAuthProvider>
+        </SettingsProvider>
+      </ThemeProvider>
+    </MotionConfig>
   </StrictMode>
 );

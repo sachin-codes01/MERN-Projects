@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Reveal from "./motion/Reveal";
+import MaskReveal from "./motion/MaskReveal";
 
 const FAQS = [
   { q: "Is MDN Whey Protein Isolate suitable for beginners?", a: "Yes. Isolate is gentler on digestion than concentrate and works well whether you're just starting out or training at an advanced level." },
@@ -16,13 +18,17 @@ export default function FAQ() {
       {/* Flat editorial list — heading flush top-left, one full-width
           column, a hairline rule under every row, and a +/− on the right.
           No card, no border box, no fill. */}
-      <h2 className="font-display text-3xl font-bold text-mdn-white sm:text-4xl lg:text-5xl">FAQs</h2>
+      <MaskReveal
+        as="h2"
+        className="font-display text-3xl font-bold text-mdn-white sm:text-4xl lg:text-5xl"
+        lines={["FAQs"]}
+      />
 
       <div className="mt-8 sm:mt-10">
         {FAQS.map((item, i) => {
           const isOpen = open === i;
           return (
-            <div key={i} className="border-b border-white/10">
+            <Reveal key={i} as="div" from="up" amount={0.4} delay={i * 0.08} className="border-b border-white/10">
               <button
                 onClick={() => setOpen(isOpen ? -1 : i)}
                 aria-expanded={isOpen}
@@ -59,7 +65,7 @@ export default function FAQ() {
                   </p>
                 </div>
               </div>
-            </div>
+            </Reveal>
           );
         })}
       </div>

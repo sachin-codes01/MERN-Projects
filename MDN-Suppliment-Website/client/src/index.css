@@ -31,7 +31,18 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* Lenis (see useSmoothScroll) now owns scroll easing end-to-end,
+     including hash-link jumps — it calls lenis.scrollTo under the hood
+     instead of relying on native anchor navigation. Native CSS smooth
+     scrolling doesn't know that: it re-interpolates every scrollTop
+     Lenis's rAF loop writes, frame by frame, which stacks two competing
+     easing curves on top of each other and is what reads as "laggy"/
+     rubber-banding rather than one clean glide. `auto` here hands the
+     browser's own interpolation off entirely so only Lenis's easing
+     applies. Reduced-motion visitors get no Lenis instance at all (see
+     the hook), and the @media block below already forces `auto` for
+     them regardless. */
+  scroll-behavior: auto;
   color-scheme: light;
   /* Full-bleed sections (Hero, Footer's ticker strip) use `w-screen` /
      100vw to break out of the page's centered container. 100vw measures

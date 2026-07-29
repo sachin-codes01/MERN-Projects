@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Reveal from "./motion/Reveal";
+import MaskReveal from "./motion/MaskReveal";
 
 const SHORT_STORY =
   "MDN started in a small home gym with a simple frustration: every \"premium\" supplement on the shelf was either overpriced, under-dosed, or both. So we built our own — tested, transparent, and priced for people who actually train.";
@@ -48,16 +50,23 @@ export default function StorySection() {
           widening the section doesn't stretch lines to an awkward length. */}
       <div className="relative mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
-          {/* Left — narrative */}
-          <div className="text-center lg:text-left">
-            <p className="animate-fade-up text-xs font-semibold uppercase tracking-[0.3em] text-mdn-green">
+          {/* Left — narrative. Enters from the left since it sits in the
+              left column — see the right column below, which mirrors it. */}
+          <Reveal from="left" className="text-center lg:text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-mdn-green">
               Our Journey
             </p>
-            <h2 className="mt-3 animate-fade-up text-3xl font-bold text-mdn-white [animation-delay:80ms] sm:text-4xl lg:text-5xl">
-              The Story of <span className="text-mdn-green">MDN</span>
-            </h2>
+            <MaskReveal
+              as="h2"
+              className="mt-3 text-3xl font-bold text-mdn-white sm:text-4xl lg:text-5xl"
+              lines={[
+                <>
+                  The Story of <span className="text-mdn-green">MDN</span>
+                </>,
+              ]}
+            />
 
-            <p className="mx-auto mt-6 max-w-xl animate-fade-up text-sm leading-relaxed text-mdn-gray [animation-delay:160ms] sm:text-base lg:mx-0">
+            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-mdn-gray sm:text-base lg:mx-0">
               {expanded ? FULL_STORY : SHORT_STORY}
             </p>
 
@@ -80,42 +89,41 @@ export default function StorySection() {
             </button>
 
             {/* Pull-quote */}
-            <blockquote className="animate-fade-up mx-auto mt-10 max-w-xl border-l-2 border-mdn-green/50 pl-5 text-left text-base font-semibold italic leading-relaxed text-mdn-white/90 sm:text-lg lg:mx-0">
+            <blockquote className="mx-auto mt-10 max-w-xl border-l-2 border-mdn-green/50 pl-5 text-left text-base font-semibold italic leading-relaxed text-mdn-white/90 sm:text-lg lg:mx-0">
               "We're still run by people who lift, and we still test everything on ourselves first."
             </blockquote>
-          </div>
+          </Reveal>
 
-          {/* Right — milestone timeline */}
-          <div className="text-left">
-            <p className="animate-fade-up text-center text-xs font-semibold uppercase tracking-[0.3em] text-mdn-green lg:text-left">
+          {/* Right — milestone timeline. Enters from the right, mirroring
+              the left column, instead of reusing the same direction. */}
+          <Reveal from="right" className="text-left">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-mdn-green lg:text-left">
               Milestones
             </p>
             <div className="relative mt-6 border-l border-mdn-green/25 pl-6 sm:pl-8">
               {MILESTONES.map((m, i) => (
-                <div
-                  key={m.year}
-                  style={{ animationDelay: `${i * 90}ms` }}
-                  className="animate-fade-up relative pb-8 last:pb-0"
-                >
+                <Reveal key={m.year} from="up" delay={i * 0.1} amount={0.4} className="relative pb-8 last:pb-0">
                   <span className="absolute -left-[29px] top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-mdn-green bg-mdn-charcoal sm:-left-[33px]">
                     <span className="h-1.5 w-1.5 rounded-full bg-mdn-green" />
                   </span>
                   <p className="text-xs font-bold uppercase tracking-widest text-mdn-green">{m.year}</p>
                   <p className="mt-1 text-sm leading-relaxed text-mdn-gray sm:text-base">{m.text}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
-          </div>
+          </Reveal>
         </div>
 
         {/* Stats band — full shell width, so the four cards sit as a
             proper row rather than four small tiles in a narrow column. */}
         <div className="mt-14 grid grid-cols-2 gap-4 text-center sm:grid-cols-4 lg:mt-16 lg:gap-6">
           {STATS.map((s, i) => (
-            <div
+            <Reveal
               key={s.label}
-              style={{ animationDelay: `${i * 90}ms` }}
-              className="animate-fade-up rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 px-3 py-5 transition-transform duration-300 hover:-translate-y-1 lg:py-7"
+              from="up"
+              delay={i * 0.1}
+              amount={0.4}
+              className="rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 px-3 py-5 transition-transform duration-300 hover:-translate-y-1 lg:py-7"
             >
               <p className="font-display text-xl font-bold text-mdn-green sm:text-2xl lg:text-3xl">
                 {s.value}
@@ -123,7 +131,7 @@ export default function StorySection() {
               <p className="mt-1 text-[11px] uppercase tracking-wide text-mdn-gray sm:text-xs lg:text-sm">
                 {s.label}
               </p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

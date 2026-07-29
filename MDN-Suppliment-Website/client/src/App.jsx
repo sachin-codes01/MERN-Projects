@@ -7,6 +7,8 @@ import AdminRoute from "./components/AdminRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import MDNLoader from "./components/MDNLoader";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ScrollProgressBar from "./components/motion/ScrollProgressBar";
+import { useSmoothScroll } from "./lib/useSmoothScroll";
 import Home from "./pages/Home"; // kept eager — it's the landing page, no point lazy-loading it
 
 // Everything else loads on demand, so the first paint only ships the code
@@ -35,9 +37,11 @@ const BlogDetail = lazy(() => import("./pages/BlogDetail"));
 
 export default function App() {
   const location = useLocation();
+  useSmoothScroll();
 
   return (
     <div className="flex min-h-screen flex-col bg-mdn-black">
+      <ScrollProgressBar />
       <ScrollToTop />
       <Navbar />
       {/* No `container` here on purpose. Tailwind's `container` caps width

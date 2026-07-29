@@ -1,5 +1,6 @@
 import Carousel from "./Carousel";
 import SectionHeading from "./SectionHeading";
+import Reveal from "./motion/Reveal";
 // Renamed from the original export names ("200% Money Back.png", "Lab
 // Tested.png", …) to kebab-case. The "%" was not optional: the browser
 // requests an unencoded "%" as a literal, so Vite's dev server received
@@ -83,8 +84,10 @@ export default function AssuredBadges() {
           The carousel is kept below lg, where 8 across genuinely doesn't
           fit. */}
       <div className="mt-10 hidden grid-cols-8 gap-4 lg:grid xl:gap-6">
-        {BADGES.map((b) => (
-          <Badge key={b.label} {...b} />
+        {BADGES.map((b, i) => (
+          <Reveal key={b.label} from="scale" delay={(i % 8) * 0.08} amount={0.35}>
+            <Badge {...b} />
+          </Reveal>
         ))}
       </div>
 

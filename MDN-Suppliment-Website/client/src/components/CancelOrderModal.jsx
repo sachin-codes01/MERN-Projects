@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { setScrollLocked } from "../lib/useSmoothScroll";
 
 const CANCEL_REASONS = [
   "Ordered by mistake",
@@ -16,6 +17,19 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
   const isOther = selectedReason === "Other";
   const finalReason = isOther ? otherReason.trim() : selectedReason;
   const canSubmit = selectedReason && (!isOther || otherReason.trim().length > 0);
+
+  // Lenis ignores `overflow: hidden` on the body, so this modal needs
+  // both the body lock AND setScrollLocked — without the latter the page
+  // keeps scrolling underneath this backdrop.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    setScrollLocked(true);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      setScrollLocked(false);
+    };
+  }, []);
 
   const handleConfirm = () => {
     if (!canSubmit) return;

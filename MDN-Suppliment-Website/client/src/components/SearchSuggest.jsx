@@ -199,8 +199,11 @@ export default function SearchSuggest({
             </p>
           )}
 
+          {/* Lenis swallows wheel events page-wide by default, which would
+              make this list's own scrollbar dead — data-lenis-prevent is
+              Lenis's opt-out for elements with independent scroll. */}
           {items.length > 0 && (
-            <ul className="max-h-[22rem] overflow-y-auto py-1">
+            <ul data-lenis-prevent className="max-h-[22rem] overflow-y-auto py-1">
               {items.map((p, i) => {
                 const size = p.sizes?.[0];
                 const { effectivePrice } = getSizePrice(size);
