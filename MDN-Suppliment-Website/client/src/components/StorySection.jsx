@@ -3,23 +3,24 @@ import Reveal from "./motion/Reveal";
 import MaskReveal from "./motion/MaskReveal";
 
 const SHORT_STORY =
-  "MDN started in a small home gym with a simple frustration: every \"premium\" supplement on the shelf was either overpriced, under-dosed, or both. So we built our own — tested, transparent, and priced for people who actually train.";
+  "MDN was founded by Deepak Saini — a professional bodybuilder, fitness trainer, and nutrition coach whose bodybuilding journey began in 2001. A five-time Mr. Delhi and Mr. North Delhi title holder, he built MDN so his students could rely on one authentic, high-quality source for their nutrition.";
 
 const FULL_STORY =
-  "MDN started in a small home gym with a simple frustration: every \"premium\" supplement on the shelf was either overpriced, under-dosed, or both. So we built our own — tested, transparent, and priced for people who actually train. Every batch that carries the MDN name is lab-verified before it ships, because the label should mean something. We work directly with GMP-certified facilities, publish real BCAA and protein numbers instead of marketing rounding, and keep sugar out of formulas that don't need it. What began as protein for a handful of lifters at one gym has grown into a full line — isolates, pre-workouts, glutamine, fat burners — trusted by athletes across the country who train for results, not hype. We're still run by people who lift, and we still test everything on ourselves first.";
+  "MY DAILY NUTRITION (MDN) was founded by Deepak Saini, a professional bodybuilder, fitness trainer, and nutrition coach whose bodybuilding journey began in 2001. Years of dedication, discipline, and continuous learning turned his passion into a career — earning him the title of Mr. Delhi five times and Mr. North Delhi once, achievements built on consistent hard work, disciplined living, proper training, and balanced nutrition. Inspired by his own journey, Deepak dedicated himself to helping others reach their fitness goals, guiding countless students toward the right physique for their body type and objectives, and always emphasizing proper nutrition alongside the right supplements. As his students grew to trust his guidance, many encouraged him to launch his own supplement brand so they could access reliable, authentic, and high-quality products from a single trusted source — and in July 2019, MY DAILY NUTRITION (MDN) was born. Today MDN offers a diverse portfolio of 37 nutritional supplements, carefully formulated to support bodybuilding, sports performance, general fitness, and overall wellness, serving customers from 10-year-old children to 80-year-old adults. Our mission is simple: to deliver trusted, high-quality nutrition that empowers people to achieve their fitness, performance, and wellness goals with confidence.";
 
 const STATS = [
-  { value: "2019", label: "Founded" },
-  { value: "500+", label: "Batches Lab-Tested" },
-  { value: "2,00,000+", label: "Athletes Trust Us" },
-  { value: "GMP", label: "Certified Facilities" },
+  { value: "2001", label: "Bodybuilding Since" },
+  { value: "5x", label: "Mr. Delhi Titles" },
+  { value: "2019", label: "MDN Founded" },
+  { value: "37", label: "Nutritional Supplements" },
 ];
 
 const MILESTONES = [
-  { year: "2019", text: "Started with one whey formula, tested on our own home gym." },
-  { year: "2021", text: "Went GMP-certified and expanded into isolates & glutamine." },
-  { year: "2023", text: "Crossed 1,00,000 athletes served across India." },
-  { year: "2025", text: "Full stack line — pre-workouts, fat burners, wellness." },
+  { year: "2001", text: "Deepak Saini begins his bodybuilding journey." },
+  { year: "Titles", text: "Crowned Mr. Delhi five times and Mr. North Delhi once." },
+  { year: "Coaching", text: "Becomes a trainer & nutrition coach, guiding countless students." },
+  { year: "July 2019", text: "Launches MY DAILY NUTRITION (MDN)." },
+  { year: "Today", text: "37 supplements trusted by customers aged 10 to 80." },
 ];
 
 export default function StorySection() {
@@ -90,7 +91,7 @@ export default function StorySection() {
 
             {/* Pull-quote */}
             <blockquote className="mx-auto mt-10 max-w-xl border-l-2 border-mdn-green/50 pl-5 text-left text-base font-semibold italic leading-relaxed text-mdn-white/90 sm:text-lg lg:mx-0">
-              "We're still run by people who lift, and we still test everything on ourselves first."
+              "Our mission is simple: to deliver trusted, high-quality nutrition that empowers people to achieve their fitness, performance, and wellness goals with confidence."
             </blockquote>
           </Reveal>
 
