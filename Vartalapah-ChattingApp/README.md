@@ -1,169 +1,228 @@
-# Vārtālāpaḥ — Real-time Chat App (MERN + Socket.IO)
+# Vārtālāpaḥ — Real-time Chatting App
 
-Ek full-stack chat app: Google sign-in, private aur group chat, photo/video sharing,
-typing indicator, online status, blue tick, block/pin/archive — sab real-time.
+A full-stack real-time chat application built on the MERN stack (MongoDB, Express, React, Node.js) with Socket.IO. Sign in with Google and start talking instantly — one-to-one chats, group chats, photo and video sharing, typing indicators, online presence and read receipts, all delivered live over WebSockets.
 
-**Stack:** React (Vite) · Tailwind CSS v4 · MUI · Node.js · Express · MongoDB (Mongoose) · Socket.IO · Cloudinary · JWT
+## 🌐 Live Demo
 
----
+🚀 **Live Website:** https://vartalapah-chatting-app-lac.vercel.app/
 
-## 1. Chalane ka tarika
+## 📸 Screenshot
+
+<p align="center">
+  <img src="./client/public/vartalapah.png" alt="Vārtālāpaḥ Chatting App Screenshot" width="100%" />
+</p>
+
+## Features
+
+### Chat
+- Google OAuth login — no manual registration, account created on first sign-in
+- One-to-one private chats with any registered user
+- Group chats with an admin, member add/remove, and group rename
+- Photo and short video sharing, uploaded to Cloudinary (5 MB image / 20 MB video limits)
+- Live typing indicator while the other person is writing
+- Online / offline presence with a "last seen" timestamp
+- Read receipts (blue tick) once a message is opened
+- Edit and delete your own messages, reflected instantly on both sides
+- Search users by name or email to start a new conversation
+
+### Chat management
+- Block and unblock users — a blocked user can no longer reach you, enforced on the server
+- Pin important chats to the top of the sidebar
+- Archive and hide conversations to keep the list clean
+- Sidebar shows the latest message preview, unread state and timestamp for every chat
+
+### Account
+- Profile page showing account info (name, email, avatar) sourced from the Google account
+- Light and dark theme toggle, persisted across sessions
+- Account deletion using a soft delete, so the other person's chat history stays intact
+- Session persists across page refreshes via an httpOnly cookie
+
+## Tech Stack
+
+### Frontend (`/client`)
+- React + Vite
+- React Router
+- Tailwind CSS v4
+- Material UI (MUI) components and icons
+- Google OAuth (`@react-oauth/google`)
+- Socket.IO client for real-time events
+- Context API for auth, socket connection and theme
+
+### Backend (`/server`)
+- Node.js + Express
+- MongoDB with Mongoose
+- Socket.IO for real-time messaging, typing and presence
+- Google OAuth verification + JWT session tokens stored in httpOnly cookies
+- Cloudinary for image and video storage (via Multer + `multer-storage-cloudinary`)
+- REST API with route-level middleware for authentication
+
+## Project Structure
+
+```text
+Vartalapah-ChattingApp/
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── api/              API client - single entry point for backend calls
+│   │   ├── assets/           Fonts and poster images
+│   │   ├── components/       chat/ and home/ UI components
+│   │   ├── context/          Auth, Socket and Theme providers
+│   │   ├── hooks/            useChatList, useMessages, useChatSocket, etc.
+│   │   ├── pages/            Home, Login, Chat
+│   │   └── utils/            Formatting and media validation helpers
+│   ├── vercel.json           SPA rewrite for client-side routing
+│   └── .env
+│
+└── server/
+    ├── config/               MongoDB and Cloudinary setup
+    ├── middleware/           JWT auth guard, error handler
+    ├── models/               User, Group, Message
+    ├── routes/               auth, users, messages, groups, upload
+    ├── socket/               Socket.IO auth, rooms, typing, presence
+    ├── utils/                Token, relations and group-room helpers
+    ├── test-api.js           Automated API test suite
+    ├── server.js
+    └── .env
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or later)
+- MongoDB (Local installation or MongoDB Atlas)
+- A Cloudinary account (for media uploads)
+- A Google Cloud project with an OAuth 2.0 Client ID configured
+
+### 1. Clone the Repository
 
 ```bash
-npm install --prefix server && npm run dev --prefix server
+git clone https://github.com/sachin-codes01/MERN-Projects.git
+cd MERN-Projects/Vartalapah-ChattingApp
 ```
+
+### 2. Backend Setup
+
+Install dependencies:
 
 ```bash
-npm install --prefix client && npm run dev --prefix client
+cd server
+npm install
 ```
 
-Frontend: `http://localhost:5173` · Backend: `http://localhost:5000`
+Create a `.env` file inside the `server` directory:
 
-`.env` files banane ka poora step-by-step tarika **[SETUP.md](SETUP.md)** me hai
-(Google Client ID + Cloudinary keys).
-
----
-
-## 2. Folder structure
-
-### Backend (`server/`)
-
-```
-server.js              Entry file - middleware lagao, routes mount karo, server start
-config/
-  db.js                MongoDB connection (+ common errors ke hints)
-  cloudinary.js        Cloudinary + multer setup, media rules (5MB image / 20MB video)
-models/
-  User.js              User schema (blockedUsers, pinnedChats, soft delete...)
-  Group.js             Group schema (admin + members)
-  Message.js           Message schema (private + group dono isi me)
-  index.js             Teeno ko ek saath export karta hai
-middleware/
-  protect.js           Cookie se JWT padho -> req.user set karo (login check)
-  errorHandler.js      404 + central error handler
-routes/
-  auth.js              /api/auth   - Google login, profile, logout, delete account
-  users.js             /api/users  - list, search, block/pin/archive/hide
-  messages.js          /api/messages - conversations, send, edit, delete, read
-  groups.js            /api/groups - create, rename, members add/remove, delete
-  upload.js            /api/upload - file -> Cloudinary -> URL
-socket/
-  index.js             Socket.IO - auth, rooms, typing, online/offline
-utils/
-  token.js             COOKIE_NAME, cookie options, JWT banana, publicUser()
-  relations.js         isBlockedBetween(), withRelations(), PUBLIC_FIELDS
-  groupRooms.js        roomOf(), getGroupIfMember() - routes ke beech shared
-test-api.js            60 automated API tests (npm test)
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+CLIENT_URL=http://localhost:5173
 ```
 
-### Frontend (`client/src/`)
-
-```
-main.jsx               Saare providers (Google, Router, Theme, Auth, Socket)
-App.jsx                Routes + ProtectedRoute / PublicOnlyRoute
-api/
-  client.js            api() aur uploadFile() - backend se baat karne ka EK rasta
-context/
-  AuthContext.jsx      Logged-in user poori app me
-  SocketContext.jsx    Socket connection + online users
-  ThemeContext.jsx     Light / dark mode
-hooks/
-  useChatList.js       Sidebar ka data (users + conversations + groups)
-  useMessages.js       Khuli hui chat (load, send, edit, delete, typing)
-  useChatSocket.js     Saare socket.on() listeners ek jagah
-  useGroupActions.js   Group banana / badalna / delete
-  useProfileActions.js Apni profile aur account delete
-  useToast.js          Neeche dikhne wale chhote message
-components/
-  chat/                Sidebar, ChatWindow, Dialogs, GroupDialogs
-  home/                Landing page ke sections + homeContent.jsx (saara text)
-pages/
-  Home.jsx             Landing page (sections ko jodta hai)
-  Login.jsx            Google sign-in
-  Chat.jsx             Chat page - hooks ko components se jodta hai
-utils/
-  format.js            timeOf, previewOf, lastSeenText, senderIdOf
-  media.js             File validation (type, size, video duration)
-```
-
----
-
-## 3. Flow samajhne ke liye (interview me yahi poochha jata hai)
-
-### A. Login kaise hota hai
-
-```
-User "Sign in with Google" dabata hai
-  -> Google ek credential token deta hai (frontend ko)
-  -> POST /api/auth/google  { credential }
-  -> Backend Google se token VERIFY karta hai (frontend par bharosa nahi)
-  -> User database me hai to le lo, nahi to bana do
-  -> Apna JWT banakar httpOnly cookie me bhej do
-  -> Frontend ko sirf user ka data milta hai, token JavaScript se dikhta hi nahi
-```
-
-**Cookie kyun, localStorage kyun nahi?**
-`httpOnly` cookie ko JavaScript padh hi nahi sakta, isliye XSS attack me token chori
-nahi hota. `sameSite: 'lax'` CSRF se bachata hai.
-
-### B. Page refresh ke baad login kaise bana rehta hai
-
-`AuthContext` app khulte hi `GET /api/auth/me` bulata hai. Cookie browser me pehle se
-hai, isliye backend bata deta hai ki user kaun hai.
-
-> Logged-out hone par is call ka **401 aana normal hai** — DevTools me laal dikhta hai
-> lekin ye error nahi, bas "abhi login nahi ho" ka jawab hai.
-
-### C. Message bhejne ka poora rasta
-
-```
-1. Media hai to pehle POST /api/upload -> Cloudinary -> URL wapas
-2. POST /api/messages  { receiver ya group, text/mediaUrl }
-3. Backend message MongoDB me save karta hai
-4. Backend Socket.IO se receiver ke room me 'new-message' emit karta hai
-5. Receiver ke useChatSocket me listener chalta hai -> message screen par
-```
-
-Bhejne wale ko response me hi message mil jata hai (turant dikhta hai),
-receiver ko socket se milta hai.
-
-### D. Socket rooms
-
-- Har user apni **id** ke naam ke room me hota hai → `io.to(userId).emit(...)` se sirf usi ko jata hai
-- Har group `group:<groupId>` room me → ek emit se saare members ko mil jata hai
-
-### E. Real-time me sabse badi galti (aur uska fix)
-
-`useChatSocket.js` me `useEffect` ke aakhir me `socket.off(...)` **cleanup** hai.
-Ye na ho to har render par naya listener judta jayega aur ek message 5-5 baar dikhega.
-
-Dusri baat — listeners sirf ek baar bante hain, isliye unke andar `selectedId` ki
-purani value phans jati hai (**stale closure**). Isliye `selectedIdRef` (ref) use kiya
-hai — ref ki `.current` value hamesha latest hoti hai.
-
----
-
-## 4. Design decisions (kyun aisa banaya)
-
-| Faisla | Wajah |
-|---|---|
-| **Soft delete** (`isDeleted: true`) | User ka document mita denge to saamne wale ki purani chat toot jayegi |
-| **Media Cloudinary par** | MongoDB me sirf URL — database chhota aur fast rehta hai |
-| **Ek `/relation` endpoint** | block/pin/archive/hide ke 8 alag routes ki jagah ek — samajhne me aasan |
-| **Validation dono taraf** | Frontend par turant feedback ke liye, backend par isliye kyunki koi Postman se seedha bhej sakta hai |
-| **Custom hooks** | Chat page pehle 1200 lines ka tha; ab har hook ka ek hi kaam hai |
-| **Group me sirf jaan-pehchan wale** | Anjaan aadmi ko group me nahi ghusa sakte — rule backend par bhi lagu hai |
-
----
-
-## 5. Testing
+Start the backend server:
 
 ```bash
-npm test --prefix server
+npm run dev
 ```
 
-60 automated tests — auth, users, block, messages, groups, upload, account delete.
-Ye script khud test users banati hai, unke JWT khud sign karti hai (Google login ki
-zarurat nahi) aur aakhir me saara test data database se hata deti hai.
+### 3. Frontend Setup
 
-Browser me manually kya-kya check karna hai, uski poori list **[TESTING.md](TESTING.md)** me hai.
+Install dependencies:
+
+```bash
+cd ../client
+npm install
+```
+
+Create a `.env` file inside the `client` directory:
+
+```env
+VITE_API_URL=http://localhost:5000
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+The application will be available at:
+
+```text
+http://localhost:5173
+```
+
+> The frontend uses `strictPort`, so it always runs on `5173`. If that port is busy Vite fails loudly instead of silently moving to `5174` — which would break both CORS and Google login.
+
+## Environment Variables
+
+### Backend (`server/.env`)
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+CLIENT_URL=http://localhost:5173
+```
+
+### Frontend (`client/.env`)
+
+```env
+VITE_API_URL=http://localhost:5000
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+> Both `.env` files are excluded from version control using `.gitignore`.
+> `VITE_API_URL` must not end with a trailing slash — the API client builds requests as `${VITE_API_URL}/api${path}`.
+
+## Testing
+
+```bash
+cd server
+npm test
+```
+
+Runs an automated API test suite covering auth, users, blocking, messages, groups, uploads and account deletion. The script creates its own test users, signs their JWTs directly (no Google login needed) and cleans up all test data from the database when it finishes.
+
+A manual browser checklist is available in [TESTING.md](TESTING.md).
+
+## Deployment
+
+- **Frontend** is deployed on [Vercel](https://vercel.com) with the root directory set to `Vartalapah-ChattingApp/client`. Environment variables are set under Project Settings → Environment Variables, and a redeploy is required after any change since Vite bakes `VITE_*` values in at build time.
+- **Backend** is deployed on [Render](https://render.com) with the root directory set to `Vartalapah-ChattingApp/server`. Environment variables are set under the service's Environment tab, which triggers an automatic redeploy on save.
+- `NODE_ENV=production` must be set on Render so the session cookie is issued with `secure: true` and `sameSite: 'none'`, which is what makes cross-domain login work between Vercel and Render.
+- `CLIENT_URL` on Render must match the deployed Vercel URL exactly, since it drives CORS for both the REST API and the Socket.IO connection.
+- The Google Cloud Console OAuth Client must have the deployed frontend URL added under **Authorized JavaScript origins** for Google login to work in production.
+- MongoDB Atlas must allow `0.0.0.0/0` under Network Access, because Render and Vercel do not use fixed outbound IPs.
+
+Full step-by-step deployment instructions are in [DEPLOY.md](DEPLOY.md).
+
+> The backend runs on Render's free tier, which sleeps after 15 minutes of inactivity. The first request after a sleep can take up to 50 seconds to wake the service.
+
+## Tech Highlights
+
+- MERN Stack Architecture
+- Real-time Messaging with Socket.IO Rooms
+- Google OAuth Authentication & JWT Session Handling via httpOnly Cookies
+- Typing Indicators, Online Presence and Read Receipts
+- Cloudinary Media Uploads with Type, Size and Duration Validation
+- Group Chats with Admin-controlled Membership
+- Block / Pin / Archive Relations through a Single Unified Endpoint
+- Soft Delete to Preserve Conversation History
+- Custom React Hooks for Chat State Management
+- Light / Dark Theme with Context API
+- Responsive UI with Tailwind CSS and MUI
+- Automated API Test Suite
+
+## License
+
+This project is for personal and educational purposes. Feel free to fork and modify it for learning.

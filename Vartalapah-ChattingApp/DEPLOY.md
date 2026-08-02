@@ -83,9 +83,10 @@ Do baatein:
 [OK] Server chal raha hai: http://localhost:10000
 ```
 
-URL milega jaise `https://vartalapah-server.onrender.com` — isko copy kar lo.
+URL milega — isko copy kar lo. Is project ka live backend:
+**`https://vartalapah-chattingapp.onrender.com`**
 
-Browser me test: `https://vartalapah-server.onrender.com/api/health`
+Browser me test: `https://vartalapah-chattingapp.onrender.com/api/health`
 → `{"success":true,"database":"connected",...}` aana chahiye.
 
 ---
@@ -107,7 +108,7 @@ Browser me test: `https://vartalapah-server.onrender.com/api/health`
 ### 2.2 Environment variables
 
 ```
-VITE_API_URL=https://vartalapah-server.onrender.com
+VITE_API_URL=https://vartalapah-chattingapp.onrender.com
 VITE_GOOGLE_CLIENT_ID=<client/.env se>
 ```
 
@@ -116,7 +117,7 @@ banata hai — slash lagane se `//api` ho jayega aur har request 404 degi.
 
 ### 2.3 Deploy
 
-**Deploy** dabao. URL milega jaise `https://vartalapah.vercel.app`.
+**Deploy** dabao. URL milega jaise `https://vartalapah-chatting-app-lac.vercel.app`.
 
 `client/vercel.json` me SPA rewrite already hai — iske bina `/chat` par page
 refresh karne se 404 aata, kyunki wo route sirf React Router ke andar exist karta hai.
@@ -128,7 +129,7 @@ refresh karne se 404 aata, kyunki wo route sirf React Router ke andar exist kart
 Ab Vercel ka URL backend ko batana hai, warna CORS block kar dega.
 
 1. Render → apni service → **Environment**
-2. `CLIENT_URL` ko edit karo → `https://vartalapah.vercel.app` (slash ke bina)
+2. `CLIENT_URL` ko edit karo → `https://vartalapah-chatting-app-lac.vercel.app` (slash ke bina)
 3. Save → Render khud redeploy karega
 
 Ye value `server.js` ke CORS aur `socket/index.js` dono me jati hai — matlab
@@ -142,7 +143,7 @@ Google apne aap naye domain se login nahi chalne dega.
 
 1. https://console.cloud.google.com/apis/credentials
 2. Apni OAuth 2.0 Client ID kholo
-3. **Authorized JavaScript origins** me add karo: `https://vartalapah.vercel.app`
+3. **Authorized JavaScript origins** me add karo: `https://vartalapah-chatting-app-lac.vercel.app`
 4. Save (asar hone me kabhi kabhi 5 minute lagte hain)
 
 ---
