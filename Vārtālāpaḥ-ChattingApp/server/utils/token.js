@@ -16,6 +16,10 @@ const jwt = require('jsonwebtoken')
 // Cookie ka naam - browser me isi naam se token save hoga
 const COOKIE_NAME = 'instachats_token'
 
+// Production me frontend (Vercel) aur backend (Render) alag domain par hote hain,
+// isliye cookie ki settings dono jagah alag chahiye
+const isProduction = process.env.NODE_ENV === 'production'
+
 // Cookie ki settings
 const cookieOptions = {
   // httpOnly: true -> JavaScript se ye cookie padhi NAHI ja sakti
@@ -23,10 +27,12 @@ const cookieOptions = {
   httpOnly: true,
 
   // secure: true sirf HTTPS par cookie bhejta hai. Localhost par HTTP hai isliye development me false
-  secure: process.env.NODE_ENV === 'production',
+  secure: isProduction,
 
-  // sameSite: 'lax' -> dusri website se aayi request ke saath cookie nahi jayegi (CSRF se bachav)
-  sameSite: 'lax',
+  // Localhost par frontend aur backend ek hi site hain, to 'lax' theek hai (CSRF se bachav).
+  // Production me domain alag hai - 'lax' me browser cookie bhejta hi nahi, aur login
+  // har baar fail hota hai. Isliye wahan 'none' chahiye (jo bina secure:true ke chalta nahi)
+  sameSite: isProduction ? 'none' : 'lax',
 
   // 7 din baad cookie apne aap khatam
   maxAge: 7 * 24 * 60 * 60 * 1000,
