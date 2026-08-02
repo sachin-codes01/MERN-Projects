@@ -1,0 +1,44 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>Vārtālāpaḥ</title>
+
+    <!-- Browser tab ka icon. Ye saari files client/public/ me hain -
+         public folder ki cheezein Vite jaisi ki waisi serve kar deta hai,
+         isliye path me sirf "/" se shuru karna hota hai -->
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+
+    <!-- iPhone/iPad par "Add to Home Screen" karne par ye icon lagta hai -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- App ka naam aur icons - Android par install karne ke liye -->
+    <link rel="manifest" href="/site.webmanifest" />
+    <!-- React load hone se pehle hi theme laga dete hain, warna light mode
+         wale user ko ek pal ke liye dark background dikh jaata (flash) -->
+    <script>
+      (function () {
+        var mode = localStorage.getItem('instachats_theme') === 'light' ? 'light' : 'dark'
+        document.documentElement.setAttribute('data-theme', mode)
+        if (mode === 'light') {
+          var root = document.documentElement.style
+          root.setProperty('--color-app-bg', '#ffffff')
+          root.setProperty('--color-app-panel', '#f8fafc')
+          root.setProperty('--color-app-hover', '#f1f5f9')
+          root.setProperty('--color-app-border', '#e2e8f0')
+          root.setProperty('--color-app-text', '#0f172a')
+          root.setProperty('--color-app-muted', '#64748b')
+          root.setProperty('--color-app-bubble', '#e2e8f0')
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <!-- React app isi div ke andar render hoga -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

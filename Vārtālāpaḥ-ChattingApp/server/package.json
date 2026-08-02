@@ -1,0 +1,27 @@
+﻿{
+    "name":  "instachats-server",
+    "version":  "1.0.0",
+    "private":  true,
+    "type":  "commonjs",
+    "main":  "server.js",
+    "scripts":  {
+                    "dev":  "nodemon server.js",
+                    "start":  "node server.js",
+                    "test":  "node test-api.js"
+                },
+    "dependencies":  {
+                         "cloudinary":  "^2.10.0",
+                         "cookie-parser":  "^1.4.7",
+                         "cors":  "^2.8.5",
+                         "dotenv":  "^17.2.3",
+                         "express":  "^5.1.0",
+                         "google-auth-library":  "^11.0.0",
+                         "jsonwebtoken":  "^9.0.3",
+                         "mongoose":  "^8.20.0",
+                         "multer":  "^2.2.0",
+                         "socket.io":  "^4.8.3"
+                     },
+    "devDependencies":  {
+                            "nodemon":  "^3.1.10"
+                        }
+}

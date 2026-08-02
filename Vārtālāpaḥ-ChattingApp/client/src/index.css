@@ -1,0 +1,222 @@
+/* Tailwind CSS v4 - ek hi line me poora Tailwind import ho jata hai */
+@import "tailwindcss";
+
+/* ==========================================================
+   CUSTOM FONTS
+   Font files src/assets/ me hain. Vite build ke time unhe
+   apne aap dist me copy karke URL sahi kar deta hai.
+   font-display: swap -> font load hone tak system font dikhta hai
+   (screen khali nahi rehti)
+
+   Do fonts use kar rahe hain:
+     Cyrene  -> sirf app ka naam / logo
+     Belgium -> poora UI (buttons, naam, messages, sab)
+   ========================================================== */
+@font-face {
+  font-family: "Cyrene";
+  src: url("./assets/Cyrene-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Belgium";
+  src: url("./assets/Belgium-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Belgium";
+  src: url("./assets/Belgium-Italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Vārtālāpaḥ ke theme colors - Dark + Violet
+   Ye custom colors Tailwind classes ban jate hain, jaise bg-app-bg, text-app-text */
+@theme {
+  --color-app-bg: #0f172a;        /* poori app ka dark background */
+  --color-app-panel: #1e293b;     /* sidebar aur header ka background */
+  --color-app-hover: #273449;     /* hover karne par */
+  --color-app-border: #334155;    /* borders */
+  --color-app-text: #f1f5f9;      /* main text - halka safed */
+  --color-app-muted: #94a3b8;     /* chhota / kam important text */
+  --color-app-bubble: #334155;    /* dusre user ka message bubble */
+  --color-brand: #8b5cf6;         /* violet - main accent color */
+  --color-brand-dark: #7c3aed;    /* violet ka gehra shade */
+  --color-brand-light: #a855f7;   /* violet ka halka shade */
+
+  /* Tailwind ki font-brand / font-ui classes banane ke liye */
+  --font-brand: "Cyrene", system-ui, sans-serif;
+  --font-ui: "Belgium", system-ui, sans-serif;
+}
+
+/* Light mode ke rang CSS me nahi, seedha JS se (inline style) lagte hain -
+   dekho ThemeContext.jsx aur index.html. Tailwind ke @theme wale variables
+   ek cascade layer ke andar compile hote hain aur unhe yahan CSS se
+   override karna reliably kaam nahi kar raha tha, isliye inline style
+   use kiya (wo hamesha jeetta hai, layer ka jhamela hi nahi) */
+
+/* Mere message ke bubble aur send button par lagne wala violet gradient */
+.brand-gradient {
+  background-image: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+
+/* Logo par gradient text effect */
+.brand-gradient-text {
+  background-image: linear-gradient(135deg, #a855f7, #818cf8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* App ka naam sirf Cyrene font me dikhega */
+.brand-font {
+  font-family: "Cyrene", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* Belgium ek "display font" hai - sab kuch CAPITAL letters me dikhata hai.
+   Bade heading me sundar lagta hai, lekin poore UI me lagane par
+   messages aur email padhne me mushkil ho jate hain.
+   Isliye ise sirf landing page ki badi heading par use kar rahe hain. */
+.display-font {
+  font-family: "Belgium", system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* Ye class un jagah lagi hai jahan text ka saaf padhna sabse zaroori hai -
+   messages, email, timestamps, input box.
+   Abhi body ka font bhi system hai to iska koi asar nahi dikhta,
+   lekin kabhi body ka font badla to ye jagah surakshit rahengi. */
+.plain-text {
+  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* ==========================================================
+   IMAGE MARQUEE (home page ke right side wali slide)
+   Images upar se neeche khisakti rehti hain, bina rukе
+
+   Trick: images ki list DO baar likhte hain, aur poori strip ko
+   -50% se 0% tak khiskate hain. Jab pehli copy khatam hoti hai
+   tab dusri copy bilkul usi jagah hoti hai - isliye jodh dikhta hi nahi
+   ========================================================== */
+@keyframes marquee-down {
+  from {
+    transform: translateY(-50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.marquee-track {
+  animation: marquee-down 40s linear infinite;
+}
+
+/* ==========================================================
+   FLOATING CHIPS (do logon ke beech tairte hue message, emoji,
+   photo aur video icons)
+   left-to-right wale chips neeche se upar bobbing karte hain,
+   right-to-left wale ulti taraf - "left" property se hi cross
+   hote hain, isliye kisi bhi container width par kaam karta hai
+   ========================================================== */
+/* Chips container ab dono logon ke beech hi hai, isliye 0%/100% khud
+   unke haath ke paas padta hai - bahar se aate hue nahi dikhte, seedha
+   unhi se nikalte hain (isliye opacity turant 1 hoti hai, fade-in nahi) */
+@keyframes float-lr {
+  0%   { left: 4%; transform: translateY(0); opacity: 1; }
+  50%  { transform: translateY(-16px); }
+  96%  { opacity: 1; }
+  100% { left: 78%; transform: translateY(0); opacity: 0; }
+}
+@keyframes float-rl {
+  0%   { left: 78%; transform: translateY(0); opacity: 1; }
+  50%  { transform: translateY(-16px); }
+  96%  { opacity: 1; }
+  100% { left: 4%; transform: translateY(0); opacity: 0; }
+}
+
+/* Bade screen (tablet/PC) par dono log chips wale area ke bilkul kinare par
+   khade hote hain, isliye yahan translateX bhi ramp karte hain:
+   shuru me chip ka BAAYAN kinara area ke baayein end par hota hai aur
+   aakhir me chip ka DAAYAN kinara daayein end par (translate -100% khud ki
+   width ka). Sirf `left` use karte to chip apni poori width se aage nikal
+   kar right wale person ke upar chadh jata - ab dono taraf gap barabar hai */
+@media (min-width: 768px) {
+  /* -6% / 104% se chips dono logon ke haath ke thoda paas se nikalte hain
+     (bilkul 0-100% par gap zyada lagta tha) */
+  @keyframes float-lr {
+    0%   { left: -6%;  transform: translate(0, 0);         opacity: 1; }
+    50%  {             transform: translate(-50%, -16px); }
+    96%  { opacity: 1; }
+    100% { left: 104%; transform: translate(-100%, 0);     opacity: 0; }
+  }
+  @keyframes float-rl {
+    0%   { left: 104%; transform: translate(-100%, 0);     opacity: 1; }
+    50%  {             transform: translate(-50%, -16px); }
+    96%  { opacity: 1; }
+    100% { left: -6%;  transform: translate(0, 0);         opacity: 0; }
+  }
+}
+
+.floating-chip {
+  position: absolute;
+}
+
+/* Jin logon ne apne system me animation band ki hui hai unke liye rok dete hain
+   (accessibility - kuch logon ko chalti hui cheezon se dikkat hoti hai) */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .floating-chip,
+  .testimonial-track {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* List ke upar-neeche dono taraf "smoky" fade - content dheere dheere
+   transparent ho jata hai, isliye kinaron ka hard cut/border nahi dikhta */
+.scroll-fade-y {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+
+/* Testimonials apne aap upar se neeche loop me chalte rehte hain -
+   list DO baar render hoti hai (jaise HeroImages me), isliye loop ka
+   jodh dikhta hi nahi. Hover par ruk jaata hai taaki review padha ja sake */
+.testimonial-track {
+  animation: marquee-down 60s linear infinite;
+}
+.testimonial-track:hover {
+  animation-play-state: paused;
+}
+
+/* Chat list / messages ka scrollbar patla aur dark theme jaisa dikhe */
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Poore app ka default font system ka hi rakha hai - chat app me
+   sabse zaroori padhne me aasani hai. Custom fonts sirf logo aur
+   landing page ki heading par lagaye hain */
+body {
+  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  background-color: var(--color-app-bg);
+  color: var(--color-app-text);
+
+  /* Text thoda saaf aur smooth dikhe */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
