@@ -20,10 +20,10 @@ Frontend ka URL phir wapas backend me daalna padta hai. Isliye last me ek chhota
 Render/Vercel ka IP fix nahi hota, isliye Atlas me `0.0.0.0/0` hona hi padega —
 warna deploy hone ke baad database connect nahi hoga.
 
-**Folder ke naam wali savdhani:** project folder ka naam `Vārtālāpaḥ-ChattingApp` hai,
-jisme special characters (ā, ḥ) hain. Render/Vercel ke "Root Directory" field me ye
-kabhi kabhi problem karta hai. Agar wahan folder select karne me dikkat aaye to
-folder ka naam `Vartalapah-ChattingApp` (plain English) kar dena — sabse aasan fix.
+**Folder ke naam ke baare me:** pehle folder ka naam `Vārtālāpaḥ-ChattingApp` tha,
+lekin Render ka Root Directory field sirf `A-Za-z0-9-_./` allow karta hai — `ā` aur `ḥ`
+wahan reject ho jate the. Isliye folder ab `Vartalapah-ChattingApp` hai. Aage koi naya
+project banao to folder ka naam plain English me hi rakhna.
 
 ---
 
@@ -41,7 +41,7 @@ folder ka naam `Vartalapah-ChattingApp` (plain English) kar dena — sabse aasan
 | Name | `vartalapah-server` (kuch bhi) |
 | Region | Singapore (India se sabse paas) |
 | Branch | `main` |
-| **Root Directory** | `Vārtālāpaḥ-ChattingApp/server` |
+| **Root Directory** | `Vartalapah-ChattingApp/server` |
 | Runtime | Node |
 | Build Command | `npm install` |
 | Start Command | `npm start` |
@@ -100,7 +100,7 @@ Browser me test: `https://vartalapah-server.onrender.com/api/health`
 | Field | Value |
 |---|---|
 | Framework Preset | Vite |
-| **Root Directory** | `Vārtālāpaḥ-ChattingApp/client` |
+| **Root Directory** | `Vartalapah-ChattingApp/client` |
 | Build Command | `npm run build` (default) |
 | Output Directory | `dist` (default) |
 
