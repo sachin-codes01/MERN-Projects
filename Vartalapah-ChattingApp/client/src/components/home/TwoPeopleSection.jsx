@@ -1,5 +1,5 @@
 import PersonIcon from '@mui/icons-material/Person'
-import { messageChips } from './homeContent.jsx'
+import { messageChips } from '@/constants/homeContent.jsx'
 
 // Do log jo ek dusre ko message bhejte hain
 import personLeft from '../../assets/posters/person-left.png'

@@ -23,7 +23,7 @@ const matches = (query) =>
 // ki result badla hai ya nahi. Isse har pixel par re-render nahi hota,
 // sirf breakpoint cross karne par ek baar hota hai
 // ==========================================================
-export const useMediaQuery = (query) => {
+const useMediaQuery = (query) => {
   const [value, setValue] = useState(() => matches(query))
 
   useEffect(() => {

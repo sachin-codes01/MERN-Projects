@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  Avatar, Checkbox, InputBase, CircularProgress,
+  Checkbox, InputBase, CircularProgress,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
-import GroupsIcon from '@mui/icons-material/Groups'
-import { useBackGuard } from '../../hooks/useBackGuard.js'
-import { useIsMobile } from '../../hooks/useIsMobile.js'
-import { previewOf } from '../../utils/format.js'
-import { fieldSx } from './muiStyles.js'
+import { useBackGuard } from '@/hooks/ui/useBackGuard.js'
+import { useIsMobile } from '@/hooks/ui/useMediaQuery.js'
+import ChatAvatar from '@/components/ui/ChatAvatar.jsx'
+import { previewOf } from '@/utils/format.js'
+import { fieldSx } from '@/styles/muiStyles.js'
 
 // ==========================================================
 // FORWARD DIALOG
@@ -119,12 +119,7 @@ const ForwardDialog = ({ open, message, targets, onClose, onForward, sending }) 
                 // 44px minimum touch target
                 style={{ minHeight: 56 }}
               >
-                <Avatar
-                  src={row.isGroup ? row.groupImage : row.profileImage}
-                  sx={{ width: 38, height: 38, bgcolor: '#7c3aed' }}
-                >
-                  {row.isGroup ? <GroupsIcon fontSize="small" /> : row.name[0]}
-                </Avatar>
+                <ChatAvatar user={row} size={38} />
 
                 <p className="flex-1 min-w-0 text-sm truncate">{row.name}</p>
 

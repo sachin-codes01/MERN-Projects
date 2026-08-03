@@ -1,18 +1,18 @@
 import { memo } from 'react'
-import { Avatar, IconButton, InputBase, Divider, CircularProgress, Tooltip } from '@mui/material'
+import { CircularProgress, Divider, IconButton, InputBase, Tooltip } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import CloseIcon from '@mui/icons-material/Close'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import BlockIcon from '@mui/icons-material/Block'
 import ArchiveIcon from '@mui/icons-material/Archive'
-import GroupsIcon from '@mui/icons-material/Groups'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
-import { timeOf, previewOf } from '../../utils/format.js'
-import { fieldSx, dividerSx } from './muiStyles.js'
-import { useLongPress } from '../../hooks/useLongPress.js'
+import { timeOf, previewOf } from '@/utils/format.js'
+import { fieldSx, dividerSx } from '@/styles/muiStyles.js'
+import { useLongPress } from '@/hooks/ui/useLongPress.js'
+import ChatAvatar from '@/components/ui/ChatAvatar.jsx'
 import BottomNav from './BottomNav.jsx'
 import ProfilePanel from './ProfilePanel.jsx'
 
@@ -64,20 +64,9 @@ const ChatRow = memo(({ row, isSelected, onOpen, onMenu }) => {
       // 44px+ touch target - poori row hi tap ka area hai
       style={{ minHeight: 64 }}
     >
-      <div className="relative shrink-0">
-        {/* Group ka apna icon hota hai, user ki profile photo */}
-        <Avatar src={row.isGroup ? row.groupImage : row.profileImage} sx={{ bgcolor: '#7c3aed' }}>
-          {row.isGroup ? <GroupsIcon fontSize="small" /> : row.name[0]}
-        </Avatar>
-
-        {/* Green dot - Socket.IO se live aata hai (group par nahi lagta) */}
-        {!row.isGroup && row.isOnline && (
-          <span
-            aria-hidden="true"
-            className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-app-panel rounded-full"
-          />
-        )}
-      </div>
+      {/* Group ka icon vs aadmi ki photo, aur online dot - teeno niyam
+          ChatAvatar ke andar hain */}
+      <ChatAvatar user={row} size={40} showPresence />
 
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">
@@ -360,7 +349,7 @@ const Sidebar = ({
       >
         {/* Khud ke liye online dot dikhane ka matlab nahi - wo sirf
             DUSRE logon ke liye hai (chat rows me already hai) */}
-        <Avatar src={me.profileImage} sx={{ bgcolor: '#a855f7' }}>{me.name[0]}</Avatar>
+        <ChatAvatar user={me} size={40} />
 
         <div className="min-w-0">
           <p className="text-sm font-semibold truncate">{me.name}</p>

@@ -1,10 +1,10 @@
 import { useRef } from 'react'
-import { useAuth } from '../context/AuthContext.jsx'
-import useSectionPassed from '../hooks/useSectionPassed.js'
-import ClickSpark from '../components/ClickSpark.jsx'
-import Navbar from '../components/home/Navbar.jsx'
-import HeroSection from '../components/home/HeroSection.jsx'
-import TwoPeopleSection from '../components/home/TwoPeopleSection.jsx'
+import { useAuth } from '@/context/AuthContext.jsx'
+import useSectionPassed from '@/hooks/ui/useSectionPassed.js'
+import ClickSpark from '@/components/ui/ClickSpark.jsx'
+import Navbar from '@/components/home/Navbar.jsx'
+import HeroSection from '@/components/home/HeroSection.jsx'
+import TwoPeopleSection from '@/components/home/TwoPeopleSection.jsx'
 import {
   StatsStrip,
   FeaturesSection,
@@ -13,7 +13,7 @@ import {
   TestimonialsSection,
   FaqSection,
   Footer,
-} from '../components/home/SimpleSections.jsx'
+} from '@/components/home/SimpleSections.jsx'
 
 // ==========================================================
 // HOME - landing page (jo logged-out user ko dikhta hai)

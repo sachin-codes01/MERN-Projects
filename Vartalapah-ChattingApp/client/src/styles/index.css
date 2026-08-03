@@ -56,10 +56,6 @@
   --color-brand: #8b5cf6;         /* violet - main accent color */
   --color-brand-dark: #7c3aed;    /* violet ka gehra shade */
   --color-brand-light: #a855f7;   /* violet ka halka shade */
-
-  /* Tailwind ki font-brand / font-ui classes banane ke liye */
-  --font-brand: "Cyrene", system-ui, sans-serif;
-  --font-ui: "Belgium", system-ui, sans-serif;
 }
 
 /* Light mode ke rang CSS me nahi, seedha JS se (inline style) lagte hain -

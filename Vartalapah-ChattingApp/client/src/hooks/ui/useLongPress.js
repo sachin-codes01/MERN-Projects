@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { LONG_PRESS_MOVE_TOLERANCE_PX, LONG_PRESS_MS } from '@/constants/chat.js'
 
 // ==========================================================
 // useLongPress - MOBILE ka "right click"
@@ -19,14 +20,7 @@ import { useCallback, useEffect, useRef } from 'react'
 // ek hi callback, isliye action list kabhi alag nahi ho sakti
 // ==========================================================
 
-// Itne px se zyada ungli hili to maan lo user scroll kar raha hai
-const MOVE_TOLERANCE = 10
-
-// Ye WhatsApp/Instagram ke aas paas hai. 500ms lamba lagta hai,
-// 300ms galti se trigger ho jata hai
-const PRESS_DELAY = 450
-
-export const useLongPress = ({ onLongPress, onClick, delay = PRESS_DELAY, disabled = false }) => {
+export const useLongPress = ({ onLongPress, onClick, delay = LONG_PRESS_MS, disabled = false }) => {
   const timerRef = useRef(null)
   const startRef = useRef(null)   // ungli kahan rakhi thi
   const firedRef = useRef(false)  // long press chal chuka hai?
@@ -81,8 +75,8 @@ export const useLongPress = ({ onLongPress, onClick, delay = PRESS_DELAY, disabl
 
       const touch = e.touches[0]
       const moved =
-        Math.abs(touch.clientX - start.x) > MOVE_TOLERANCE ||
-        Math.abs(touch.clientY - start.y) > MOVE_TOLERANCE
+        Math.abs(touch.clientX - start.x) > LONG_PRESS_MOVE_TOLERANCE_PX ||
+        Math.abs(touch.clientY - start.y) > LONG_PRESS_MOVE_TOLERANCE_PX
 
       // User scroll karna chahta hai, menu nahi kholna
       if (moved) clear()

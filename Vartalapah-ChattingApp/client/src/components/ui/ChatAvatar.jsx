@@ -1,6 +1,6 @@
 import { Avatar } from '@mui/material'
 import GroupsIcon from '@mui/icons-material/Groups'
-import { BRAND } from '../../constants/theme.js'
+import { BRAND } from '@/constants/theme.js'
 
 // ==========================================================
 // CHAT AVATAR

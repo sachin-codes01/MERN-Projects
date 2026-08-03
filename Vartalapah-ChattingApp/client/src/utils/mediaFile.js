@@ -26,7 +26,7 @@ const nameFromUrl = (url, fallbackExt) => {
 }
 
 // Message se ek achha sa file naam - "vartalapah-photo-2026-08-03.jpg"
-export const fileNameFor = (message) => {
+const fileNameFor = (message) => {
   const isVideo = message?.messageType === 'video'
   const ext = isVideo ? 'mp4' : 'jpg'
   const raw = nameFromUrl(message?.mediaUrl || '', ext)

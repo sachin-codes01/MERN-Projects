@@ -81,7 +81,6 @@ module.exports = {
   uploadToCloudinary,
   deleteFromCloudinary,
   IMAGE_TYPES,
-  VIDEO_TYPES,
   MAX_IMAGE_MB,
   MAX_VIDEO_MB,
   MAX_VIDEO_SECONDS,

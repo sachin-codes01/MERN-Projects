@@ -1,10 +1,11 @@
 import { memo } from 'react'
-import { Avatar, IconButton } from '@mui/material'
+import { IconButton } from '@mui/material'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 import ForwardIcon from '@mui/icons-material/Forward'
-import { timeOf, previewOf, senderIdOf } from '../../utils/format.js'
-import { useLongPress } from '../../hooks/useLongPress.js'
+import { timeOf, previewOf, senderIdOf } from '@/utils/format.js'
+import { useLongPress } from '@/hooks/ui/useLongPress.js'
+import ChatAvatar from '@/components/ui/ChatAvatar.jsx'
 
 // ==========================================================
 // MESSAGE BUBBLE - ek message
@@ -100,16 +101,11 @@ const MessageBubble = ({
             AAKHRI wale par dikhti hai. Baaki par jagah khali chhodte hain
             (visibility:hidden) taaki bubbles baayein-daayein na hilein */}
         {!isMine && (
-          <Avatar
-            src={isGroup ? msg.sender?.profileImage : user.profileImage}
-            aria-hidden="true"
-            sx={{
-              width: 26, height: 26, bgcolor: '#7c3aed', fontSize: 12,
-              visibility: showAvatar ? 'visible' : 'hidden',
-            }}
-          >
-            {(isGroup ? msg.sender?.name : user.name)?.[0]}
-          </Avatar>
+          // Jagah hamesha ghirti hai (visibility:hidden), warna lagataar
+          // messages me bubbles baayein-daayein hilte dikhte hain
+          <div style={{ visibility: showAvatar ? 'visible' : 'hidden' }}>
+            <ChatAvatar user={isGroup ? msg.sender : user} size={26} />
+          </div>
         )}
 
         {/* no-callout: iOS/Android ka apna "Copy / Look Up" popup band -

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { uploadFile } from '../api/client.js'
-import { validateImageFile } from '../utils/media.js'
+import { uploadApi } from '@/api/uploadApi.js'
+import { validateImageFile } from '@/utils/mediaValidation.js'
 
 // ==========================================================
 // useProfileActions - APNI PROFILE ka kaam
@@ -49,7 +49,7 @@ export const useProfileActions = ({ me, updateProfile, deleteAccount, askConfirm
 
       // Nayi photo chuni hai to pehle Cloudinary par bhej do
       if (draft.file) {
-        const uploaded = await uploadFile(draft.file)
+        const uploaded = await uploadApi.uploadFile(draft.file)
         updates.profileImage = uploaded.mediaUrl
       }
 

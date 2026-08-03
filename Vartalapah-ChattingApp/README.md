@@ -37,6 +37,17 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - Account deletion using a soft delete, so the other person's chat history stays intact
 - Session persists across page refreshes via an httpOnly cookie
 
+### Mobile
+- Composer stays above the on-screen keyboard on both iOS and Android, using the
+  `visualViewport` API rather than a fixed-position workaround
+- Safe-area padding for the notch, Dynamic Island, gesture bar and URL bar
+- Long press a message for a bottom sheet: reply, copy, edit, forward,
+  delete for me, unsend
+- Full-screen media viewer with pinch and double-tap zoom, and swipe to change
+- Android Back closes the open chat, sheet or dialog instead of leaving the site
+- Bottom navigation for Chats, Requests, People and Profile
+- 44px minimum tap targets throughout
+
 ### Landing page
 - Full-screen hero: sliding poster marquee on the left, app name and call to action on the right
 - Chat bubbles that float up out of the app name — real message cards mixed with photo, video, emoji and read-receipt chips. Desktop only (≥ 1024px); tablet and mobile keep the plain layout
@@ -71,14 +82,23 @@ Vartalapah-ChattingApp/
 ├── client/
 │   ├── public/
 │   ├── src/
-│   │   ├── api/              API client - single entry point for backend calls
+│   │   ├── api/              Every network call. Nothing else calls fetch().
+│   │   │                     httpClient + one module per resource
 │   │   ├── assets/           Fonts and poster images
-│   │   ├── components/       chat/ and home/ UI components, plus ClickSpark
+│   │   ├── components/
+│   │   │   ├── chat/         Only meaningful inside the chat feature
+│   │   │   ├── home/         Only meaningful on the landing page
+│   │   │   └── ui/           Generic and feature-agnostic
+│   │   ├── constants/        Named values, so nothing is a magic number
 │   │   ├── context/          Auth, Socket and Theme providers
-│   │   ├── hooks/            Chat state (useChatList, useMessages, useChatSocket)
-│   │   │                     and landing-page helpers (useReveal, useSectionPassed)
-│   │   ├── pages/            Home, Login, Chat
-│   │   └── utils/            Formatting and media validation helpers
+│   │   ├── hooks/
+│   │   │   ├── chat/         Chat logic (messages, list, groups, socket)
+│   │   │   └── ui/           Browser logic (keyboard, long press, back button)
+│   │   ├── pages/            Home, Login, Chat — one per route
+│   │   ├── routes/           The route table
+│   │   ├── styles/           Global CSS and shared MUI style objects
+│   │   └── utils/            Small pure functions
+│   ├── jsconfig.json         Makes the `@/` -> src alias work in editors
 │   ├── vercel.json           SPA rewrite for client-side routing
 │   └── .env
 │
@@ -93,6 +113,16 @@ Vartalapah-ChattingApp/
     ├── server.js
     └── .env
 ```
+
+Imports use an `@` alias for `src`, so moving a file does not break its imports:
+
+```js
+import { messageApi } from '@/api/messageApi.js'   // not '../../../api/...'
+```
+
+New to the codebase? Read **[PROJECT_EXPLANATION.md](PROJECT_EXPLANATION.md)** —
+it walks through the architecture, the auth flow and the real-time flow in plain
+language.
 
 ## Getting Started
 
@@ -213,8 +243,6 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - The Google Cloud Console OAuth Client must have the deployed frontend URL added under **Authorized JavaScript origins** for Google login to work in production.
 - MongoDB Atlas must allow `0.0.0.0/0` under Network Access, because Render and Vercel do not use fixed outbound IPs.
 
-Full step-by-step deployment instructions are in [DEPLOY.md](DEPLOY.md).
-
 > The backend runs on Render's free tier, which sleeps after 15 minutes of inactivity. The first request after a sleep can take up to 50 seconds to wake the service.
 
 ## Tech Highlights
@@ -236,10 +264,19 @@ Full step-by-step deployment instructions are in [DEPLOY.md](DEPLOY.md).
 
 ## Notes for Contributors
 
-- **Theme colours live in two places.** The dark palette is defined in the `@theme` block of `client/src/index.css`. The light palette is applied as inline CSS variables on `<html>` — from `LIGHT_VARS` in `client/src/context/ThemeContext.jsx`, and again in a small pre-paint script in `client/index.html` so light-mode users never see a flash of dark. **Both lists must be kept in sync.** Inline styles are used rather than a `[data-theme]` CSS rule because Tailwind v4 compiles `@theme` inside a cascade layer, which made overriding it from CSS unreliable.
-- **MUI components don't read Tailwind classes.** Shared `sx` values for MUI inputs and dividers live in `client/src/components/chat/muiStyles.js` and point at the same CSS variables, so they follow the theme too. Avoid hard-coding hex colours in `sx` — that is what previously made input text and placeholders invisible in light mode.
+- **Theme colours live in two places.** The dark palette is defined in the `@theme` block of `client/src/styles/index.css`. The light palette is applied as inline CSS variables on `<html>` — from `LIGHT_VARS` in `client/src/context/ThemeContext.jsx`, and again in a small pre-paint script in `client/index.html` so light-mode users never see a flash of dark. **Both lists must be kept in sync.** Inline styles are used rather than a `[data-theme]` CSS rule because Tailwind v4 compiles `@theme` inside a cascade layer, which made overriding it from CSS unreliable.
+- **MUI components don't read Tailwind classes.** Shared `sx` values for MUI inputs and dividers live in `client/src/styles/muiStyles.js` and point at the same CSS variables, so they follow the theme too. Avoid hard-coding hex colours in `sx` — import them from `client/src/constants/theme.js` instead. Hard-coded hexes are what previously made input text and placeholders invisible in light mode.
 - **`GET /api/auth/me` returns `200` with `user: null`** when no session cookie is present, since being logged out is a normal state and a `401` shows up as a red console error for every visitor. A cookie that is present but invalid or expired still returns `401`.
 - **The hero animation is desktop-only and self-measuring.** It reads the rendered width of the app name and the real glyph bounds of the background month number, then derives its lanes from those. Nothing about it is hard-coded to a breakpoint, so changing the heading size or the number does not require touching the animation.
+
+## Documentation
+
+| File | What it is for |
+|---|---|
+| [PROJECT_EXPLANATION.md](PROJECT_EXPLANATION.md) | How the architecture, auth and real-time layers work, in plain language |
+| [REFACTOR_REPORT.md](REFACTOR_REPORT.md) | What the cleanup pass changed, and what it deliberately left alone |
+| [SETUP.md](SETUP.md) | Longer first-time setup walkthrough |
+| [TESTING.md](TESTING.md) | Manual browser test checklist |
 
 ## License
 

@@ -3,11 +3,11 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { AuthProvider } from './context/AuthContext.jsx'
-import { SocketProvider } from './context/SocketContext.jsx'
-import { ThemeModeProvider, useThemeMode } from './context/ThemeContext.jsx'
-import App from './App.jsx'
-import './index.css'
+import { AuthProvider } from '@/context/AuthContext.jsx'
+import { SocketProvider } from '@/context/SocketContext.jsx'
+import { ThemeModeProvider, useThemeMode } from '@/context/ThemeContext.jsx'
+import AppRoutes from '@/routes/AppRoutes.jsx'
+import '@/styles/index.css'
 
 // MUI ka theme ThemeContext ke "mode" ke hisaab se badalta hai - taki
 // dialogs/inputs/menus bhi Tailwind wale light/dark ke saath match karein
@@ -59,7 +59,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 kyunki socket ko pata hona chahiye ki user logged in hai ya nahi */}
             <AuthProvider>
               <SocketProvider>
-                <App />
+                <AppRoutes />
               </SocketProvider>
             </AuthProvider>
           </MuiThemeBridge>

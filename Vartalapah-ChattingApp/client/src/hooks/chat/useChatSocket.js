@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { api } from '../api/client.js'
-import { senderIdOf } from '../utils/format.js'
+import { messageApi } from '@/api/messageApi.js'
+import { senderIdOf } from '@/utils/format.js'
 
 // ==========================================================
 // useChatSocket - REAL-TIME ka dil
@@ -47,7 +47,7 @@ export const useChatSocket = ({
 
         if (msg.group === openChatId) {
           setMessages((prev) => [...prev, msg])
-          api(`/messages/group/${msg.group}/read`, { method: 'PUT' }).catch(() => {})
+          messageApi.markGroupRead(msg.group).catch(() => {})
         }
 
         setGroups((prev) =>
@@ -70,7 +70,7 @@ export const useChatSocket = ({
         setMessages((prev) => [...prev, msg])
 
         // Chat khuli hai matlab turant padh liya
-        api(`/messages/${msg.sender}/read`, { method: 'PUT' }).catch(() => {})
+        messageApi.markPrivateRead(msg.sender).catch(() => {})
       }
 
       // Sidebar ka last message aur unread count update karo

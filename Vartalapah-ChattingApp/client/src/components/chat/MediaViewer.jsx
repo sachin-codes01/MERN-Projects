@@ -6,8 +6,8 @@ import IosShareIcon from '@mui/icons-material/IosShare'
 import ForwardIcon from '@mui/icons-material/Forward'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import { useBackGuard } from '../../hooks/useBackGuard.js'
-import { timeOf } from '../../utils/format.js'
+import { useBackGuard } from '@/hooks/ui/useBackGuard.js'
+import { timeOf } from '@/utils/format.js'
 
 // ==========================================================
 // MEDIA VIEWER - poori screen wala photo/video viewer

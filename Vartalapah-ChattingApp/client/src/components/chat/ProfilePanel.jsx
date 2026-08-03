@@ -7,8 +7,10 @@ import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import LogoutIcon from '@mui/icons-material/Logout'
-import { useThemeMode } from '../../context/ThemeContext.jsx'
-import { dividerSx } from './muiStyles.js'
+import { useThemeMode } from '@/context/ThemeContext.jsx'
+import { dividerSx } from '@/styles/muiStyles.js'
+import { IMAGE_ACCEPT } from '@/constants/media.js'
+import { BRAND } from '@/constants/theme.js'
 
 // ==========================================================
 // PROFILE PANEL
@@ -43,7 +45,7 @@ const ProfilePanel = ({
       {/* Hidden input - camera icon dabane par khulta hai */}
       <input
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept={IMAGE_ACCEPT}
         ref={avatarInputRef}
         onChange={onAvatarSelect}
         className="hidden"
@@ -59,8 +61,8 @@ const ProfilePanel = ({
             aria-label="Change profile photo"
             onClick={() => avatarInputRef.current.click()}
             sx={{
-              bgcolor: '#7c3aed',
-              '&:hover': { bgcolor: '#6d28d9' },
+              bgcolor: BRAND.dark,
+              '&:hover': { bgcolor: BRAND.hover },
               // 44px touch target - chhota badge ungli se mushkil se lagta tha
               width: 36, height: 36,
             }}
@@ -69,7 +71,7 @@ const ProfilePanel = ({
           </IconButton>
         }
       >
-        <Avatar src={draft.image} sx={{ width: 96, height: 96, bgcolor: '#a855f7', fontSize: 36 }}>
+        <Avatar src={draft.image} sx={{ width: 96, height: 96, bgcolor: BRAND.light, fontSize: 36 }}>
           {draft.name[0]}
         </Avatar>
       </Badge>

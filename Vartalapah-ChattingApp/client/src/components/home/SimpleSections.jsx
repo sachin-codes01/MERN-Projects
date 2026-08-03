@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import useReveal from '../../hooks/useReveal.js'
+import useReveal from '@/hooks/ui/useReveal.js'
 import InstagramIcon from '@mui/icons-material/Instagram'
 import LinkedInIcon from '@mui/icons-material/LinkedIn'
 import GitHubIcon from '@mui/icons-material/GitHub'
@@ -16,7 +16,7 @@ import {
   useCases,
   footerColumns,
   footerLegal,
-} from './homeContent.jsx'
+} from '@/constants/homeContent.jsx'
 
 // ==========================================================
 // LANDING PAGE KE CHHOTE SECTIONS

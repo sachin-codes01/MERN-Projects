@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api, uploadFile } from '../api/client.js'
-import { validateMediaFile } from '../utils/media.js'
+import { messageApi } from '@/api/messageApi.js'
+import { uploadApi } from '@/api/uploadApi.js'
+import {
+  MESSAGE_HIGHLIGHT_MS,
+  SCROLL_STICK_THRESHOLD_PX,
+  TYPING_IDLE_MS,
+} from '@/constants/chat.js'
+import { validateMediaFile } from '@/utils/mediaValidation.js'
 
 // ==========================================================
 // useMessages - EK KHULI HUI CHAT ka saara kaam
@@ -8,14 +14,6 @@ import { validateMediaFile } from '../utils/media.js'
 // Messages load karna, bhejna, reply, edit, forward, delete aur
 // "typing..." bhejna. Sidebar ka kaam isme nahi hai - wo useChatList me hai
 // ==========================================================
-
-// Itne px se neeche ho to maan lete hain ki user "neeche hi hai" aur naye
-// message par apne aap scroll kar dena chahiye. Isse zyada upar hai matlab
-// purani baatein padh raha hai - use disturb nahi karte
-const STICK_THRESHOLD = 120
-
-// Reply par tap karke original tak jaane ke baad wo itni der chamakta hai
-const HIGHLIGHT_MS = 1500
 
 export const useMessages = ({
   me,
@@ -80,7 +78,7 @@ export const useMessages = ({
 
     const onScroll = () => {
       const distance = box.scrollHeight - box.scrollTop - box.clientHeight
-      atBottomRef.current = distance < STICK_THRESHOLD
+      atBottomRef.current = distance < SCROLL_STICK_THRESHOLD_PX
     }
 
     box.addEventListener('scroll', onScroll, { passive: true })
@@ -133,13 +131,16 @@ export const useMessages = ({
       setLoadingMessages(true)
       try {
         const isGroup = !!selectedRef.current?.isGroup
-        const base = isGroup ? `/messages/group/${selectedId}` : `/messages/${selectedId}`
+        const data = isGroup
+          ? await messageApi.getGroupChat(selectedId)
+          : await messageApi.getPrivateChat(selectedId)
 
-        const data = await api(base)
         setMessages(data.messages)
 
         // Chat kholi matlab messages padh liye - server ko bata do
-        await api(isGroup ? `${base}/read` : `/messages/${selectedId}/read`, { method: 'PUT' })
+        await (isGroup
+          ? messageApi.markGroupRead(selectedId)
+          : messageApi.markPrivateRead(selectedId))
 
         // Sidebar ka unread badge hata do
         if (isGroup) {
@@ -209,7 +210,7 @@ export const useMessages = ({
     el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     setHighlightId(id)
 
-    setTimeout(() => setHighlightId((current) => (current === id ? null : current)), HIGHLIGHT_MS)
+    setTimeout(() => setHighlightId((current) => (current === id ? null : current)), MESSAGE_HIGHLIGHT_MS)
   }, [toast])
 
   // ==========================================================
@@ -233,7 +234,7 @@ export const useMessages = ({
     typingTimerRef.current = setTimeout(() => {
       socket.emit('stop-typing', target)
       typingSentRef.current = false
-    }, 1500)
+    }, TYPING_IDLE_MS)
   }
 
   // ==========================================================
@@ -294,33 +295,27 @@ export const useMessages = ({
 
         // File backend ko jati hai, backend Cloudinary par bhejta hai.
         // Cloudinary ki secret keys frontend me kabhi nahi aati
-        const uploaded = await uploadFile(media.file)
+        const uploaded = await uploadApi.uploadFile(media.file)
         setUploading(false)
 
-        const mediaRes = await api('/messages', {
-          method: 'POST',
-          body: {
-            ...targetField,
-            messageType: uploaded.messageType,
-            mediaUrl: uploaded.mediaUrl,
-            mediaPublicId: uploaded.mediaPublicId,
-            replyTo: replyId,
-          },
+        const mediaRes = await messageApi.send({
+          ...targetField,
+          messageType: uploaded.messageType,
+          mediaUrl: uploaded.mediaUrl,
+          mediaPublicId: uploaded.mediaPublicId,
+          replyTo: replyId,
         })
 
         newMessages.push(mediaRes.message)
       }
 
       if (trimmed) {
-        const textRes = await api('/messages', {
-          method: 'POST',
-          body: {
-            ...targetField,
-            text: trimmed,
-            messageType: 'text',
-            // Media ke saath bheja to reply usi par lag chuka hai
-            replyTo: media ? null : replyId,
-          },
+        const textRes = await messageApi.send({
+          ...targetField,
+          text: trimmed,
+          messageType: 'text',
+          // Media ke saath bheja to reply usi par lag chuka hai
+          replyTo: media ? null : replyId,
         })
 
         newMessages.push(textRes.message)
@@ -379,15 +374,12 @@ export const useMessages = ({
   const forwardMessage = async (msg, targets) => {
     const results = await Promise.allSettled(
       targets.map((target) =>
-        api('/messages', {
-          method: 'POST',
-          body: {
-            ...(target.isGroup ? { group: target._id } : { receiver: target._id }),
-            messageType: msg.messageType,
-            text: msg.messageType === 'text' ? msg.text : '',
-            mediaUrl: msg.mediaUrl || '',
-            isForwarded: true,
-          },
+        messageApi.send({
+          ...(target.isGroup ? { group: target._id } : { receiver: target._id }),
+          messageType: msg.messageType,
+          text: msg.messageType === 'text' ? msg.text : '',
+          mediaUrl: msg.mediaUrl || '',
+          isForwarded: true,
         })
       )
     )
@@ -418,10 +410,9 @@ export const useMessages = ({
 
     try {
       const isGroup = !!selectedRef.current?.isGroup
-      const res = await api('/messages/screenshot', {
-        method: 'POST',
-        body: isGroup ? { group: selectedId } : { receiver: selectedId },
-      })
+      const res = await messageApi.notifyScreenshot(
+        isGroup ? { group: selectedId } : { receiver: selectedId }
+      )
 
       // Server ne 5 second wale dedupe me skip kar diya - kuch mat karo
       if (!res.message) return
@@ -460,7 +451,7 @@ export const useMessages = ({
 
     setSending(true)
     try {
-      const data = await api(`/messages/${editingId}`, { method: 'PUT', body: { text: trimmed } })
+      const data = await messageApi.edit(editingId, trimmed)
       setMessages((prev) => prev.map((m) => (m._id === editingId ? data.message : m)))
       cancelEdit()
       toast.setInfo('Message updated')
@@ -474,7 +465,7 @@ export const useMessages = ({
   // Unsend = dono taraf se message poori tarah gayab (sirf apne message par)
   const unsendMessage = async (msg) => {
     try {
-      await api(`/messages/${msg._id}`, { method: 'DELETE' })
+      await messageApi.unsend(msg._id)
       setMessages((prev) => prev.filter((m) => m._id !== msg._id))
       if (editingId === msg._id) cancelEdit()
       if (replyTo?._id === msg._id) setReplyTo(null)
@@ -487,7 +478,7 @@ export const useMessages = ({
   // Delete for me = sirf MERI screen se hatta hai, saamne wale ko dikhta rehta hai
   const deleteForMe = async (msg) => {
     try {
-      await api(`/messages/${msg._id}/me`, { method: 'DELETE' })
+      await messageApi.deleteForMe(msg._id)
       setMessages((prev) => prev.filter((m) => m._id !== msg._id))
       if (replyTo?._id === msg._id) setReplyTo(null)
       loadConversations()
@@ -499,7 +490,7 @@ export const useMessages = ({
 
   // Kisi ek banda ko bheje hue SAARE messages unsend karna
   const unsendAllTo = async (userId) => {
-    const res = await api(`/messages/all/${userId}`, { method: 'DELETE' })
+    const res = await messageApi.unsendAllTo(userId)
 
     // Apni screen se bhi apne messages hata do
     setMessages((prev) => prev.filter((m) => m.sender !== me._id))

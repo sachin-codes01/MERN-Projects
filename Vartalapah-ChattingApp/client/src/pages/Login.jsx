@@ -3,11 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Alert, CircularProgress } from '@mui/material'
 import { GoogleLogin } from '@react-oauth/google'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from '@/context/AuthContext.jsx'
 
 // Ek hi illustration - background transparent hai, isliye kisi bhi
 // gradient panel ke upar seedha fit ho jaati hai
-import loginArt from '../assets/posters/person-login.png'   // 1672 x 941
+import loginArt from '@/assets/posters/person-login.png'   // 1672 x 941
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 

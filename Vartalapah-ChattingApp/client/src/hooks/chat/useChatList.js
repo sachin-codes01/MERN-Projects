@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { api } from '../api/client.js'
+import { groupApi } from '@/api/groupApi.js'
+import { messageApi } from '@/api/messageApi.js'
+import { userApi } from '@/api/userApi.js'
+import { SEARCH_DEBOUNCE_MS } from '@/constants/chat.js'
 
 // ==========================================================
 // useChatList - SIDEBAR ka poora dimaag
@@ -25,8 +28,7 @@ export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toa
   // ---------------- DATA LOADING ----------------
 
   const loadUsers = async (searchText = '') => {
-    const query = searchText.trim() ? `?search=${encodeURIComponent(searchText.trim())}` : ''
-    const data = await api(`/users${query}`)
+    const data = await userApi.list(searchText)
     setUsers(data.users)
   }
 
@@ -40,26 +42,35 @@ export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toa
     [tab, search]
   )
 
+  // Ye do fail ho jayein to app rukni nahi chahiye - inke bina bhi chat
+  // khulti hai, bas sidebar me last message / unread count nahi dikhta.
+  //
+  // Pehle inka catch bilkul KHALI tha. Uska matlab tha: backend band ho
+  // ya request fail ho jaye to sidebar chupchaap khali dikhta rehta aur
+  // user samajhta ki uski saari chat gayab ho gayi. Ab kam se kam ek
+  // toast dikha dete hain - app phir bhi chalti rehti hai
   const loadConversations = async () => {
     try {
-      const data = await api('/messages/conversations')
+      const data = await messageApi.getConversations()
 
       // Array ko object me badal dete hain taki userId se seedha mil jaye
       const map = {}
-      data.conversations.forEach((c) => { map[c.userId] = c })
+      data.conversations.forEach((conversation) => {
+        map[conversation.userId] = conversation
+      })
       setConversations(map)
-    } catch {
-      // Sidebar ka extra data hai - fail ho to app rukni nahi chahiye
+    } catch (err) {
+      toast.setError(`Could not load your chats: ${err.message}`)
     }
   }
 
   // Mere saare groups - inme last message aur unread count already aa jate hain
   const loadGroups = async () => {
     try {
-      const data = await api('/groups')
+      const data = await groupApi.list()
       setGroups(data.groups)
-    } catch {
-      // Same - fail ho to app rukni nahi chahiye
+    } catch (err) {
+      toast.setError(`Could not load your groups: ${err.message}`)
     }
   }
 
@@ -74,7 +85,7 @@ export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toa
       } finally {
         setLoadingUsers(false)
       }
-    }, 400) // debounce - har akshar par API call na jaye
+    }, SEARCH_DEBOUNCE_MS) // har akshar par API call na jaye
 
     return () => clearTimeout(timer)
   }, [search, tab])

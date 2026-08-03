@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-import { navButtons } from './homeContent.jsx'
+import { navButtons } from '@/constants/homeContent.jsx'
 
 // ==========================================================
 // NAVBAR - upar chipki hui patti

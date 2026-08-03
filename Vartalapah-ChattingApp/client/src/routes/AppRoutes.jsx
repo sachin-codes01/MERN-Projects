@@ -1,9 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { CircularProgress } from '@mui/material'
-import { useAuth } from './context/AuthContext.jsx'
-import Home from './pages/Home.jsx'
-import Login from './pages/Login.jsx'
-import Chat from './pages/Chat.jsx'
+import { useAuth } from '@/context/AuthContext.jsx'
+import Home from '@/pages/Home.jsx'
+import Login from '@/pages/Login.jsx'
+import Chat from '@/pages/Chat.jsx'
 
 // Poori screen par loader - jab tak pata na chale ki user logged in hai ya nahi
 const FullPageLoader = () => (
@@ -41,7 +41,7 @@ const PublicOnlyRoute = ({ children }) => {
   return children
 }
 
-const App = () => {
+const AppRoutes = () => {
   return (
     <Routes>
       {/* Landing page - sirf logged-out logon ke liye
@@ -81,4 +81,4 @@ const App = () => {
   )
 }
 
-export default App
+export default AppRoutes

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { api, uploadFile } from '../api/client.js'
-import { validateImageFile } from '../utils/media.js'
+import { groupApi } from '@/api/groupApi.js'
+import { uploadApi } from '@/api/uploadApi.js'
+import { validateImageFile } from '@/utils/mediaValidation.js'
 
 // ==========================================================
 // useGroupActions - GROUP ka saara kaam
@@ -45,16 +46,16 @@ export const useGroupActions = ({
   const createGroup = async (name, memberIds, closeDialog, setTab) => {
     setCreatingGroup(true)
     try {
-      const body = { name, members: memberIds }
+      const payload = { name, memberIds }
 
       // Photo chuni hai to pehle Cloudinary par bhej do
       if (draftImage) {
-        const uploaded = await uploadFile(draftImage.file)
-        body.groupImage = uploaded.mediaUrl
-        body.groupImageId = uploaded.mediaPublicId
+        const uploaded = await uploadApi.uploadFile(draftImage.file)
+        payload.groupImage = uploaded.mediaUrl
+        payload.groupImageId = uploaded.mediaPublicId
       }
 
-      const data = await api('/groups', { method: 'POST', body })
+      const data = await groupApi.create(payload)
 
       setGroups((prev) => [...prev, data.group])
       setDraftImage(null)
@@ -75,15 +76,15 @@ export const useGroupActions = ({
 
     setSavingGroup(true)
     try {
-      const body = { name: newName }
+      const changes = { name: newName }
 
       if (draftImage) {
-        const uploaded = await uploadFile(draftImage.file)
-        body.groupImage = uploaded.mediaUrl
-        body.groupImageId = uploaded.mediaPublicId
+        const uploaded = await uploadApi.uploadFile(draftImage.file)
+        changes.groupImage = uploaded.mediaUrl
+        changes.groupImageId = uploaded.mediaPublicId
       }
 
-      const data = await api(`/groups/${selectedId}`, { method: 'PUT', body })
+      const data = await groupApi.update(selectedId, changes)
 
       setGroups((prev) => prev.map((g) => (g._id === selectedId ? data.group : g)))
       setDraftImage(null)
@@ -98,10 +99,7 @@ export const useGroupActions = ({
   const addMembers = async (memberIds, done) => {
     setSavingGroup(true)
     try {
-      const data = await api(`/groups/${selectedId}/members`, {
-        method: 'POST',
-        body: { members: memberIds },
-      })
+      const data = await groupApi.addMembers(selectedId, memberIds)
 
       setGroups((prev) => prev.map((g) => (g._id === selectedId ? data.group : g)))
       done()
@@ -120,7 +118,7 @@ export const useGroupActions = ({
       confirmLabel: 'Remove',
       onYes: async () => {
         try {
-          await api(`/groups/${selectedId}/members/${member._id}`, { method: 'DELETE' })
+          await groupApi.removeMember(selectedId, member._id)
           await loadGroups()
           toast.setInfo('Member removed')
         } catch (err) {
@@ -140,7 +138,7 @@ export const useGroupActions = ({
       confirmLabel: 'Leave',
       onYes: async () => {
         try {
-          await api(`/groups/${g._id}/members/${me._id}`, { method: 'DELETE' })
+          await groupApi.removeMember(g._id, me._id)
           setGroups((prev) => prev.filter((x) => x._id !== g._id))
           setSelectedId(null)
           toast.setInfo('You left the group')
@@ -161,7 +159,7 @@ export const useGroupActions = ({
       confirmLabel: 'Delete group',
       onYes: async () => {
         try {
-          await api(`/groups/${g._id}`, { method: 'DELETE' })
+          await groupApi.remove(g._id)
           setGroups((prev) => prev.filter((x) => x._id !== g._id))
           setSelectedId(null)
           toast.setInfo('Group deleted')

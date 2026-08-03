@@ -5,13 +5,14 @@
 // Frontend par isliye taki user ko turant feedback mile
 // Backend par isliye kyunki koi Postman se seedha bhi bhej sakta hai
 // ==========================================================
-export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-export const MAX_IMAGE_MB = 5
-
-// Ye teen sirf isi file ke andar kaam aate hain, isliye export nahi kiye
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime']
-const MAX_VIDEO_MB = 20
-const MAX_VIDEO_SECONDS = 10
+import {
+  BYTES_PER_MB,
+  IMAGE_MIME_TYPES,
+  MAX_IMAGE_MB,
+  MAX_VIDEO_MB,
+  MAX_VIDEO_SECONDS,
+  VIDEO_MIME_TYPES,
+} from '@/constants/media.js'
 
 // Video ki length pata karne ke liye ek temporary video element banate hain
 // Browser metadata load karke duration bata deta hai
@@ -32,8 +33,8 @@ const getVideoDuration = (url) =>
 // isliye kind yahan file ke type se KHUD pata karte hain
 // ==========================================================
 export const validateMediaFile = async (file) => {
-  const isImage = IMAGE_TYPES.includes(file.type)
-  const isVideo = VIDEO_TYPES.includes(file.type)
+  const isImage = IMAGE_MIME_TYPES.includes(file.type)
+  const isVideo = VIDEO_MIME_TYPES.includes(file.type)
 
   // 1) File type sahi hai ya nahi
   if (!isImage && !isVideo) {
@@ -48,7 +49,7 @@ export const validateMediaFile = async (file) => {
 
   // 2) File size limit se zyada to nahi
   // Image aur video ki limit alag hai (5 MB vs 20 MB)
-  if (file.size > maxMB * 1024 * 1024) {
+  if (file.size > maxMB * BYTES_PER_MB) {
     return { ok: false, error: `${isImage ? 'Image' : 'Video'} must be smaller than ${maxMB} MB` }
   }
 
@@ -74,11 +75,11 @@ export const validateMediaFile = async (file) => {
 // (Sirf image chalti hai, video nahi - isliye alag function)
 // ==========================================================
 export const validateImageFile = (file, label) => {
-  if (!IMAGE_TYPES.includes(file.type)) {
+  if (!IMAGE_MIME_TYPES.includes(file.type)) {
     return { ok: false, error: `${label} must be a JPG, PNG or WEBP image` }
   }
 
-  if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+  if (file.size > MAX_IMAGE_MB * BYTES_PER_MB) {
     return { ok: false, error: `${label} must be smaller than ${MAX_IMAGE_MB} MB` }
   }
 

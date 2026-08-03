@@ -1,15 +1,17 @@
-import { Avatar, IconButton, InputBase, CircularProgress, Button } from '@mui/material'
+import { Button, CircularProgress, IconButton, InputBase } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CloseIcon from '@mui/icons-material/Close'
 import CheckIcon from '@mui/icons-material/Check'
 import BlockIcon from '@mui/icons-material/Block'
-import GroupsIcon from '@mui/icons-material/Groups'
 import ReplyIcon from '@mui/icons-material/Reply'
-import { timeOf, lastSeenText, senderIdOf, previewOf, systemLineOf } from '../../utils/format.js'
-import { composerFieldSx } from './muiStyles.js'
+import { timeOf, lastSeenText, senderIdOf, previewOf, systemLineOf } from '@/utils/format.js'
+import { composerFieldSx } from '@/styles/muiStyles.js'
 import MessageBubble from './MessageBubble.jsx'
+import ChatAvatar from '@/components/ui/ChatAvatar.jsx'
+import { MEDIA_ACCEPT } from '@/constants/media.js'
+import { BRAND_GRADIENT, BRAND_GRADIENT_HOVER } from '@/constants/theme.js'
 
 // ==========================================================
 // CHAT WINDOW - header + messages + input
@@ -126,17 +128,7 @@ const ChatWindow = ({
             onClick={onOpenProfile}
             aria-label={isGroup ? 'Open group info' : `Open ${user.name}'s profile`}
           >
-            <div className="relative shrink-0">
-              <Avatar src={isGroup ? user.groupImage : user.profileImage} sx={{ bgcolor: '#7c3aed' }}>
-                {isGroup ? <GroupsIcon fontSize="small" /> : user.name[0]}
-              </Avatar>
-              {!isGroup && user.isOnline && (
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-app-panel rounded-full"
-                />
-              )}
-            </div>
+            <ChatAvatar user={user} size={40} showPresence />
 
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{user.name}</p>
@@ -363,7 +355,7 @@ const ChatWindow = ({
             {/* Ek hi hidden file input - image aur video DONO ke liye */}
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+              accept={MEDIA_ACCEPT}
               ref={imageInputRef}
               onChange={onFileSelected}
               className="hidden"
@@ -422,10 +414,10 @@ const ChatWindow = ({
                   onMouseDown={(e) => e.preventDefault()}
                   className="tap-target"
                   sx={{
-                    background: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+                    background: BRAND_GRADIENT,
                     color: 'white',
                     width: 40, height: 40,
-                    '&:hover': { background: 'linear-gradient(135deg,#6d28d9,#9333ea)' },
+                    '&:hover': { background: BRAND_GRADIENT_HOVER },
                     '&.Mui-disabled': { color: 'white', opacity: 0.6 },
                   }}
                 >

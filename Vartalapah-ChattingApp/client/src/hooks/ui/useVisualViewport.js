@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { KEYBOARD_DETECT_THRESHOLD_PX } from '@/constants/chat.js'
 
 // ==========================================================
 // useVisualViewport - MOBILE KEYBOARD aur URL BAR ka ilaaj
@@ -30,12 +31,6 @@ import { useEffect, useRef, useState } from 'react'
 //
 // CSS in naapo ka istemal .app-shell me karta hai (dekho index.css)
 // ==========================================================
-
-// Keyboard maana jaye ya nahi - itne px se zyada jagah gayi tabhi.
-// Itna bada isliye rakha hai kyunki Chrome ka URL bar aur neeche wala
-// toolbar chhupne-dikhne par bhi height 100px tak badal jati hai. Us par
-// "keyboard khul gaya" samajh lena galat hoga. Asli keyboard 250px+ ka hota hai
-const KEYBOARD_THRESHOLD = 150
 
 // Input jaisi cheez par focus hai ya nahi - keyboard ka baseline naapte
 // waqt kaam aata hai (focus ke dauraan baseline update nahi karna chahiye)
@@ -95,7 +90,7 @@ export const useVisualViewport = ({ lockDocument = true } = {}) => {
       }
 
       const keyboardHeight = Math.max(0, Math.round(baselineRef.current - height))
-      const open = keyboardHeight > KEYBOARD_THRESHOLD
+      const open = keyboardHeight > KEYBOARD_DETECT_THRESHOLD_PX
 
       root.style.setProperty('--app-height', `${height}px`)
       root.style.setProperty('--app-offset-top', `${offsetTop}px`)

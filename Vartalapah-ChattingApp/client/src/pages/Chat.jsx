@@ -1,56 +1,59 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Snackbar, Alert } from '@mui/material'
-import ReplyIcon from '@mui/icons-material/Reply'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import EditIcon from '@mui/icons-material/Edit'
-import ForwardIcon from '@mui/icons-material/Forward'
-import VisibilityIcon from '@mui/icons-material/Visibility'
-import DownloadIcon from '@mui/icons-material/Download'
-import IosShareIcon from '@mui/icons-material/IosShare'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
+import { Alert, Snackbar } from '@mui/material'
 
-import { useAuth } from '../context/AuthContext.jsx'
-import { useSocket } from '../context/SocketContext.jsx'
-import { api } from '../api/client.js'
+import ChatListActionSheet from '@/components/chat/ChatListActionSheet.jsx'
+import ChatWindow from '@/components/chat/ChatWindow.jsx'
+import CreateGroupDialog from '@/components/chat/CreateGroupDialog.jsx'
+import ForwardDialog from '@/components/chat/ForwardDialog.jsx'
+import GroupInfoDialog from '@/components/chat/GroupInfoDialog.jsx'
+import MediaViewer from '@/components/chat/MediaViewer.jsx'
+import MyProfileDialog from '@/components/chat/MyProfileDialog.jsx'
+import Sidebar from '@/components/chat/Sidebar.jsx'
+import UserProfileDialog from '@/components/chat/UserProfileDialog.jsx'
+import ActionSheet from '@/components/ui/ActionSheet.jsx'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx'
 
-import Sidebar from '../components/chat/Sidebar.jsx'
-import ChatWindow from '../components/chat/ChatWindow.jsx'
-import Dialogs from '../components/chat/Dialogs.jsx'
-import ActionSheet from '../components/chat/ActionSheet.jsx'
-import MediaViewer from '../components/chat/MediaViewer.jsx'
-import ForwardDialog from '../components/chat/ForwardDialog.jsx'
-import { CreateGroupDialog, GroupInfoDialog } from '../components/chat/GroupDialogs.jsx'
+import { useAuth } from '@/context/AuthContext.jsx'
+import { useSocket } from '@/context/SocketContext.jsx'
 
-import { useToast } from '../hooks/useToast.js'
-import { useChatList } from '../hooks/useChatList.js'
-import { useMessages } from '../hooks/useMessages.js'
-import { useChatSocket } from '../hooks/useChatSocket.js'
-import { useGroupActions } from '../hooks/useGroupActions.js'
-import { useProfileActions } from '../hooks/useProfileActions.js'
-import { useVisualViewport } from '../hooks/useVisualViewport.js'
-import { useBackGuard } from '../hooks/useBackGuard.js'
-import { useIsMobile } from '../hooks/useIsMobile.js'
-import { useScreenshotDetect } from '../hooks/useScreenshotDetect.js'
+import { useChatList } from '@/hooks/chat/useChatList.js'
+import { useChatRelations } from '@/hooks/chat/useChatRelations.js'
+import { useChatSocket } from '@/hooks/chat/useChatSocket.js'
+import { useGroupActions } from '@/hooks/chat/useGroupActions.js'
+import { useMessageActions } from '@/hooks/chat/useMessageActions.jsx'
+import { useMessages } from '@/hooks/chat/useMessages.js'
+import { useProfileActions } from '@/hooks/chat/useProfileActions.js'
+import { useScreenshotDetect } from '@/hooks/chat/useScreenshotDetect.js'
+import { useBackGuard } from '@/hooks/ui/useBackGuard.js'
+import { useIsMobile } from '@/hooks/ui/useMediaQuery.js'
+import { useToast } from '@/hooks/ui/useToast.js'
+import { useVisualViewport } from '@/hooks/ui/useVisualViewport.js'
 
-import { senderIdOf } from '../utils/format.js'
-import { downloadMedia, shareMedia, canShare } from '../utils/media.download.js'
+import { TOAST_ERROR_MS, TOAST_SUCCESS_MS } from '@/constants/chat.js'
+import { STORAGE_KEYS } from '@/constants/storageKeys.js'
+import { canShare } from '@/utils/mediaFile.js'
 
 // ==========================================================
 // CHAT PAGE
 //
-// Ye file khud kuch "karti" nahi hai - bas sab kuch JODTI hai:
+// Ye file khud kuch "karti" nahi hai - ye COMPOSITION ROOT hai, yaani
+// sab kuch sirf JODTI hai. Saara kaam hooks me hai:
 //
 //   useChatList       -> sidebar ki list (users, groups, conversations)
 //   useMessages       -> khuli hui chat (load, send, reply, edit, delete)
 //   useChatSocket     -> real-time events sunna
-//   useGroupActions   -> group banana/badalna/delete
+//   useMessageActions -> long-press menu + media viewer + forward
+//   useChatRelations  -> pin / archive / block / remove
+//   useGroupActions   -> group banana, badalna, delete
 //   useProfileActions -> apni profile aur account delete
 //
 //   useVisualViewport -> mobile keyboard aur safe area (layout ki jaan)
 //   useBackGuard      -> Android ka back button
 //   useScreenshotDetect -> "Sachin took a screenshot."
+//
+// Isse har cheez apni chhoti file me rehti hai. Kuch samajhna ho to
+// poori 600 line padhne ki jagah sirf ek hook kholo
 // ==========================================================
 const Chat = () => {
   const navigate = useNavigate()
@@ -63,59 +66,52 @@ const Chat = () => {
 
   // ---- MOBILE LAYOUT KI JAAN ----
   // Ye hook <html> par --app-height / --app-offset-top / --safe-* set
-  // karta hai aur document ka apna scroll band kar deta hai. Poora
+  // karta hai aur document ka apna scroll band kar deta hai. Poore
   // keyboard aur safe-area ka ilaaj yahi ek line hai
   const keyboard = useVisualViewport()
 
-  // ---- Sidebar ke filters ----
+  // ---------------- SCREEN KA STATE ----------------
+
   // Tab hamesha "chats" se shuru hota hai. Pehle ye localStorage me save
-  // hota tha, jiski wajah se website dobara kholne par kabhi bhi kisi
-  // bhi screen par khul jati thi. Ab shuruaat hamesha ek hi jagah se hoti hai
+  // hota tha, jiski wajah se website dobara kholne par kisi bhi random
+  // screen par khul jati thi. Ab shuruaat hamesha ek hi jagah se hoti hai
   const [tab, setTab] = useState('chats')
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
 
-  // "All people" tab par naye users ka badge dikhane ke liye
-  const [allPeopleSeenAt, setAllPeopleSeenAt] = useState(() => {
-    const saved = Number(localStorage.getItem('instachats_all_seen_at'))
+  // Khuli hui chat bhi save nahi hoti - reopen par hamesha Chats list milti hai
+  const [selectedId, setSelectedId] = useState(null)
 
-    // Pehli baar app khol rahe ho to abhi ka time - warna saare users "naye" dikhenge
+  // "All people" tab par naye users ka badge dikhane ke liye: wo tab
+  // aakhri baar kab kholi thi
+  const [allPeopleSeenAt, setAllPeopleSeenAt] = useState(() => {
+    const saved = Number(localStorage.getItem(STORAGE_KEYS.allPeopleSeenAt))
+
+    // Pehli baar app khol rahe ho to abhi ka time - warna saare purane
+    // users bhi "naye" dikhenge
     if (!saved) {
       const now = Date.now()
-      localStorage.setItem('instachats_all_seen_at', String(now))
+      localStorage.setItem(STORAGE_KEYS.allPeopleSeenAt, String(now))
       return now
     }
 
     return saved
   })
 
-  // Khuli hui chat ab localStorage me SAVE NAHI hoti. Website dobara
-  // kholne par hamesha Chats list milti hai - kisi purani chat ke beech
-  // me nahi girte
-  const [selectedId, setSelectedId] = useState(null)
-
-  // Purani key saaf kar dete hain, warna wo browser me bekaar padi rahegi
-  useEffect(() => {
-    localStorage.removeItem('instachats_selected_id')
-  }, [])
-
-  // ---- Menus / dialogs ka chhota state ----
+  // ---- Dialogs ka chhota state ----
   const [viewUserId, setViewUserId] = useState(null)
-  const [createGroupOpen, setCreateGroupOpen] = useState(false)
-  const [groupInfoOpen, setGroupInfoOpen] = useState(false)
-  const [msgMenu, setMsgMenu] = useState({ message: null, point: null })
-  const [listMenu, setListMenu] = useState(null)   // { point, user }
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
+  const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false)
+  const [listMenu, setListMenu] = useState(null) // { point, user }
   const [confirm, setConfirm] = useState(null)
-  const [forwardMsg, setForwardMsg] = useState(null)
-  const [forwarding, setForwarding] = useState(false)
-  const [viewerMsgId, setViewerMsgId] = useState(null)
 
   const imageInputRef = useRef(null)
   const avatarInputRef = useRef(null)
   const groupImageInputRef = useRef(null)
 
   // Socket listeners ek hi baar bante hain, isliye unhe latest selectedId
-  // ref se milti hai. Warna wo purani value yaad rakhte hain (stale closure)
+  // REF se milti hai. Warna wo pehli wali value yaad rakhte hain - isse
+  // "stale closure" kehte hain
   const selectedIdRef = useRef(null)
   const selectedRef = useRef(null)
 
@@ -125,10 +121,12 @@ const Chat = () => {
 
   // ---------------- HOOKS ----------------
 
+  const askConfirm = useCallback((options) => setConfirm(options), [])
+
   const list = useChatList({ me, onlineUsers, tab, search, allPeopleSeenAt, toast })
 
-  const selectedUser = list.allRows.find((u) => u._id === selectedId) || null
-  const viewUser = list.allRows.find((u) => u._id === viewUserId) || null
+  const selectedUser = list.allRows.find((row) => row._id === selectedId) || null
+  const viewUser = list.allRows.find((row) => row._id === viewUserId) || null
 
   selectedRef.current = selectedUser
 
@@ -162,7 +160,22 @@ const Chat = () => {
     toast,
   })
 
-  const askConfirm = (options) => setConfirm(options)
+  const messageActions = useMessageActions({
+    me,
+    messages: chat.messages,
+    chat,
+    askConfirm,
+    toast,
+  })
+
+  const relations = useChatRelations({
+    selectedId,
+    setSelectedId,
+    refreshUsers: list.refreshUsers,
+    unsendAllTo: chat.unsendAllTo,
+    askConfirm,
+    toast,
+  })
 
   const group = useGroupActions({
     me,
@@ -192,7 +205,7 @@ const Chat = () => {
   //
   // Har khuli hui cheez history me ek nakli entry daalti hai. Desktop par
   // chat aur list saath saath dikhte hain, isliye wahan chat wala guard
-  // nahi lagta - warna back "kuch nahi karta" jaisa lagta
+  // nahi lagta - warna back dabane par "kuch hua hi nahi" jaisa lagta
   // ==========================================================
   useBackGuard(isMobile && !!selectedId, () => setSelectedId(null))
   useBackGuard(isMobile && tab !== 'chats', () => setTab('chats'))
@@ -201,268 +214,56 @@ const Chat = () => {
   // SCREENSHOT
   // Browser me screenshot ka koi API nahi hai. Ye hook sirf ASLI signal
   // par chalta hai - native wrapper ka event, ya desktop ka PrintScreen /
-  // Cmd+Shift+3. Baaki jagah chup rehta hai (jhootha alarm dena
-  // kuch na dikhane se bura hai). Poori baat useScreenshotDetect.js me hai
+  // Cmd+Shift+3. Poori baat useScreenshotDetect.js me likhi hai
   // ==========================================================
-  useScreenshotDetect({
-    enabled: !!selectedId,
-    onScreenshot: chat.notifyScreenshot,
-  })
+  useScreenshotDetect({ enabled: !!selectedId, onScreenshot: chat.notifyScreenshot })
 
   // "All people" tab kholte hi naye users "dekh liye" - badge hat jata hai
   useEffect(() => {
     if (tab !== 'all') return
 
     const now = Date.now()
-    localStorage.setItem('instachats_all_seen_at', String(now))
+    localStorage.setItem(STORAGE_KEYS.allPeopleSeenAt, String(now))
     setAllPeopleSeenAt(now)
   }, [tab])
 
-  // Mobile ka Profile tab bhi wahi draft use karta hai jo desktop ka
-  // dialog - kholte waqt use apni asli value se bharna zaroori hai
+  // Mobile ka Profile tab wahi draft use karta hai jo desktop ka dialog -
+  // kholte waqt use asli value se bharna zaroori hai
   useEffect(() => {
     if (tab === 'profile') profile.setDraft({ name: me.name, image: me.profileImage || '' })
   }, [tab, me.name, me.profileImage])
 
-  // ==========================================================
-  // CHHOTE ACTIONS
-  // ==========================================================
+  // ---------------- CHHOTE HANDLERS ----------------
 
-  const openChat = useCallback((u) => {
-    setSelectedId(u._id)
-    chat.cancelEdit()
-    chat.setTypingUserId(null)
-  }, [chat.cancelEdit, chat.setTypingUserId])
+  const openChat = useCallback(
+    (row) => {
+      setSelectedId(row._id)
+      chat.cancelEdit()
+      chat.setTypingUserId(null)
+    },
+    [chat.cancelEdit, chat.setTypingUserId]
+  )
+
+  const openRowMenu = useCallback((user, point) => setListMenu({ point, user }), [])
 
   const handleLogout = async () => {
     await logout()
     navigate('/')
   }
 
-  // Long press (mobile) / right click (desktop) - chat list ka menu
-  const handleRowMenu = useCallback((user, point) => setListMenu({ point, user }), [])
-
-  // Pin / archive / block / hide - sabke liye ek hi function
-  const toggleRelation = async (key, value) => {
-    const target = listMenu?.user
-    setListMenu(null)
-    if (!target) return
-
-    try {
-      await api(`/users/${target._id}/relation`, { method: 'PUT', body: { [key]: value } })
-      await list.refreshUsers()
-
-      // List se hataya to chat band kar do
-      if (key === 'hidden' && value && selectedId === target._id) setSelectedId(null)
-
-      const labels = {
-        pinned: value ? 'Pinned' : 'Unpinned',
-        archived: value ? 'Archived' : 'Unarchived',
-        blocked: value ? 'User blocked' : 'User unblocked',
-        hidden: 'Removed from list',
-      }
-      toast.setInfo(labels[key])
-    } catch (err) {
-      toast.setError(err.message)
-    }
-  }
-
-  const handleBlockToggle = async () => {
-    if (!viewUser) return
-
-    try {
-      await api(`/users/${viewUser._id}/relation`, {
-        method: 'PUT',
-        body: { blocked: !viewUser.isBlocked },
-      })
-      await list.refreshUsers()
-      toast.setInfo(viewUser.isBlocked ? 'User unblocked' : 'User blocked')
-    } catch (err) {
-      toast.setError(err.message)
-    }
-  }
-
-  const handleUnsendAll = () => {
-    const target = viewUser
-    if (!target) return
-
-    askConfirm({
-      title: `Unsend all messages to ${target.name}?`,
-      text: 'Every message you sent to this person will be removed for both of you. Their messages will stay. This cannot be undone.',
-      confirmLabel: 'Unsend all',
-      onYes: async () => {
-        try {
-          const count = await chat.unsendAllTo(target._id)
-          setViewUserId(null)
-          toast.setInfo(`${count} message(s) unsent`)
-        } catch (err) {
-          toast.setError(err.message)
-        }
-      },
-    })
-  }
-
-  // ==========================================================
-  // MEDIA VIEWER
-  //
-  // Viewer ko is chat ki SAARI photo/video chahiye - tabhi uske andar
-  // swipe karke agli-pichhli dekh sakte hain (Instagram jaisa)
-  // ==========================================================
-  const mediaMessages = useMemo(
-    () => chat.messages.filter((m) => m.messageType === 'image' || m.messageType === 'video'),
-    [chat.messages]
-  )
-
-  const viewerIndex = useMemo(() => {
-    const found = mediaMessages.findIndex((m) => m._id === viewerMsgId)
-    return found === -1 ? 0 : found
-  }, [mediaMessages, viewerMsgId])
-
-  const openMedia = useCallback((msg) => setViewerMsgId(msg._id), [])
-
-  const handleDownload = async (msg) => {
-    try {
-      await downloadMedia(msg)
-      toast.setInfo('Download started')
-    } catch (err) {
-      toast.setError(err.message)
-    }
-  }
-
-  const handleShare = async (msg) => {
-    try {
-      await shareMedia(msg)
-    } catch (err) {
-      toast.setError(err.message)
-    }
-  }
-
-  // ==========================================================
-  // MESSAGE ACTIONS
-  // ==========================================================
-  const openMsgMenu = useCallback((message, point) => setMsgMenu({ message, point }), [])
-  const closeMsgMenu = () => setMsgMenu({ message: null, point: null })
-
-  const handleUnsend = (msg) => {
-    askConfirm({
-      title: 'Unsend message?',
-      text: 'This message will be removed for both of you. This cannot be undone.',
-      confirmLabel: 'Unsend',
-      onYes: () => chat.unsendMessage(msg),
-    })
-  }
-
-  // Menu ki list message ke hisaab se banti hai. Ek hi jagah banti hai,
-  // isliye mobile ke bottom sheet aur desktop ke menu me hamesha ek jaisi
-  // rehti hai (ActionSheet dono shakal khud sambhalta hai)
-  const messageActions = useMemo(() => {
-    const msg = msgMenu.message
-    if (!msg) return []
-
-    const isMine = senderIdOf(msg) === me._id
-    const isText = msg.messageType === 'text'
-    const isMedia = msg.messageType === 'image' || msg.messageType === 'video'
-
-    return [
-      isMedia && {
-        key: 'view',
-        label: 'View',
-        icon: <VisibilityIcon fontSize="small" />,
-        onClick: () => openMedia(msg),
-      },
-      isMedia && {
-        key: 'download',
-        label: 'Download',
-        subtitle: 'Original quality',
-        icon: <DownloadIcon fontSize="small" />,
-        onClick: () => handleDownload(msg),
-      },
-      // Share sirf wahan jahan device sach me share kar sakta hai -
-      // desktop Firefox par ye button kuch nahi karta, isliye chhupa dete hain
-      isMedia && canShare() && {
-        key: 'share',
-        label: 'Share',
-        icon: <IosShareIcon fontSize="small" />,
-        onClick: () => handleShare(msg),
-      },
-      {
-        key: 'reply',
-        label: 'Reply',
-        icon: <ReplyIcon fontSize="small" />,
-        onClick: () => chat.startReply(msg),
-      },
-      isText && {
-        key: 'copy',
-        label: 'Copy',
-        icon: <ContentCopyIcon fontSize="small" />,
-        onClick: () => chat.copyMessage(msg),
-      },
-      // Edit aur Unsend sirf apne message par. Backend par bhi yahi check
-      // hai - frontend par bharosa nahi karte
-      isMine && isText && {
-        key: 'edit',
-        label: 'Edit',
-        icon: <EditIcon fontSize="small" />,
-        onClick: () => chat.startEdit(msg),
-      },
-      {
-        key: 'forward',
-        label: 'Forward',
-        icon: <ForwardIcon fontSize="small" />,
-        onClick: () => setForwardMsg(msg),
-      },
-
-      // Mitane wale actions hamesha sabse neeche aur alag - galti se dabne
-      // ka mauka kam ho jata hai
-      { key: 'divider', divider: true },
-      {
-        key: 'delete-me',
-        label: 'Delete for me',
-        subtitle: 'Others will still see it',
-        icon: <DeleteOutlineIcon fontSize="small" />,
-        danger: true,
-        onClick: () => chat.deleteForMe(msg),
-      },
-      isMine && {
-        key: 'unsend',
-        label: 'Unsend',
-        subtitle: 'Removed for everyone',
-        icon: <DeleteForeverIcon fontSize="small" />,
-        danger: true,
-        onClick: () => handleUnsend(msg),
-      },
-    ].filter(Boolean)
-  }, [msgMenu.message, me._id, chat.startReply, chat.copyMessage, chat.startEdit, chat.deleteForMe, openMedia])
-
-  // ---- FORWARD ----
-  // Sirf unhi logon ko forward kar sakte ho jinse baat ho sakti hai
-  const forwardTargets = useMemo(
-    () => list.allRows.filter((row) => row.isGroup || (!row.isDeleted && row.canMessage && !row.isHidden)),
-    [list.allRows]
-  )
-
-  const handleForward = async (targetIds) => {
-    const targets = forwardTargets.filter((t) => targetIds.includes(t._id))
-
-    setForwarding(true)
-    try {
-      const { sent, failed } = await chat.forwardMessage(forwardMsg, targets)
-
-      setForwardMsg(null)
-
-      if (failed) toast.setError(`${failed} chat(s) could not receive the message`)
-      else toast.setInfo(`Forwarded to ${sent} chat${sent > 1 ? 's' : ''}`)
-    } catch (err) {
-      toast.setError(err.message)
-    } finally {
-      setForwarding(false)
-    }
-  }
-
   const runConfirm = () => {
     confirm.onYes()
     setConfirm(null)
   }
+
+  // Sirf unhi logon/groups ko forward kar sakte ho jinse baat ho sakti hai
+  const forwardTargets = useMemo(
+    () =>
+      list.allRows.filter(
+        (row) => row.isGroup || (!row.isDeleted && row.canMessage && !row.isHidden)
+      ),
+    [list.allRows]
+  )
 
   // Toast bottom nav aur gesture bar ke UPAR aana chahiye, warna wo
   // unke peeche chhup jata hai
@@ -474,8 +275,8 @@ const Chat = () => {
   }
 
   return (
-    // .app-shell = fixed height jo keyboard/URL bar/notch sab ghata kar
-    // aati hai. Poore mobile layout ki neev yahi hai (dekho index.css)
+    // .app-shell = fixed height jo keyboard, URL bar aur notch sab ghata
+    // kar aati hai. Poore mobile layout ki neev yahi hai (dekho styles/index.css)
     <div className="app-shell bg-app-bg text-app-text">
       <Sidebar
         me={me}
@@ -491,9 +292,9 @@ const Chat = () => {
         setSearch={setSearch}
         selectedUser={selectedUser}
         onOpenChat={openChat}
-        onRowMenu={handleRowMenu}
+        onRowMenu={openRowMenu}
         onOpenMyProfile={profile.openProfile}
-        onNewGroup={() => setCreateGroupOpen(true)}
+        onNewGroup={() => setIsCreateGroupOpen(true)}
         hidden={!!selectedId}
         onLogout={handleLogout}
         // Mobile ka Profile tab isi se banta hai
@@ -526,13 +327,13 @@ const Chat = () => {
         onCancelEdit={chat.cancelEdit}
         replyTo={chat.replyTo}
         onCancelReply={chat.cancelReply}
-        onOpenActions={openMsgMenu}
-        onOpenMedia={openMedia}
+        onOpenActions={messageActions.openMenu}
+        onOpenMedia={messageActions.openViewer}
         onJumpToReply={chat.jumpToMessage}
         highlightId={chat.highlightId}
-        // Group ka header dabane par Group Info, user ka header dabane par uski profile
+        // Group ka header dabane par Group Info, aadmi ka header dabane par uski profile
         onOpenProfile={() =>
-          selectedUser?.isGroup ? setGroupInfoOpen(true) : setViewUserId(selectedId)
+          selectedUser?.isGroup ? setIsGroupInfoOpen(true) : setViewUserId(selectedId)
         }
         onBack={() => setSelectedId(null)}
         scrollRef={chat.scrollRef}
@@ -542,75 +343,90 @@ const Chat = () => {
         onFileSelected={chat.handleFileSelected}
       />
 
-      {/* ---------- MESSAGE KA ACTION SHEET ----------
+      {/* ---------- MESSAGE KA LONG-PRESS MENU ----------
           Mobile par neeche se uthta hua sheet, desktop par chhota menu -
           dono ek hi component se, isliye actions kabhi alag nahi hote */}
       <ActionSheet
-        open={!!msgMenu.message}
-        onClose={closeMsgMenu}
-        items={messageActions}
-        anchorPosition={msgMenu.point}
+        open={!!messageActions.menu.message}
+        onClose={messageActions.closeMenu}
+        items={messageActions.items}
+        anchorPosition={messageActions.menu.point}
         ariaLabel="Message options"
       />
 
-      {/* ---------- FULL SCREEN PHOTO/VIDEO ---------- */}
+      {/* ---------- FULL SCREEN PHOTO / VIDEO ---------- */}
       <MediaViewer
-        open={!!viewerMsgId}
-        items={mediaMessages}
-        startIndex={viewerIndex}
-        onClose={() => setViewerMsgId(null)}
-        onDownload={handleDownload}
-        onShare={canShare() ? handleShare : null}
-        onForward={(msg) => {
-          setViewerMsgId(null)
-          setForwardMsg(msg)
+        open={messageActions.isViewerOpen}
+        items={messageActions.mediaMessages}
+        startIndex={messageActions.viewerIndex}
+        onClose={messageActions.closeViewer}
+        onDownload={messageActions.handleDownload}
+        onShare={canShare() ? messageActions.handleShare : null}
+        onForward={(message) => {
+          messageActions.closeViewer()
+          messageActions.startForward(message)
         }}
       />
 
-      {/* ---------- FORWARD ---------- */}
       <ForwardDialog
-        open={!!forwardMsg}
-        message={forwardMsg}
+        open={!!messageActions.forwardMessage}
+        message={messageActions.forwardMessage}
         targets={forwardTargets}
-        onClose={() => setForwardMsg(null)}
-        onForward={handleForward}
-        sending={forwarding}
+        onClose={messageActions.cancelForward}
+        onForward={(targetIds) =>
+          messageActions.confirmForward(
+            forwardTargets.filter((target) => targetIds.includes(target._id))
+          )
+        }
+        sending={messageActions.isForwarding}
       />
 
-      <Dialogs
-        me={me}
+      {/* ---------- SIDEBAR ROW KA LONG-PRESS MENU ---------- */}
+      <ChatListActionSheet
         listMenu={listMenu}
-        onCloseListMenu={() => setListMenu(null)}
-        onToggleRelation={toggleRelation}
+        onClose={() => setListMenu(null)}
+        onToggleRelation={(key, value) => {
+          const target = listMenu?.user
+          setListMenu(null)
+          relations.toggleRelation(target, key, value)
+        }}
         onOpenGroupInfo={() => {
           setSelectedId(listMenu.user._id)
           setListMenu(null)
-          setGroupInfoOpen(true)
+          setIsGroupInfoOpen(true)
         }}
-        viewUser={viewUser}
-        onCloseViewUser={() => setViewUserId(null)}
-        onBlockToggle={handleBlockToggle}
-        onUnsendAll={handleUnsendAll}
-        profileOpen={profile.open}
-        onCloseProfile={() => profile.setOpen(false)}
-        draftProfile={profile.draft}
-        setDraftProfile={profile.setDraft}
-        avatarInputRef={avatarInputRef}
-        onAvatarSelect={profile.handleAvatarSelect}
-        onSaveProfile={profile.saveProfile}
-        savingProfile={profile.saving}
-        onLogout={handleLogout}
-        onDeleteAccount={profile.handleDeleteAccount}
-        confirm={confirm}
-        onCancelConfirm={() => setConfirm(null)}
-        onRunConfirm={runConfirm}
       />
 
-      {/* ---------- GROUP DIALOGS ---------- */}
+      {/* ---------- PROFILES ---------- */}
+      <UserProfileDialog
+        user={viewUser}
+        onClose={() => setViewUserId(null)}
+        onBlockToggle={() => relations.toggleBlock(viewUser)}
+        onUnsendAll={() => relations.unsendAllMessages(viewUser, () => setViewUserId(null))}
+      />
+
+      <MyProfileDialog
+        open={profile.open}
+        onClose={() => profile.setOpen(false)}
+        me={me}
+        draft={profile.draft}
+        setDraft={profile.setDraft}
+        avatarInputRef={avatarInputRef}
+        onAvatarSelect={profile.handleAvatarSelect}
+        onSave={profile.saveProfile}
+        saving={profile.saving}
+        onLogout={handleLogout}
+        onDeleteAccount={profile.handleDeleteAccount}
+      />
+
+      {/* ---------- GROUPS ---------- */}
       <CreateGroupDialog
-        open={createGroupOpen}
-        onClose={() => { setCreateGroupOpen(false); group.setDraftImage(null) }}
-        // Group me sirf un logon ko add kar sakte ho jinhe block nahi kiya
+        open={isCreateGroupOpen}
+        onClose={() => {
+          setIsCreateGroupOpen(false)
+          group.setDraftImage(null)
+        }}
+        // Group me sirf un logon ko add kar sakte ho jinse pehle baat hui hai
         people={list.addablePeople}
         onCreate={(name, memberIds, closeDialog) =>
           group.createGroup(name, memberIds, closeDialog, setTab)
@@ -622,42 +438,55 @@ const Chat = () => {
       />
 
       <GroupInfoDialog
-        open={groupInfoOpen}
+        open={isGroupInfoOpen}
         group={selectedUser?.isGroup ? selectedUser : null}
         me={me}
         people={list.addablePeople}
-        onClose={() => { setGroupInfoOpen(false); group.setDraftImage(null) }}
+        onClose={() => {
+          setIsGroupInfoOpen(false)
+          group.setDraftImage(null)
+        }}
         onRename={group.renameGroup}
         onRemoveMember={group.removeMember}
         onAddMembers={group.addMembers}
-        onLeave={() => group.leaveGroup(() => setGroupInfoOpen(false))}
-        onDelete={() => group.deleteGroup(() => setGroupInfoOpen(false))}
+        onLeave={() => group.leaveGroup(() => setIsGroupInfoOpen(false))}
+        onDelete={() => group.deleteGroup(() => setIsGroupInfoOpen(false))}
         groupImageInputRef={groupImageInputRef}
         onGroupImageSelect={group.handleImageSelect}
         draftImage={group.draftImage?.url}
         saving={group.savingGroup}
       />
 
-      {/* Error message - laal */}
+      {/* Delete/unsend jaisa har kaam isi ek dialog se confirm hota hai */}
+      <ConfirmDialog
+        confirm={confirm}
+        onCancel={() => setConfirm(null)}
+        onConfirm={runConfirm}
+      />
+
+      {/* ---------- TOASTS ---------- */}
       <Snackbar
         open={!!toast.error}
-        autoHideDuration={4000}
+        autoHideDuration={TOAST_ERROR_MS}
         onClose={() => toast.setError('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={snackbarSx}
       >
-        <Alert severity="error" onClose={() => toast.setError('')}>{toast.error}</Alert>
+        <Alert severity="error" onClose={() => toast.setError('')}>
+          {toast.error}
+        </Alert>
       </Snackbar>
 
-      {/* Success message - hara */}
       <Snackbar
         open={!!toast.info}
-        autoHideDuration={2500}
+        autoHideDuration={TOAST_SUCCESS_MS}
         onClose={() => toast.setInfo('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={snackbarSx}
       >
-        <Alert severity="success" onClose={() => toast.setInfo('')}>{toast.info}</Alert>
+        <Alert severity="success" onClose={() => toast.setInfo('')}>
+          {toast.info}
+        </Alert>
       </Snackbar>
     </div>
   )

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { STORAGE_KEYS } from '@/constants/storageKeys.js'
 
 // ==========================================================
 // THEME CONTEXT
@@ -6,7 +7,6 @@ import { createContext, useContext, useState, useEffect } from 'react'
 // localStorage me save karte hain isliye refresh ke baad bhi
 // wahi mode yaad rehta hai. Kuch save na ho to "dark" default hai
 // ==========================================================
-const STORAGE_KEY = 'instachats_theme'
 
 // Light mode ke rang - dark wale index.css ke @theme block me hain
 // (yahin se seedha inline style par lagate hain, isliye Tailwind ke
@@ -39,7 +39,7 @@ export const useThemeMode = () => useContext(ThemeContext)
 
 export const ThemeModeProvider = ({ children }) => {
   const [mode, setMode] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
+    const saved = localStorage.getItem(STORAGE_KEYS.theme)
     return saved === 'light' ? 'light' : 'dark'
   })
 
@@ -48,7 +48,7 @@ export const ThemeModeProvider = ({ children }) => {
   // ke @theme block wale hi layer ke andar hote hain aur cascade order ka
   // jhamela ho raha tha - inline style seedha jeet jaata hai, koi confusion nahi
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, mode)
+    localStorage.setItem(STORAGE_KEYS.theme, mode)
     document.documentElement.setAttribute('data-theme', mode)
 
     const root = document.documentElement.style

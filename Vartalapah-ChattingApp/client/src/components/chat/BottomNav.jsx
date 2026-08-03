@@ -5,6 +5,7 @@ import MarkUnreadChatAltIcon from '@mui/icons-material/MarkUnreadChatAlt'
 import MarkChatUnreadOutlinedIcon from '@mui/icons-material/MarkChatUnreadOutlined'
 import PeopleIcon from '@mui/icons-material/People'
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline'
+import { BRAND } from '@/constants/theme.js'
 
 // ==========================================================
 // BOTTOM NAVIGATION (sirf mobile)
@@ -97,7 +98,7 @@ const BottomNav = ({ tab, onChange, counts, me }) => (
         <Avatar
           src={me.profileImage}
           sx={{
-            width: 22, height: 22, fontSize: 11, bgcolor: '#a855f7',
+            width: 22, height: 22, fontSize: 11, bgcolor: BRAND.light,
             // Active tab par photo ke chaaron taraf halka sa ring
             outline: tab === 'profile' ? '2px solid currentColor' : 'none',
             outlineOffset: 1,

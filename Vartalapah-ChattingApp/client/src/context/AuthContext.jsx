@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { api } from '../api/client.js'
+import { authApi } from '@/api/authApi.js'
 
 // ==========================================================
 // CONTEXT
@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const data = await api('/auth/me')
+        const data = await authApi.getCurrentUser()
         setUser(data.user)
       } catch {
         // 401 aaya matlab logged in nahi hai - ye normal hai, error nahi
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
   // Google se mila token backend ko bhejte hain, backend verify karke user wapas deta hai
   const loginWithGoogle = async (credential) => {
-    const data = await api('/auth/google', { method: 'POST', body: { credential } })
+    const data = await authApi.loginWithGoogle(credential)
     setUser(data.user)
     return data.user
   }
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   // Logout - backend cookie hata dega aur user ko offline mark karega
   const logout = async () => {
     try {
-      await api('/auth/logout', { method: 'POST' })
+      await authApi.logout()
     } finally {
       // Backend fail bhi ho jaye to frontend par to logout kar hi dena chahiye
       setUser(null)
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
   // Naam / profile photo update karna
   const updateProfile = async (updates) => {
-    const data = await api('/auth/me', { method: 'PUT', body: updates })
+    const data = await authApi.updateProfile(updates)
     setUser(data.user)
     return data.user
   }
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
   // Backend "soft delete" karta hai - document mitata nahi, sirf chhupa deta hai
   // Isse saamne wale ki purani chat toot ti nahi
   const deleteAccount = async () => {
-    await api('/auth/me', { method: 'DELETE' })
+    await authApi.deleteAccount()
     setUser(null)
   }
 
