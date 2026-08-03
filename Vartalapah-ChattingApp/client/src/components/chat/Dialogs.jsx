@@ -1,41 +1,36 @@
-﻿import {
-  Avatar, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText,
-  DialogActions, Button, TextField, Badge, Menu, MenuItem, ListItemIcon, Divider,
-  ToggleButtonGroup, ToggleButton,
+import {
+  Avatar, Dialog, DialogTitle, DialogContent, DialogContentText,
+  DialogActions, Button,
 } from '@mui/material'
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
-import LightModeIcon from '@mui/icons-material/LightMode'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import EditIcon from '@mui/icons-material/Edit'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import ArchiveIcon from '@mui/icons-material/Archive'
 import UnarchiveIcon from '@mui/icons-material/Unarchive'
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove'
 import BlockIcon from '@mui/icons-material/Block'
 import LockOpenIcon from '@mui/icons-material/LockOpen'
-import LogoutIcon from '@mui/icons-material/Logout'
 import GroupsIcon from '@mui/icons-material/Groups'
-import { lastSeenText, senderIdOf } from '../../utils/format.js'
-import { useThemeMode } from '../../context/ThemeContext.jsx'
-import { dividerSx } from './muiStyles.js'
+import { lastSeenText } from '../../utils/format.js'
+import { useBackGuard } from '../../hooks/useBackGuard.js'
+import { useIsMobile } from '../../hooks/useIsMobile.js'
+import ActionSheet from './ActionSheet.jsx'
+import ProfilePanel from './ProfilePanel.jsx'
 
 // ==========================================================
 // DIALOGS
-// Saare popups aur menus ek jagah
-// Inhe alag file me isliye rakha kyunki ye sirf UI hain,
-// aur inke bina index.jsx bahut lamba ho jata tha
+// Saare popups ek jagah - inhe alag file me isliye rakha kyunki
+// ye sirf UI hain aur inke bina Chat.jsx bahut lamba ho jata tha
+//
+// Message ka apna action sheet yahan NAHI hai - wo Chat.jsx me hai,
+// kyunki uski list message ke type par depend karti hai
 // ==========================================================
 const Dialogs = ({
   me,
-  // message ka 3-dot menu
-  msgMenu, onCloseMsgMenu, onCopy, onStartEdit, onUnsend,
   // chat list ka long-press menu
   listMenu, onCloseListMenu, onToggleRelation, onOpenGroupInfo,
   // dusre user ki profile
   viewUser, onCloseViewUser, onBlockToggle, onUnsendAll,
-  // meri profile
+  // meri profile (desktop ka dialog - mobile par ye bottom nav ka tab hai)
   profileOpen, onCloseProfile, draftProfile, setDraftProfile,
   avatarInputRef, onAvatarSelect, onSaveProfile, savingProfile,
   onLogout, onDeleteAccount,
@@ -43,87 +38,82 @@ const Dialogs = ({
   confirm, onCancelConfirm, onRunConfirm,
 }) => {
   const menuUser = listMenu?.user
-  const { mode, setMode } = useThemeMode()
+  const isMobile = useIsMobile()
+
+  // Android ka back in dialogs ko band karta hai, website ko nahi
+  useBackGuard(!!viewUser, onCloseViewUser)
+  useBackGuard(profileOpen, onCloseProfile)
+  useBackGuard(!!confirm, onCancelConfirm)
+
+  // Mobile par dialog poori screen leta hai aur notch/gesture bar ka
+  // khyaal rakhta hai. Chhote dialog me keyboard khulte hi content
+  // chhup jata tha
+  const mobileDialogProps = isMobile
+    ? {
+        fullScreen: true,
+        slotProps: {
+          paper: { sx: { pt: 'var(--safe-top)', pb: 'var(--safe-bottom)' } },
+        },
+      }
+    : {}
+
+  // ---- Chat list ke long press wale actions ----
+  // Group par pin/block/hide ka matlab nahi - uske liye Group Info hai
+  const listActions = menuUser?.isGroup
+    ? [
+        {
+          key: 'info',
+          label: 'Group info',
+          icon: <GroupsIcon fontSize="small" />,
+          onClick: onOpenGroupInfo,
+        },
+      ]
+    : [
+        {
+          key: 'pin',
+          label: menuUser?.isPinned ? 'Unpin' : 'Pin to top',
+          icon: <PushPinIcon fontSize="small" />,
+          onClick: () => onToggleRelation('pinned', !menuUser?.isPinned),
+        },
+        {
+          key: 'archive',
+          label: menuUser?.isArchived ? 'Unarchive' : 'Archive chat',
+          icon: menuUser?.isArchived ? <UnarchiveIcon fontSize="small" /> : <ArchiveIcon fontSize="small" />,
+          onClick: () => onToggleRelation('archived', !menuUser?.isArchived),
+        },
+        {
+          key: 'block',
+          label: menuUser?.isBlocked ? 'Unblock' : 'Block',
+          icon: menuUser?.isBlocked ? <LockOpenIcon fontSize="small" /> : <BlockIcon fontSize="small" />,
+          onClick: () => onToggleRelation('blocked', !menuUser?.isBlocked),
+        },
+        { key: 'divider', divider: true },
+        {
+          // Ye sirf list se hatata hai - messages database me rehte hain.
+          // Wo dobara message bhejein to banda apne aap wapas list me aa jata hai
+          key: 'hide',
+          label: 'Remove from list',
+          subtitle: 'Messages are kept',
+          icon: <PersonRemoveIcon fontSize="small" />,
+          danger: true,
+          onClick: () => onToggleRelation('hidden', true),
+        },
+      ]
 
   return (
     <>
-      {/* ================= MESSAGE 3-DOT MENU ================= */}
-      <Menu anchorEl={msgMenu.anchor} open={!!msgMenu.anchor} onClose={onCloseMsgMenu}>
-        {msgMenu.message?.messageType === 'text' && (
-          <MenuItem onClick={onCopy}>
-            <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
-            Copy
-          </MenuItem>
-        )}
-
-        {/* Edit aur Unsend sirf apne message par dikhte hain
-            (backend par bhi yahi check hai - frontend par bharosa nahi karte) */}
-        {msgMenu.message && senderIdOf(msgMenu.message) === me._id && msgMenu.message?.messageType === 'text' && (
-          <MenuItem onClick={onStartEdit}>
-            <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
-            Edit
-          </MenuItem>
-        )}
-
-        {msgMenu.message && senderIdOf(msgMenu.message) === me._id && (
-          <MenuItem onClick={onUnsend} sx={{ color: '#f87171' }}>
-            <ListItemIcon><DeleteOutlineIcon fontSize="small" sx={{ color: '#f87171' }} /></ListItemIcon>
-            Unsend
-          </MenuItem>
-        )}
-      </Menu>
-
       {/* ================= CHAT LIST LONG-PRESS MENU ================= */}
-      <Menu
+      <ActionSheet
         open={!!listMenu}
         onClose={onCloseListMenu}
-        anchorReference="anchorPosition"
-        anchorPosition={listMenu ? { top: listMenu.y, left: listMenu.x } : undefined}
-      >
-        {/* MUI ka Menu <>...</> (Fragment) accept nahi karta - console me error deta hai
-            Isliye conditional items ko ARRAY me return karte hain
-            Array me har item par key dena zaroori hai */}
-        {menuUser?.isGroup
-          ? [
-              // Group par pin/block/hide ka matlab nahi - uske liye Group Info hai
-              <MenuItem key="info" onClick={onOpenGroupInfo}>
-                <ListItemIcon><GroupsIcon fontSize="small" /></ListItemIcon>
-                Group info
-              </MenuItem>,
-            ]
-          : [
-              <MenuItem key="pin" onClick={() => onToggleRelation('pinned', !menuUser?.isPinned)}>
-                <ListItemIcon><PushPinIcon fontSize="small" /></ListItemIcon>
-                {menuUser?.isPinned ? 'Unpin' : 'Pin to top'}
-              </MenuItem>,
-
-              <MenuItem key="archive" onClick={() => onToggleRelation('archived', !menuUser?.isArchived)}>
-                <ListItemIcon>
-                  {menuUser?.isArchived ? <UnarchiveIcon fontSize="small" /> : <ArchiveIcon fontSize="small" />}
-                </ListItemIcon>
-                {menuUser?.isArchived ? 'Unarchive' : 'Archive chat'}
-              </MenuItem>,
-
-              <MenuItem key="block" onClick={() => onToggleRelation('blocked', !menuUser?.isBlocked)}>
-                <ListItemIcon>
-                  {menuUser?.isBlocked ? <LockOpenIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
-                </ListItemIcon>
-                {menuUser?.isBlocked ? 'Unblock' : 'Block'}
-              </MenuItem>,
-
-              <Divider key="divider" />,
-
-              // Ye sirf list se hatata hai - messages database me rehte hain
-              // Wo dobara message bhejein to person apne aap wapas list me aa jata hai
-              <MenuItem key="hide" onClick={() => onToggleRelation('hidden', true)} sx={{ color: '#f87171' }}>
-                <ListItemIcon><PersonRemoveIcon fontSize="small" sx={{ color: '#f87171' }} /></ListItemIcon>
-                Remove from list
-              </MenuItem>,
-            ]}
-      </Menu>
+        items={listActions}
+        anchorPosition={listMenu?.point}
+        title={menuUser?.name}
+        ariaLabel="Chat options"
+      />
 
       {/* ================= DUSRE USER KI PROFILE ================= */}
-      <Dialog open={!!viewUser} onClose={onCloseViewUser} fullWidth maxWidth="xs">
+      <Dialog open={!!viewUser} onClose={onCloseViewUser} fullWidth maxWidth="xs" {...mobileDialogProps}>
         <DialogContent>
           <div className="flex flex-col items-center gap-2 py-4">
             <Avatar
@@ -133,8 +123,10 @@ const Dialogs = ({
               {viewUser?.name[0]}
             </Avatar>
 
-            <h3 className="text-lg font-semibold mt-2">{viewUser?.name}</h3>
-            {!viewUser?.isDeleted && <p className="text-sm text-app-muted">{viewUser?.email}</p>}
+            <h3 className="text-lg font-semibold mt-2 text-center">{viewUser?.name}</h3>
+            {!viewUser?.isDeleted && (
+              <p className="text-sm text-app-muted break-all text-center">{viewUser?.email}</p>
+            )}
 
             <p className={`text-sm mt-1 ${viewUser?.isOnline ? 'text-green-400' : 'text-app-muted'}`}>
               {viewUser?.isDeleted
@@ -153,7 +145,6 @@ const Dialogs = ({
             )}
           </div>
 
-          {/* ---------- ACTIONS ---------- */}
           {viewUser && !viewUser.isDeleted && (
             <div className="flex flex-col gap-2 pb-2">
               <Button
@@ -162,6 +153,7 @@ const Dialogs = ({
                 color={viewUser.isBlocked ? 'success' : 'error'}
                 startIcon={viewUser.isBlocked ? <LockOpenIcon /> : <BlockIcon />}
                 onClick={onBlockToggle}
+                sx={{ minHeight: 44 }}
               >
                 {viewUser.isBlocked ? 'Unblock user' : 'Block user'}
               </Button>
@@ -173,6 +165,7 @@ const Dialogs = ({
                 color="error"
                 startIcon={<DeleteOutlineIcon />}
                 onClick={onUnsendAll}
+                sx={{ minHeight: 44 }}
               >
                 Unsend all my messages
               </Button>
@@ -181,98 +174,31 @@ const Dialogs = ({
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={onCloseViewUser}>Close</Button>
+          <Button onClick={onCloseViewUser} sx={{ minHeight: 44 }}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* ================= MERI PROFILE ================= */}
-      <Dialog open={profileOpen} onClose={onCloseProfile} fullWidth maxWidth="xs">
+      {/* ================= MERI PROFILE (desktop) ================= */}
+      <Dialog open={profileOpen} onClose={onCloseProfile} fullWidth maxWidth="xs" {...mobileDialogProps}>
         <DialogTitle>My Profile</DialogTitle>
 
         <DialogContent>
-          <div className="flex flex-col items-center gap-4 pt-2">
-            {/* Hidden input - camera icon dabane par khulta hai */}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              ref={avatarInputRef}
-              onChange={onAvatarSelect}
-              className="hidden"
-            />
-
-            {/* Badge se avatar ke corner par chhota camera button lagaya hai */}
-            <Badge
-              overlap="circular"
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              badgeContent={
-                <IconButton
-                  size="small"
-                  title="Change photo"
-                  onClick={() => avatarInputRef.current.click()}
-                  sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}
-                >
-                  <PhotoCameraIcon sx={{ fontSize: 16, color: 'white' }} />
-                </IconButton>
-              }
-            >
-              <Avatar
-                src={draftProfile.image}
-                sx={{ width: 96, height: 96, bgcolor: '#a855f7', fontSize: 36 }}
-              >
-                {draftProfile.name[0]}
-              </Avatar>
-            </Badge>
-
-            <TextField
-              label="Name"
-              fullWidth
-              size="small"
-              value={draftProfile.name}
-              onChange={(e) => setDraftProfile({ ...draftProfile, name: e.target.value })}
-            />
-
-            {/* Email Google se aata hai, isliye badla nahi ja sakta */}
-            <TextField label="Email" fullWidth size="small" value={me.email} disabled />
-
-            {/* Light/Dark mode - localStorage me save hota hai (ThemeContext.jsx) */}
-            <div className="w-full flex items-center justify-between gap-3">
-              <span className="text-sm text-app-muted">Appearance</span>
-              <ToggleButtonGroup
-                size="small"
-                value={mode}
-                exclusive
-                onChange={(e, value) => value && setMode(value)}
-              >
-                <ToggleButton value="light" sx={{ gap: 0.5, px: 1.5 }}>
-                  <LightModeIcon sx={{ fontSize: 16 }} /> Light
-                </ToggleButton>
-                <ToggleButton value="dark" sx={{ gap: 0.5, px: 1.5 }}>
-                  <DarkModeIcon sx={{ fontSize: 16 }} /> Dark
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </div>
-
-            <Divider flexItem sx={{ ...dividerSx, my: 1 }} />
-
-            <Button fullWidth variant="outlined" startIcon={<LogoutIcon />} onClick={onLogout}>
-              Log out
-            </Button>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteOutlineIcon />}
-              onClick={onDeleteAccount}
-            >
-              Delete my account
-            </Button>
-          </div>
+          <ProfilePanel
+            me={me}
+            draft={draftProfile}
+            setDraft={setDraftProfile}
+            avatarInputRef={avatarInputRef}
+            onAvatarSelect={onAvatarSelect}
+            onSave={onSaveProfile}
+            saving={savingProfile}
+            onLogout={onLogout}
+            onDeleteAccount={onDeleteAccount}
+          />
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={onCloseProfile}>Cancel</Button>
-          <Button variant="contained" onClick={onSaveProfile} disabled={savingProfile}>
+          <Button onClick={onCloseProfile} sx={{ minHeight: 44 }}>Cancel</Button>
+          <Button variant="contained" onClick={onSaveProfile} disabled={savingProfile} sx={{ minHeight: 44 }}>
             {savingProfile ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
@@ -286,8 +212,8 @@ const Dialogs = ({
           <DialogContentText>{confirm?.text}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onCancelConfirm}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={onRunConfirm}>
+          <Button onClick={onCancelConfirm} sx={{ minHeight: 44 }}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={onRunConfirm} sx={{ minHeight: 44 }}>
             {confirm?.confirmLabel || 'Yes, continue'}
           </Button>
         </DialogActions>

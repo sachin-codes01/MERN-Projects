@@ -26,5 +26,33 @@ export const fieldSx = {
   },
 }
 
+// ==========================================================
+// CHAT KA MESSAGE BOX
+//
+// Ye fieldSx se alag isliye hai kyunki yahan ek aur dikkat thi:
+// placeholder aur type kiya hua text send button ke beech me nahi,
+// thoda NEECHE dikh rahe the.
+//
+// Wajah: MUI InputBase apne root par `padding: 4px 0 5px` lagata hai.
+// Ye padding upar-neeche BARABAR nahi hai (4 vs 5) - wo purane
+// underline wale input ke liye bana hai. Upar se message box multiline
+// hai aur uski row `items-end` par hai, isliye input neeche se chipakta
+// hai - dono milkar text ko button ke center se ~6px neeche kar dete the.
+//
+// Ilaaj (jugaad nahi, seedhi baat):
+//   minHeight 44  -> input utna hi lamba jitna send/attach button.
+//                    Ek line wala text apne aap beech me aa jata hai
+//   padding 10/10 -> upar-neeche barabar. Multiline me line badhne par
+//                    box neeche se badhta hai aur button apni jagah rehta hai
+// ==========================================================
+export const composerFieldSx = {
+  ...fieldSx,
+  minHeight: 44,
+  paddingTop: '10px',
+  paddingBottom: '10px',
+  paddingLeft: 0,
+  paddingRight: 0,
+}
+
 // MUI ki lakeer (Divider)
 export const dividerSx = { borderColor: 'var(--color-app-border)' }

@@ -2,8 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Mobile layout ke teen zaroori tukde ek hi line me:
+         viewport-fit=cover            -> notch/Dynamic Island ke neeche tak
+                                          paint karo, aur env(safe-area-inset-*)
+                                          ko asli values do (iske bina wo 0 rehti hain)
+         interactive-widget=resizes-content -> Android Chrome keyboard khulte hi
+                                          layout viewport chhota kar deta hai,
+                                          isliye 100dvh apne aap sahi ho jata hai
+         maximum-scale hataya hua hai   -> zoom band karna accessibility ke
+                                          khilaf hai. Double-tap zoom aur input
+                                          par auto-zoom CSS se sambhale hain
+                                          (font-size 16px, touch-action) -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="theme-color" content="#0f172a" />
+
+    <!-- iOS par home screen se khulne par status bar app ke rang me ghul jata hai -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Vārtālāpaḥ</title>
 
     <!-- Browser tab ka icon. Ye saari files client/public/ me hain -

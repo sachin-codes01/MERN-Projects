@@ -17,14 +17,45 @@ export const timeOf = (date) =>
     .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
     .toLowerCase()
 
+// System message ka sidebar preview - database me sirf verb save hota hai
+const SYSTEM_PREVIEWS = {
+  blocked: 'Blocked',
+  unblocked: 'Unblocked',
+  screenshot: 'Screenshot taken',
+}
+
 // Sidebar me dikhane wala chhota preview text
 export const previewOf = (msg) => {
   if (!msg) return 'Tap to start chatting'
   if (msg.messageType === 'image') return '📷 Photo'
   if (msg.messageType === 'video') return '🎥 Video'
-  // System message ka verb ("blocked") sidebar me akela ajeeb lagta hai
-  if (msg.messageType === 'system') return msg.text === 'blocked' ? 'Blocked' : 'Unblocked'
+  if (msg.messageType === 'system') return SYSTEM_PREVIEWS[msg.text] || 'Update'
   return msg.text
+}
+
+// ==========================================================
+// SYSTEM MESSAGE KI POORI LINE
+//
+// Database me sirf ek chhota verb hota hai ("blocked" / "screenshot").
+// Poora vaakya yahan banta hai kyunki wo padhne wale ke hisaab se badalta
+// hai: ek hi message ek ko "You blocked Bob" dikhta hai aur dusre ko
+// "Alice blocked you". Isliye ise server par save karna galat hota
+// ==========================================================
+export const systemLineOf = (msg, { me, chatName, isGroup }) => {
+  const isMine = senderIdOf(msg) === me._id
+
+  // Group me bhejne wale ka naam message ke saath aata hai,
+  // private chat me saamne wala hamesha wahi hai jiski chat khuli hai
+  const who = isMine ? 'You' : isGroup ? msg.sender?.name || 'Someone' : chatName
+
+  if (msg.text === 'screenshot') {
+    return `${who} took a screenshot`
+  }
+
+  const verb = msg.text === 'blocked' ? 'blocked' : 'unblocked'
+
+  // "You blocked Bob" lekin "Bob blocked you" - object dono taraf badalta hai
+  return isMine ? `You ${verb} ${chatName}` : `${who} ${verb} you`
 }
 
 // "Last seen 5 minutes ago" jaisa text banata hai

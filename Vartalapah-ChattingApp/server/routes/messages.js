@@ -21,6 +21,18 @@ router.use(protect)
 // Galat format ki id par MongoDB crash kar deta hai, isliye har jagah check karte hain
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id)
 
+// "Delete for me" wale messages sirf USI banda se chhupte hain jisne unhe
+// hataya. Isliye har chat query me ye filter lagta hai
+const notDeletedFor = (userId) => ({ deletedFor: { $ne: userId } })
+
+// Reply wale message me original ka chhota sa preview chahiye hota hai
+// (text/photo aur bhejne wale ka naam) - poora message nahi
+const REPLY_POPULATE = {
+  path: 'replyTo',
+  select: 'text messageType mediaUrl sender',
+  populate: { path: 'sender', select: 'name' },
+}
+
 // ==========================================================
 // GET /api/messages/conversations
 // Sidebar ke liye: har user ka last message + kitne unread hain
@@ -36,6 +48,7 @@ router.get('/conversations', async (req, res, next) => {
     const messages = await Message.find({
       group: null,
       $or: [{ sender: req.user._id }, { receiver: req.user._id }],
+      ...notDeletedFor(req.user._id),
     })
       .sort({ createdAt: -1 }) // naye pehle
       .lean()                  // plain JS object milta hai, thoda tez hota hai
@@ -107,10 +120,11 @@ router.get('/group/:groupId', async (req, res, next) => {
     const { error } = await getGroupIfMember(groupId, req.user._id)
     if (error) return res.status(error.status).json({ success: false, message: error.message })
 
-    const messages = await Message.find({ group: groupId })
+    const messages = await Message.find({ group: groupId, ...notDeletedFor(req.user._id) })
       // populate se sender ki jagah uska poora object aa jata hai
       // Group me har message ke upar bhejne wale ka naam dikhana hota hai
       .populate('sender', 'name profileImage')
+      .populate(REPLY_POPULATE)
       .sort({ createdAt: 1 }) // purane pehle
       .limit(100)
       .lean()
@@ -164,9 +178,12 @@ router.get('/:userId', async (req, res, next) => {
         { sender: req.user._id, receiver: userId },
         { sender: userId, receiver: req.user._id },
       ],
+      ...notDeletedFor(req.user._id),
     })
+      .populate(REPLY_POPULATE)
       .sort({ createdAt: 1 }) // purane pehle, taki chat sahi order me dikhe
       .limit(100)
+      .lean()
 
     res.json({ success: true, messages })
   } catch (err) {
@@ -183,6 +200,7 @@ router.post('/', async (req, res, next) => {
     const {
       receiver, group, text,
       messageType = 'text', mediaUrl = '', mediaPublicId = '',
+      replyTo = null, isForwarded = false,
     } = req.body
 
     // Ek message ya to kisi USER ko jata hai ya kisi GROUP me - dono nahi
@@ -213,6 +231,39 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Media URL missing' })
     }
 
+    // ---- REPLY VALIDATION ----
+    // Reply usi chat ke message ka ho sakta hai jisme bhej rahe ho. Warna
+    // koi Postman se kisi aur ki private chat ka message quote karwa sakta hai
+    if (replyTo) {
+      if (!isValidId(replyTo)) {
+        return res.status(400).json({ success: false, message: 'Invalid reply id' })
+      }
+
+      const original = await Message.findById(replyTo).select('sender receiver group').lean()
+      if (!original) {
+        return res.status(404).json({ success: false, message: 'Original message not found' })
+      }
+
+      const myId = req.user._id.toString()
+
+      // Group me: original bhi usi group ka ho
+      // Private me: original inhi do logon ke beech ka ho
+      const sameChat = group
+        ? original.group?.toString() === group
+        : !original.group &&
+          [original.sender?.toString(), original.receiver?.toString()].sort().join() ===
+            [myId, receiver].sort().join()
+
+      if (!sameChat) {
+        return res.status(400).json({ success: false, message: 'Cannot reply to that message' })
+      }
+    }
+
+    // Forward kiya hua message apni hi Cloudinary file "adopt" nahi kar
+    // sakta - warna forward delete karne par original ki image tooti reh
+    // jaati. Isliye forward me publicId hamesha khali rehti hai
+    const publicId = isForwarded ? '' : mediaPublicId
+
     // ==================== GROUP MESSAGE ====================
     if (group) {
       // Member hoon ya nahi - helper khud check kar leta hai
@@ -227,7 +278,9 @@ router.post('/', async (req, res, next) => {
         messageType,
         text: messageType === 'text' ? cleanText : '',
         mediaUrl,
-        mediaPublicId,
+        mediaPublicId: publicId,
+        replyTo: replyTo || null,
+        isForwarded: !!isForwarded,
         // Apna hi message hai, isliye maine to padh hi liya
         readBy: [req.user._id],
       })
@@ -235,6 +288,7 @@ router.post('/', async (req, res, next) => {
       // Sender ka naam chahiye hota hai - group me har message ke upar naam dikhta hai
       const full = await Message.findById(message._id)
         .populate('sender', 'name profileImage')
+        .populate(REPLY_POPULATE)
         .lean()
 
       // Group ke room me sabko bhej do
@@ -272,14 +326,19 @@ router.post('/', async (req, res, next) => {
     }
 
     // Database me save
-    const message = await Message.create({
+    const created = await Message.create({
       sender: req.user._id,
       receiver,
       messageType,
       text: messageType === 'text' ? cleanText : '',
       mediaUrl,
-      mediaPublicId,
+      mediaPublicId: publicId,
+      replyTo: replyTo || null,
+      isForwarded: !!isForwarded,
     })
+
+    // Reply ka preview client ko turant chahiye, isliye populate karke bhejte hain
+    const message = await Message.findById(created._id).populate(REPLY_POPULATE).lean()
 
     // Do cheezein ek saath:
     // 1. Receiver ne mujhe list se hataya tha -> naya message aate hi wapas aa jaata hoon
@@ -293,6 +352,85 @@ router.post('/', async (req, res, next) => {
     // ---- REAL TIME ----
     // io.to(receiver) -> sirf us receiver ke room me event bhejo
     // Isse receiver ki screen par message turant aa jata hai, bina refresh ke
+    getIO()?.to(receiver).emit('new-message', message)
+
+    res.status(201).json({ success: true, message })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ==========================================================
+// POST /api/messages/screenshot
+// "Sachin took a screenshot." wala system message
+//
+// Body: { receiver } ya { group }
+//
+// Browser me screenshot ka koi API nahi hai - ye route sirf tab chalta
+// hai jab client sach me screenshot pakad le (native wrapper ka event,
+// ya desktop par PrintScreen / Cmd+Shift+3). Detection ka poora zimma
+// client ka hai, dekho client/src/hooks/useScreenshotDetect.js
+// ==========================================================
+router.post('/screenshot', async (req, res, next) => {
+  try {
+    const { receiver, group } = req.body
+
+    if (!receiver && !group) {
+      return res.status(400).json({ success: false, message: 'Receiver or group is required' })
+    }
+
+    // Ek hi screenshot par kabhi kabhi do event aa jate hain (aur client
+    // par bug ho to spam bhi ho sakta hai). Isliye 5 second ke andar
+    // dusra notice nahi banate
+    const since = new Date(Date.now() - 5000)
+    const recent = await Message.exists({
+      sender: req.user._id,
+      messageType: 'system',
+      text: 'screenshot',
+      ...(group ? { group } : { receiver }),
+      createdAt: { $gte: since },
+    })
+
+    if (recent) return res.json({ success: true, message: null, skipped: true })
+
+    if (group) {
+      const { error } = await getGroupIfMember(group, req.user._id)
+      if (error) return res.status(error.status).json({ success: false, message: error.message })
+
+      const created = await Message.create({
+        sender: req.user._id,
+        group,
+        messageType: 'system',
+        text: 'screenshot',
+        readBy: [req.user._id],
+      })
+
+      const full = await Message.findById(created._id)
+        .populate('sender', 'name profileImage')
+        .lean()
+
+      getIO()?.to(roomOf(group)).emit('new-message', full)
+
+      return res.status(201).json({ success: true, message: full })
+    }
+
+    if (!isValidId(receiver)) {
+      return res.status(400).json({ success: false, message: 'Invalid receiver id' })
+    }
+
+    // Block hai to notice bhi nahi jana chahiye
+    if (await isBlockedBetween(req.user._id, receiver)) {
+      return res.status(403).json({ success: false, message: 'You cannot message this user' })
+    }
+
+    const message = await Message.create({
+      sender: req.user._id,
+      receiver,
+      messageType: 'system',
+      text: 'screenshot',
+      isRead: true, // system message ka unread badge nahi banna chahiye
+    })
+
     getIO()?.to(receiver).emit('new-message', message)
 
     res.status(201).json({ success: true, message })
@@ -397,6 +535,50 @@ router.put('/:id', async (req, res, next) => {
     getIO()?.to(target).emit('message-updated', updated)
 
     res.json({ success: true, message: updated })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ==========================================================
+// DELETE /api/messages/:id/me
+// "Delete for me" - message sirf MERI screen se hatta hai
+//
+// Unsend se farak: unsend message ko dono taraf se mita deta hai aur
+// sirf apne message par chalta hai. Delete-for-me kisi bhi message par
+// chalta hai kyunki wo kisi aur ko dikhai hi nahi deta
+//
+// Ye route "/:id" se PEHLE likhna zaroori hai
+// ==========================================================
+router.delete('/:id/me', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    if (!isValidId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid message id' })
+    }
+
+    const message = await Message.findById(id).select('sender receiver group').lean()
+    if (!message) {
+      return res.status(404).json({ success: false, message: 'Message not found' })
+    }
+
+    // Sirf usi chat ka member message hata sakta hai jisme wo message hai
+    const myId = req.user._id.toString()
+
+    const inMyChat = message.group
+      ? !(await getGroupIfMember(message.group.toString(), req.user._id)).error
+      : [message.sender?.toString(), message.receiver?.toString()].includes(myId)
+
+    if (!inMyChat) {
+      return res.status(403).json({ success: false, message: 'This message is not in your chat' })
+    }
+
+    // $addToSet -> dobara delete karne par duplicate entry nahi banti
+    await Message.updateOne({ _id: id }, { $addToSet: { deletedFor: req.user._id } })
+
+    // Koi socket event nahi - ye sirf mere liye hai. Mere dusre tabs par
+    // reload par apne aap sahi ho jayega
+    res.json({ success: true, message: 'Message deleted for you' })
   } catch (err) {
     next(err)
   }

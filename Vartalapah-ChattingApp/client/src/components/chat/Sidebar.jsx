@@ -1,4 +1,5 @@
-﻿import { Avatar, IconButton, InputBase, Divider, CircularProgress, Tooltip } from '@mui/material'
+import { memo } from 'react'
+import { Avatar, IconButton, InputBase, Divider, CircularProgress, Tooltip } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import CloseIcon from '@mui/icons-material/Close'
 import PushPinIcon from '@mui/icons-material/PushPin'
@@ -11,19 +12,142 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 import { timeOf, previewOf } from '../../utils/format.js'
 import { fieldSx, dividerSx } from './muiStyles.js'
+import { useLongPress } from '../../hooks/useLongPress.js'
+import BottomNav from './BottomNav.jsx'
+import ProfilePanel from './ProfilePanel.jsx'
 
-// Sidebar ke teen tabs
+// Chaar jagah. "profile" sirf mobile par tab hai - desktop par wo
+// neeche wali row se dialog me khulta hai
 const TABS = [
   { key: 'chats', label: 'Chats' },
   { key: 'requests', label: 'Requests' },
   { key: 'all', label: 'All people' },
 ]
 
+const TAB_TITLES = {
+  chats: 'Chats',
+  requests: 'Requests',
+  all: 'All people',
+  profile: 'Profile',
+}
+
+// ==========================================================
+// CHAT ROW
+//
+// Alag component isliye hai ki har row ko apna useLongPress chahiye
+// (hook ko loop wale function ke andar nahi bula sakte), aur memo se
+// ek row badalne par baaki 50 rows dobara render nahi hote
+// ==========================================================
+const ChatRow = memo(({ row, isSelected, onOpen, onMenu }) => {
+  // Mobile par ungli dabaye rakho, desktop par right click - dono se
+  // wahi menu. Scroll karte waqt galti se nahi khulta (10px tolerance)
+  const pressHandlers = useLongPress({
+    onLongPress: (point) => onMenu(row, point),
+    onClick: () => onOpen(row),
+  })
+
+  return (
+    <div
+      {...pressHandlers}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen(row)
+        }
+      }}
+      aria-label={`${row.name}${row.unreadCount > 0 ? `, ${row.unreadCount} unread` : ''}`}
+      className={`no-callout group flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-app-hover ${
+        isSelected ? 'bg-app-hover border-l-2 border-brand' : ''
+      }`}
+      // 44px+ touch target - poori row hi tap ka area hai
+      style={{ minHeight: 64 }}
+    >
+      <div className="relative shrink-0">
+        {/* Group ka apna icon hota hai, user ki profile photo */}
+        <Avatar src={row.isGroup ? row.groupImage : row.profileImage} sx={{ bgcolor: '#7c3aed' }}>
+          {row.isGroup ? <GroupsIcon fontSize="small" /> : row.name[0]}
+        </Avatar>
+
+        {/* Green dot - Socket.IO se live aata hai (group par nahi lagta) */}
+        {!row.isGroup && row.isOnline && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-app-panel rounded-full"
+          />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center gap-2">
+          <p className="font-semibold text-sm truncate flex items-center gap-1">
+            {row.isPinned && <PushPinIcon sx={{ fontSize: 13 }} className="text-brand" />}
+            {row.isBlocked && <BlockIcon sx={{ fontSize: 13 }} className="text-red-400" />}
+            {row.name}
+          </p>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {row.lastMessage && (
+              <span className="plain-text text-xs text-app-muted">
+                {timeOf(row.lastMessage.createdAt)}
+              </span>
+            )}
+
+            {/* 3-dot button SIRF desktop par - mobile par long press hai
+                (har row me button rakhne se list bhadd dikhti hai) */}
+            <IconButton
+              size="small"
+              className="!hidden md:!inline-flex opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+              aria-label={`Options for ${row.name}`}
+              onClick={(e) => {
+                // Row ka onClick chal jayega warna chat khul jayegi
+                e.stopPropagation()
+                const box = e.currentTarget.getBoundingClientRect()
+                onMenu(row, { x: box.left, y: box.bottom })
+              }}
+            >
+              <MoreVertIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center gap-2">
+          <p
+            className={`plain-text text-xs truncate ${
+              row.unreadCount > 0 ? 'text-app-text font-medium' : 'text-app-muted'
+            }`}
+          >
+            {row.isDeleted
+              ? 'Account deleted'
+              : row.isGroup && !row.lastMessage
+              ? `${row.members.length} members`
+              : previewOf(row.lastMessage)}
+          </p>
+
+          {row.unreadCount > 0 && (
+            <span className="text-[10px] text-white bg-brand rounded-full px-2 py-0.5 shrink-0">
+              {row.unreadCount}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+ChatRow.displayName = 'ChatRow'
+
 // ==========================================================
 // SIDEBAR
-// Ye component sirf DIKHATA hai - koi API call nahi karta
-// Saara data aur functions parent (index.jsx) se props me aate hain
-// Isse ise samajhna aur test karna aasan ho jata hai
+//
+// Mobile par ye poori screen leta hai (jab tak koi chat na khuli ho)
+// aur neeche bottom navigation dikhata hai. Desktop par ye baayein
+// taraf ka fixed column hai aur tabs upar pill ki tarah dikhte hain
+//
+// Layout wahi teen-hisse wala hai jo ChatWindow me hai:
+//   header (shrink-0) + list (flex-1 min-h-0 scroll) + nav (shrink-0)
+// Isse list kitni bhi lambi ho, bottom nav kabhi screen se bahar nahi jata
 // ==========================================================
 const Sidebar = ({
   me,
@@ -39,223 +163,202 @@ const Sidebar = ({
   setSearch,
   selectedUser,
   onOpenChat,
-  onLongPress,
+  onRowMenu,
   onOpenMyProfile,
   onNewGroup,
   hidden,
+  profile,
+  onLogout,
 }) => {
-  // Ek chat row banane wala chhota helper
-  // Normal list aur archived list dono me yahi use hota hai
-  const renderRow = (u) => (
-    <div
-      key={u._id}
-      onClick={() => onOpenChat(u)}
-      // Right click par bhi wahi menu khulta hai jo long press par khulta hai
-      onContextMenu={(e) => {
-        e.preventDefault()
-        onLongPress(e, u)
-      }}
-      // Mobile par ungli 500ms dabaye rakho to menu khulta hai
-      onTouchStart={(e) => onLongPress(e, u, true)}
-      onTouchEnd={() => onLongPress(null)}
-      onTouchMove={() => onLongPress(null)}
-      className={`group flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-app-hover ${
-        selectedUser?._id === u._id ? 'bg-app-hover border-l-2 border-brand' : ''
-      }`}
-    >
-      <div className="relative">
-        {/* Group ka apna icon hota hai, user ki profile photo */}
-        <Avatar src={u.isGroup ? u.groupImage : u.profileImage} sx={{ bgcolor: '#7c3aed' }}>
-          {u.isGroup ? <GroupsIcon fontSize="small" /> : u.name[0]}
-        </Avatar>
-
-        {/* Green dot - Socket.IO se live aata hai (group par nahi lagta) */}
-        {!u.isGroup && u.isOnline && (
-          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-app-panel rounded-full" />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center gap-2">
-          <p className="font-semibold text-sm truncate flex items-center gap-1">
-            {u.isPinned && <PushPinIcon sx={{ fontSize: 13 }} className="text-brand" />}
-            {u.isBlocked && <BlockIcon sx={{ fontSize: 13 }} className="text-red-400" />}
-            {u.name}
-          </p>
-
-          <div className="flex items-center gap-1 shrink-0">
-            {u.lastMessage && (
-              <span className="plain-text text-xs text-app-muted">
-                {timeOf(u.lastMessage.createdAt)}
-              </span>
-            )}
-
-            {/* 3-dot button SIRF desktop par (md se badi screen)
-                Mobile par ye chhupa rehta hai - wahan long press se menu khulta hai
-                (mobile par har row me button rakhne se list bhadd dikhti hai) */}
-            <IconButton
-              size="small"
-              className="!hidden md:!inline-flex opacity-0 group-hover:opacity-100"
-              title="Options"
-              onClick={(e) => {
-                // Row ka onClick chal jayega warna chat khul jayegi
-                e.stopPropagation()
-                onLongPress(e, u)
-              }}
-            >
-              <MoreVertIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center gap-2">
-          <p className={`plain-text text-xs truncate ${u.unreadCount > 0 ? 'text-app-text font-medium' : 'text-app-muted'}`}>
-            {u.isDeleted
-              ? 'Account deleted'
-              : u.isGroup && !u.lastMessage
-              ? `${u.members.length} members`
-              : previewOf(u.lastMessage)}
-          </p>
-
-          {/* Unread count badge */}
-          {u.unreadCount > 0 && (
-            <span className="text-[10px] text-white bg-brand rounded-full px-2 py-0.5 shrink-0">
-              {u.unreadCount}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  )
+  const isProfileTab = tab === 'profile'
 
   return (
     <aside
-      className={`${hidden ? 'hidden' : 'flex'} md:flex w-full md:w-80 lg:w-96 bg-app-panel border-r border-app-border flex-col`}
+      className={`${
+        hidden ? 'hidden' : 'flex'
+      } md:flex w-full md:w-80 lg:w-96 shrink-0 bg-app-panel md:border-r border-app-border flex-col min-h-0`}
     >
-      {/* Logo + naya group banane ka button */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <h1 className="text-2xl brand-font brand-gradient-text">Vārtālāpaḥ</h1>
+      {/* ================= HEADER =================
+          pt-safe -> notch / status bar / Chrome ke URL bar ke neeche se
+          shuru hota hai. Iske bina logo aadha kata hua dikhta tha */}
+      <div className="shrink-0 pt-safe px-safe">
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <div className="min-w-0">
+            <h1 className="text-2xl brand-font brand-gradient-text truncate">Vārtālāpaḥ</h1>
+            {/* Mobile par tabs upar nahi hain (wo neeche nav me hain),
+                isliye yahan bata dete hain ki kaunsi list khuli hai */}
+            <p className="md:hidden text-xs text-app-muted -mt-0.5">{TAB_TITLES[tab]}</p>
+          </div>
 
-        <Tooltip title="New group">
-          <IconButton size="small" onClick={onNewGroup}>
-            <GroupAddIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </div>
-
-      {/* ---------- TABS ---------- */}
-      {/* Chats    = jinse maine baat ki hai (maine kam se kam ek message bheja) */}
-      {/* Requests = jinhone mujhe message kiya lekin maine reply nahi kiya */}
-      {/* All      = saare registered users */}
-      <div className="flex gap-1 px-3 pb-2">
-        {TABS.map((t) => {
-          const count = tabCounts?.[t.key] || 0
-
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`relative flex-1 text-xs font-semibold py-1.5 rounded-full transition-colors ${
-                tab === t.key
-                  ? 'brand-gradient text-white'
-                  : 'bg-app-bg text-app-muted hover:text-app-text'
-              }`}
-            >
-              {t.label}
-
-              {/* Chhota number wala dot - 99 se zyada ho to "99+" */}
-              {count > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 flex items-center justify-center text-[9px] font-bold text-white bg-red-500 rounded-full border border-app-panel">
-                  {count > 99 ? '99+' : count}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ---------- SEARCH ---------- */}
-      {/* Har tab ka apna alag search hai - jo tab khuli hai usi ke andar dhundta hai */}
-      <div className="px-4 pb-3">
-        <div className="flex items-center gap-2 bg-app-bg rounded-full px-3 py-2">
-          <SearchIcon fontSize="small" className="text-app-muted" />
-          <InputBase
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search in ${TABS.find((t) => t.key === tab).label}...`}
-            className="plain-text w-full text-sm"
-            sx={fieldSx}
-          />
-          {search && (
-            <IconButton size="small" onClick={() => setSearch('')}>
-              <CloseIcon sx={{ fontSize: 16 }} />
-            </IconButton>
+          {!isProfileTab && (
+            <Tooltip title="New group">
+              <IconButton onClick={onNewGroup} className="tap-target" aria-label="Create new group">
+                <GroupAddIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
         </div>
+
+        {/* ---------- TABS (sirf desktop) ----------
+            Chats    = jinse maine baat ki hai
+            Requests = jinhone mujhe message kiya lekin maine reply nahi kiya
+            All      = saare registered users
+            Mobile par yahi teen bottom nav me hain */}
+        <div className="hidden md:flex gap-1 px-3 pb-2">
+          {TABS.map((t) => {
+            const count = tabCounts?.[t.key] || 0
+
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                aria-current={tab === t.key ? 'page' : undefined}
+                className={`relative flex-1 text-xs font-semibold py-2 rounded-full transition-colors ${
+                  tab === t.key
+                    ? 'brand-gradient text-white'
+                    : 'bg-app-bg text-app-muted hover:text-app-text'
+                }`}
+              >
+                {t.label}
+
+                {count > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 flex items-center justify-center text-[9px] font-bold text-white bg-red-500 rounded-full border border-app-panel">
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ---------- SEARCH ---------- */}
+        {/* Har tab ka apna alag search hai. Profile tab par iska matlab nahi */}
+        {!isProfileTab && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-2 bg-app-bg rounded-full px-3 py-2 no-zoom-input">
+              <SearchIcon fontSize="small" className="text-app-muted" />
+              <InputBase
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={`Search in ${TAB_TITLES[tab]}...`}
+                className="plain-text w-full text-sm"
+                sx={fieldSx}
+                inputProps={{ 'aria-label': `Search in ${TAB_TITLES[tab]}`, enterKeyHint: 'search' }}
+              />
+              {search && (
+                <IconButton size="small" onClick={() => setSearch('')} aria-label="Clear search">
+                  <CloseIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+            </div>
+          </div>
+        )}
+
+        <Divider sx={dividerSx} />
       </div>
 
-      <Divider sx={dividerSx} />
-
-      {/* ---------- LIST ---------- */}
-      <div className="flex-1 overflow-y-auto thin-scroll">
-        {loading && (
-          <div className="flex justify-center mt-8">
-            <CircularProgress size={26} />
+      {/* ================= SCROLL AREA =================
+          flex-1 min-h-0 -> lambi list bottom nav ko dhakel nahi sakti */}
+      <div className="flex-1 min-h-0 overflow-y-auto thin-scroll chat-scroll px-safe">
+        {/* ---------- PROFILE TAB (sirf mobile) ---------- */}
+        {isProfileTab ? (
+          <div className="px-5 py-5">
+            <ProfilePanel
+              me={me}
+              draft={profile.draft}
+              setDraft={profile.setDraft}
+              avatarInputRef={profile.avatarInputRef}
+              onAvatarSelect={profile.onAvatarSelect}
+              onSave={profile.onSave}
+              saving={profile.saving}
+              onLogout={onLogout}
+              onDeleteAccount={profile.onDeleteAccount}
+              showSaveButton
+            />
           </div>
-        )}
-
-        {!loading && visibleUsers.length === 0 && (
-          <div className="text-center mt-8 px-6">
-            <p className="text-sm text-app-muted">
-              {search
-                ? 'No results found'
-                : tab === 'chats'
-                ? 'No conversations yet'
-                : tab === 'requests'
-                ? 'No message requests'
-                : 'No other users have signed up yet'}
-            </p>
-            {!search && tab === 'chats' && (
-              <p className="text-xs text-app-muted mt-2">
-                Open "All people" and send someone a message
-              </p>
-            )}
-          </div>
-        )}
-
-        {visibleUsers.map(renderRow)}
-
-        {/* ---------- ARCHIVED SECTION ---------- */}
-        {archivedUsers.length > 0 && (
+        ) : (
           <>
-            <Divider sx={dividerSx} />
-            <div
-              onClick={() => setShowArchived(!showArchived)}
-              className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-app-hover text-app-muted"
-            >
-              {showArchived ? (
-                <KeyboardArrowDownIcon fontSize="small" />
-              ) : (
-                <KeyboardArrowRightIcon fontSize="small" />
-              )}
-              <ArchiveIcon sx={{ fontSize: 18 }} />
-              <span className="text-sm">Archived ({archivedUsers.length})</span>
-            </div>
+            {loading && (
+              <div className="flex justify-center mt-8">
+                <CircularProgress size={26} />
+              </div>
+            )}
 
-            {showArchived && archivedUsers.map(renderRow)}
+            {!loading && visibleUsers.length === 0 && (
+              <div className="text-center mt-8 px-6">
+                <p className="text-sm text-app-muted">
+                  {search
+                    ? 'No results found'
+                    : tab === 'chats'
+                    ? 'No conversations yet'
+                    : tab === 'requests'
+                    ? 'No message requests'
+                    : 'No other users have signed up yet'}
+                </p>
+                {!search && tab === 'chats' && (
+                  <p className="text-xs text-app-muted mt-2">
+                    Open "All people" and send someone a message
+                  </p>
+                )}
+              </div>
+            )}
+
+            {visibleUsers.map((row) => (
+              <ChatRow
+                key={row._id}
+                row={row}
+                isSelected={selectedUser?._id === row._id}
+                onOpen={onOpenChat}
+                onMenu={onRowMenu}
+              />
+            ))}
+
+            {/* ---------- ARCHIVED SECTION ---------- */}
+            {archivedUsers.length > 0 && (
+              <>
+                <Divider sx={dividerSx} />
+                <button
+                  type="button"
+                  onClick={() => setShowArchived(!showArchived)}
+                  aria-expanded={showArchived}
+                  className="w-full flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-app-hover text-app-muted no-tap-flash"
+                  style={{ minHeight: 48 }}
+                >
+                  {showArchived ? (
+                    <KeyboardArrowDownIcon fontSize="small" />
+                  ) : (
+                    <KeyboardArrowRightIcon fontSize="small" />
+                  )}
+                  <ArchiveIcon sx={{ fontSize: 18 }} />
+                  <span className="text-sm">Archived ({archivedUsers.length})</span>
+                </button>
+
+                {showArchived &&
+                  archivedUsers.map((row) => (
+                    <ChatRow
+                      key={row._id}
+                      row={row}
+                      isSelected={selectedUser?._id === row._id}
+                      onOpen={onOpenChat}
+                      onMenu={onRowMenu}
+                    />
+                  ))}
+              </>
+            )}
           </>
         )}
       </div>
 
-      {/* ---------- MERI PROFILE ---------- */}
-      {/* Click karne par My Profile dialog khulta hai (logout aur delete account wahin hai) */}
-      <Divider sx={dividerSx} />
-      <div
+      {/* ---------- MERI PROFILE (sirf desktop) ----------
+          Mobile par ye bottom nav ka Profile tab hai */}
+      <Divider sx={dividerSx} className="!hidden md:!block" />
+      <button
+        type="button"
         onClick={onOpenMyProfile}
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-app-hover"
-        title="Open my profile"
+        className="!hidden md:!flex shrink-0 items-center gap-3 px-4 py-3 cursor-pointer hover:bg-app-hover text-left"
+        aria-label="Open my profile"
       >
-        {/* Khud ke liye online dot dikhane ka koi matlab nahi - wo sirf
+        {/* Khud ke liye online dot dikhane ka matlab nahi - wo sirf
             DUSRE logon ke liye hai (chat rows me already hai) */}
         <Avatar src={me.profileImage} sx={{ bgcolor: '#a855f7' }}>{me.name[0]}</Avatar>
 
@@ -263,7 +366,11 @@ const Sidebar = ({
           <p className="text-sm font-semibold truncate">{me.name}</p>
           <p className="plain-text text-xs text-app-muted truncate">{me.email}</p>
         </div>
-      </div>
+      </button>
+
+      {/* ---------- BOTTOM NAV (sirf mobile) ----------
+          Gesture bar / home indicator ke upar rukta hai - dekho BottomNav.jsx */}
+      <BottomNav tab={tab} onChange={setTab} counts={tabCounts} me={me} />
     </aside>
   )
 }

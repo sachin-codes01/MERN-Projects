@@ -14,15 +14,33 @@ const messageSchema = new mongoose.Schema({
   group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', default: null },
 
   // Message kis type ka hai
-  // "system" wo message hai jo app khud banati hai (jaise "blocked" / "unblocked")
+  // "system" wo message hai jo app khud banati hai
+  // (jaise "blocked" / "unblocked" / "screenshot")
   // Wo beech me chhote text ki tarah dikhta hai, bubble me nahi
   messageType: { type: String, enum: ['text', 'image', 'video', 'system'], default: 'text' },
 
   text: { type: String, default: '' },
 
   // Image/video ka Cloudinary URL aur uski id
+  //
+  // DHYAN: forward kiye hue message me mediaUrl to wahi rehta hai lekin
+  // mediaPublicId JAAN-BOOJHKAR khali chhodte hain. Warna forward wala
+  // message delete karne par Cloudinary se ASLI file bhi ud jaati - aur
+  // original message me tooti hui image reh jaati
   mediaUrl: { type: String, default: '' },
   mediaPublicId: { type: String, default: '' },
+
+  // Kis message ka jawab hai (reply). null = normal message
+  replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message', default: null },
+
+  // Ye message kahin aur se forward hokar aaya hai - bubble par
+  // chhota "Forwarded" label dikhane ke liye
+  isForwarded: { type: Boolean, default: false },
+
+  // "Delete for me" - message database me rehta hai, bas in logon ki
+  // screen par nahi dikhta. "Unsend" isse alag hai: wo message ko
+  // dono taraf se poori tarah mita deta hai
+  deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   // Private chat me: message padha gaya ya nahi (blue tick ke liye)
   isRead: { type: Boolean, default: false },
@@ -41,5 +59,8 @@ const messageSchema = new mongoose.Schema({
 // Index se MongoDB ko poora collection scan nahi karna padta
 messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 })
 messageSchema.index({ group: 1, createdAt: -1 })
+
+// "Delete for me" har chat query me lagta hai, isliye uska bhi index
+messageSchema.index({ deletedFor: 1 })
 
 module.exports = mongoose.model('Message', messageSchema)

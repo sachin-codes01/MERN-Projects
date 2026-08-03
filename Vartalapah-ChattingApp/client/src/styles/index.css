@@ -375,3 +375,214 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ==========================================================
+   ============  MOBILE APP SHELL  ============
+   ==========================================================
+
+   Yahan se neeche ka poora hissa SIRF isliye hai ki chat page
+   mobile browser me ek asli app jaisa lage - WhatsApp/Instagram
+   jaisa. Teen dushman hain aur teeno ka ilaaj alag hai:
+
+   1) BROWSER KA URL BAR       -> 100vh galat hota hai (wo URL bar ko
+                                  ginta hi nahi). Iska ilaaj 100dvh
+                                  aur JS se naapi hui --app-height hai
+   2) KEYBOARD                 -> Android layout viewport chhota kar
+                                  deta hai, iOS nahi karta - wo bas
+                                  visual viewport ko upar khiska deta
+                                  hai. Ilaaj: VisualViewport API
+                                  (dekho hooks/useVisualViewport.js)
+   3) NOTCH / GESTURE BAR      -> env(safe-area-inset-*), jo tab tak 0
+                                  rehti hain jab tak index.html me
+                                  viewport-fit=cover na ho
+   ========================================================== */
+
+:root {
+  /* Safe area ki chaaron values ek jagah - taaki CSS me har jagah
+     lamba env(...) na likhna pade aur inhe override bhi kar sakein */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Keyboard kitni jagah kha raha hai - JS bharta hai */
+  --keyboard-inset: 0px;
+}
+
+/* Keyboard khulte hi neeche ka safe gap bekaar ho jata hai: wahan ab
+   gesture bar nahi, keyboard hai. Warna input aur keyboard ke beech
+   ek bhadda khali patta dikhta hai */
+:root[data-keyboard="open"] {
+  --safe-bottom: 0px;
+}
+
+/* ---------- DOCUMENT LOCK ----------
+   Chat page khulte hi ye class <html> par lag jati hai (dekho
+   useVisualViewport.js). Iske bina iOS par do dikkatein hoti hain:
+     - poora page keyboard ke saath upar sarak jata hai aur header gayab
+     - upar/neeche kheenchne par rubber-band bounce
+   Landing/login page par ye class NAHI lagti - wahan normal scroll chahiye */
+html.app-locked,
+html.app-locked body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html.app-locked body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+}
+
+/* ---------- APP SHELL ----------
+   Chat page ka sabse bahar wala box.
+
+   height: JS se naapi hui asli visible height. JS na chale (ya purana
+   browser ho) to 100dvh fallback - wo bhi URL bar ko theek se ginta hai.
+
+   transform: iOS par keyboard khulne par visual viewport neeche khisak
+   jata hai lekin position:fixed wali cheezein layout viewport se chipki
+   rehti hain - yani header screen se bahar chala jata hai. Utna hi
+   neeche translate karke use wapas laate hain */
+.app-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-height, 100dvh);
+  transform: translateY(var(--app-offset-top, 0px));
+  display: flex;
+  overflow: hidden;
+
+  /* Height/offset dono ek saath badalte hain - bina transition ke
+     keyboard khulte waqt jhatka dikhta hai */
+  transition: height 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: height, transform;
+}
+
+/* Keyboard ke andar-bahar hone ki animation browser khud chalata hai;
+   uske dauraan hamari transition double animation bana deti hai */
+:root[data-keyboard="open"] .app-shell {
+  transition: none;
+}
+
+/* ---------- SAFE AREA UTILITIES ---------- */
+.pt-safe {
+  padding-top: var(--safe-top);
+}
+.pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+.px-safe {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+/* ---------- TOUCH TARGETS ----------
+   Apple aur Google dono 44px (44dp) kehte hain. MUI ka IconButton
+   size="small" sirf 30px ka hota hai - ungli se maarna mushkil.
+   Ye class laga do to click ka area 44px ho jata hai bina icon bade kiye */
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile par tap karte hi neela/grey chauras flash aata hai - hata dete
+   hain, hamare apne hover/active states pehle se hain */
+.no-tap-flash {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Long press wali cheezein (message bubble, chat row).
+   -webkit-touch-callout: none  -> iOS ka "Copy / Look Up" wala native
+                                   popup nahi aata (hamara apna sheet aata hai)
+   user-select: none            -> ungli dabaye rakhne par text highlight
+                                   nahi hota. Copy ka apna action hai */
+.no-callout {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- SCROLL AREAS ----------
+   overscroll-behavior: contain -> list ke end tak pahunchne par scroll
+   peeche wale page tak nahi jata, aur Android ka pull-to-refresh chat
+   ke beech me trigger nahi hota */
+.chat-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- iOS AUTO-ZOOM ----------
+   iOS Safari kisi bhi input par focus karte hi zoom kar deta hai agar
+   uska font 16px se chhota ho. Zoom ke baad layout tedha ho jata hai
+   aur wapas apne aap zoom-out bhi nahi hota.
+
+   Poore app me zoom band karna (maximum-scale=1) galat hai - wo
+   accessibility todta hai. Sahi ilaaj yahi hai: mobile par input ka
+   font 16px kar do */
+@media (max-width: 767px) {
+  .no-zoom-input input,
+  .no-zoom-input textarea {
+    font-size: 16px;
+  }
+}
+
+/* ---------- BOTTOM SHEET ---------- */
+/* Sheet ke upar wala chhota "handle" - user ko dikhta hai ki ise
+   neeche kheenchkar band kiya ja sakta hai */
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-app-border);
+  margin: 8px auto 4px;
+}
+
+/* ---------- MEDIA VIEWER ----------
+   touch-action: none zaroori hai - warna do ungli se zoom karte waqt
+   browser apna page-zoom chala deta hai aur hamara pinch handler
+   kabhi chalta hi nahi */
+.media-stage {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+/* Zoom/pan ke dauraan transition nahi chahiye (ungli ke saath turant
+   chalna chahiye), lekin double-tap zoom me chahiye */
+.media-img-animated {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Reply par tap karke original message tak jaate hain - wahan pahunchne
+   par wo ek pal ke liye chamak jata hai, taaki aankh use pakad le */
+@keyframes msg-highlight {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: color-mix(in srgb, var(--color-brand) 28%, transparent);
+  }
+}
+
+.msg-highlight {
+  animation: msg-highlight 1.4s ease;
+  border-radius: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell,
+  .media-img-animated {
+    transition: none;
+  }
+
+  .msg-highlight {
+    animation: none;
+  }
+}
