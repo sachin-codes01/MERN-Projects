@@ -5,6 +5,10 @@ import LockIcon from '@mui/icons-material/Lock'
 import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled'
 import ImageIcon from '@mui/icons-material/Image'
 import FavoriteIcon from '@mui/icons-material/Favorite'
+import Diversity3Icon from '@mui/icons-material/Diversity3'
+import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom'
+import SchoolIcon from '@mui/icons-material/School'
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 
 // ==========================================================
 // LANDING PAGE KA SAARA TEXT EK JAGAH
@@ -13,6 +17,19 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 // Kuch badalna ho (naya feature, naya FAQ) to sirf yahi file kholni hai -
 // JSX me kahin dhoondhne ki zarurat nahi
 // ==========================================================
+
+// ----------------------------------------------------------
+// NAVBAR KE BEECH WALE BUTTONS
+//
+// Ye page ke sections par le jate hain. href me jo id likhi hai
+// wahi id us section par bhi honi chahiye (dekho SimpleSections.jsx) -
+// naam badlo to dono jagah badalna
+// ----------------------------------------------------------
+export const navButtons = [
+  { href: '#how', label: 'How It Works' },
+  { href: '#features', label: 'Features' },
+  { href: '#reviews', label: 'Reviews' },
+]
 
 export const features = [
   { no: '01', icon: <BoltIcon />, title: 'Real-time', text: 'Socket.IO keeps every message, typing dot and online badge in sync. No refresh, ever.' },
@@ -25,6 +42,35 @@ export const steps = [
   { no: '01', title: 'Sign in', text: 'One tap with Google. No password to remember or leak.' },
   { no: '02', title: 'Find people', text: 'Search anyone by name or email and send the first message.' },
   { no: '03', title: 'Start talking', text: 'Text, photos, short videos, groups. Everything in real time.' },
+]
+
+// ----------------------------------------------------------
+// KAUN USE KARTA HAI
+//
+// Features batata hai app KYA karta hai, ye batata hai KISKE LIYE
+// hai - alag angle hai, isliye baat dohrayi nahi jaati
+// ----------------------------------------------------------
+export const useCases = [
+  {
+    icon: <Diversity3Icon />,
+    title: 'Close friends',
+    text: 'The group chat that never really stops. Share photos, plan the weekend, and pick the thread back up whenever.',
+  },
+  {
+    icon: <FamilyRestroomIcon />,
+    title: 'Family',
+    text: 'Stay close to the people back home. Nothing to teach anyone - they sign in with Google and start talking.',
+  },
+  {
+    icon: <SchoolIcon />,
+    title: 'Study groups',
+    text: 'One place for notes, doubts and last-minute plans before an exam, instead of five scattered chats.',
+  },
+  {
+    icon: <EmojiEventsIcon />,
+    title: 'Teams & clubs',
+    text: 'Announce practice, share match photos, and keep everyone on the same page without a long email chain.',
+  },
 ]
 
 export const stats = [
@@ -42,6 +88,37 @@ export const faqs = [
   { q: 'Can I create a group with friends?', a: 'Yes, create a group, add the people you already chat with, and manage it as an admin.' },
   { q: 'Does it work on my phone?', a: 'Yes, the site is fully responsive and works smoothly on mobile, tablet and desktop.' },
 ]
+
+// ==========================================================
+// FOOTER KE LINKS
+//
+// Ye saare DEMO links hain - click karne par sirf ek chhota toast
+// dikhta hai, kahin redirect nahi hota. Isliye inhe <a href> nahi,
+// <button> banaya hai (dekho SimpleSections.jsx ka DemoLink):
+//   - href="#" hota to page upar chala jata
+//   - href="#features" jaise same-page link bhi nahi chahiye the
+//   - button screen reader ko bhi sahi batata hai ki ye navigate
+//     nahi karta, sirf kuch karta hai
+//
+// Asli page ban jayein to DemoLink ki jagah <Link to="..."> laga dena
+// ==========================================================
+export const footerColumns = [
+  {
+    title: 'Product',
+    links: ['Features', 'Group chats', 'Media sharing', 'Read receipts'],
+  },
+  {
+    title: 'Resources',
+    links: ['Documentation', 'Changelog', 'System status', 'Support'],
+  },
+  {
+    title: 'Company',
+    links: ['About', 'Blog', 'Careers', 'Contact'],
+  },
+]
+
+// Neeche wali patti ke chhote links
+export const footerLegal = ['Privacy', 'Terms', 'Cookies']
 
 // ==========================================================
 // "Two people, one thread" section me tairte hue chips

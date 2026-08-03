@@ -8,6 +8,7 @@ import CheckIcon from '@mui/icons-material/Check'
 import BlockIcon from '@mui/icons-material/Block'
 import GroupsIcon from '@mui/icons-material/Groups'
 import { timeOf, lastSeenText, senderIdOf } from '../../utils/format.js'
+import { fieldSx } from './muiStyles.js'
 
 // ==========================================================
 // CHAT WINDOW
@@ -43,7 +44,15 @@ const ChatWindow = ({
     return (
       <main className={`${hidden ? 'hidden' : 'flex'} md:flex flex-1 flex-col bg-app-bg`}>
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-          <div className="w-20 h-20 rounded-2xl brand-gradient" />
+          {/* Khali purple dabbe ki jagah ab site ka naam - wahi font aur
+              wahi gradient jo landing page ki badi heading par hai.
+              Neeche ka text pehle jaisa hi hai */}
+          <span
+            aria-hidden="true"
+            className="brand-font brand-gradient-text text-5xl sm:text-6xl leading-[1.15]"
+          >
+            Vārtālāpaḥ
+          </span>
           <h2 className="mt-4 text-xl font-semibold">
             Welcome to <span className="brand-font">Vārtālāpaḥ</span>
           </h2>
@@ -385,7 +394,7 @@ const ChatWindow = ({
               // plain-text = normal font, taki jo type kar rahe ho wo bilkul
               // waisa hi dikhe jaisa bubble me dikhega
               className="plain-text flex-1 text-sm"
-              sx={{ color: '#f1f5f9' }}
+              sx={fieldSx}
             />
 
             {/* showSend true hai to Send button, warna image/video icons

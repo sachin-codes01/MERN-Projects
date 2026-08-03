@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "instachat-client",
+      "name": "vartalapah-client",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "client"],
       "port": 5173

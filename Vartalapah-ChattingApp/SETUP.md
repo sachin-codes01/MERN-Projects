@@ -1,4 +1,4 @@
-# InstaChats — Setup Guide
+# Vārtālāpaḥ — Setup Guide
 
 Do external services chahiye: **Google** (login ke liye) aur **Cloudinary** (photo/video store karne ke liye).
 Dono bilkul free hain, credit card nahi maangte.

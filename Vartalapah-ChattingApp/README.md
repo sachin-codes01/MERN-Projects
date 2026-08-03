@@ -4,7 +4,7 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 
 ## 🌐 Live Demo
 
-🚀 **Live Website:** https://vartalapah-chatting-app-lac.vercel.app/
+🚀 **Live Website:** https://vartalapah-chatting-webapp.vercel.app
 
 ## 📸 Screenshot
 
@@ -37,6 +37,14 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - Account deletion using a soft delete, so the other person's chat history stays intact
 - Session persists across page refreshes via an httpOnly cookie
 
+### Landing page
+- Full-screen hero: sliding poster marquee on the left, app name and call to action on the right
+- Chat bubbles that float up out of the app name — real message cards mixed with photo, video, emoji and read-receipt chips. Desktop only (≥ 1024px); tablet and mobile keep the plain layout
+- Sticky navbar that slides in only once the hero has scrolled past
+- Sections for stats, features, how it works, use cases, auto-scrolling testimonials and an FAQ accordion
+- Scroll-reveal animations on cards, and a click-spark canvas effect across the page
+- Every animation is disabled under `prefers-reduced-motion`
+
 ## Tech Stack
 
 ### Frontend (`/client`)
@@ -65,9 +73,10 @@ Vartalapah-ChattingApp/
 │   ├── src/
 │   │   ├── api/              API client - single entry point for backend calls
 │   │   ├── assets/           Fonts and poster images
-│   │   ├── components/       chat/ and home/ UI components
+│   │   ├── components/       chat/ and home/ UI components, plus ClickSpark
 │   │   ├── context/          Auth, Socket and Theme providers
-│   │   ├── hooks/            useChatList, useMessages, useChatSocket, etc.
+│   │   ├── hooks/            Chat state (useChatList, useMessages, useChatSocket)
+│   │   │                     and landing-page helpers (useReveal, useSectionPassed)
 │   │   ├── pages/            Home, Login, Chat
 │   │   └── utils/            Formatting and media validation helpers
 │   ├── vercel.json           SPA rewrite for client-side routing
@@ -221,7 +230,16 @@ Full step-by-step deployment instructions are in [DEPLOY.md](DEPLOY.md).
 - Custom React Hooks for Chat State Management
 - Light / Dark Theme with Context API
 - Responsive UI with Tailwind CSS and MUI
+- Runtime-measured Hero Animation — Lane Geometry Computed from the Live Layout so Bubbles Never Collide with the Artwork
+- Motion Disabled Under `prefers-reduced-motion`
 - Automated API Test Suite
+
+## Notes for Contributors
+
+- **Theme colours live in two places.** The dark palette is defined in the `@theme` block of `client/src/index.css`. The light palette is applied as inline CSS variables on `<html>` — from `LIGHT_VARS` in `client/src/context/ThemeContext.jsx`, and again in a small pre-paint script in `client/index.html` so light-mode users never see a flash of dark. **Both lists must be kept in sync.** Inline styles are used rather than a `[data-theme]` CSS rule because Tailwind v4 compiles `@theme` inside a cascade layer, which made overriding it from CSS unreliable.
+- **MUI components don't read Tailwind classes.** Shared `sx` values for MUI inputs and dividers live in `client/src/components/chat/muiStyles.js` and point at the same CSS variables, so they follow the theme too. Avoid hard-coding hex colours in `sx` — that is what previously made input text and placeholders invisible in light mode.
+- **`GET /api/auth/me` returns `200` with `user: null`** when no session cookie is present, since being logged out is a normal state and a `401` shows up as a red console error for every visitor. A cookie that is present but invalid or expired still returns `401`.
+- **The hero animation is desktop-only and self-measuring.** It reads the rendered width of the app name and the real glyph bounds of the background month number, then derives its lanes from those. Nothing about it is hard-coded to a breakpoint, so changing the heading size or the number does not require touching the animation.
 
 ## License
 

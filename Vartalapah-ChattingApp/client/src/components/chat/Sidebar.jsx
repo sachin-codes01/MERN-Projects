@@ -10,6 +10,7 @@ import GroupAddIcon from '@mui/icons-material/GroupAdd'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 import { timeOf, previewOf } from '../../utils/format.js'
+import { fieldSx, dividerSx } from './muiStyles.js'
 
 // Sidebar ke teen tabs
 const TABS = [
@@ -183,7 +184,7 @@ const Sidebar = ({
             onChange={(e) => setSearch(e.target.value)}
             placeholder={`Search in ${TABS.find((t) => t.key === tab).label}...`}
             className="plain-text w-full text-sm"
-            sx={{ color: '#f1f5f9' }}
+            sx={fieldSx}
           />
           {search && (
             <IconButton size="small" onClick={() => setSearch('')}>
@@ -193,7 +194,7 @@ const Sidebar = ({
         </div>
       </div>
 
-      <Divider sx={{ borderColor: '#334155' }} />
+      <Divider sx={dividerSx} />
 
       {/* ---------- LIST ---------- */}
       <div className="flex-1 overflow-y-auto thin-scroll">
@@ -227,7 +228,7 @@ const Sidebar = ({
         {/* ---------- ARCHIVED SECTION ---------- */}
         {archivedUsers.length > 0 && (
           <>
-            <Divider sx={{ borderColor: '#334155' }} />
+            <Divider sx={dividerSx} />
             <div
               onClick={() => setShowArchived(!showArchived)}
               className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-app-hover text-app-muted"
@@ -248,7 +249,7 @@ const Sidebar = ({
 
       {/* ---------- MERI PROFILE ---------- */}
       {/* Click karne par My Profile dialog khulta hai (logout aur delete account wahin hai) */}
-      <Divider sx={{ borderColor: '#334155' }} />
+      <Divider sx={dividerSx} />
       <div
         onClick={onOpenMyProfile}
         className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-app-hover"

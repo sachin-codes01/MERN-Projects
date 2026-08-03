@@ -46,6 +46,13 @@
   --color-app-text: #f1f5f9;      /* main text - halka safed */
   --color-app-muted: #94a3b8;     /* chhota / kam important text */
   --color-app-bubble: #334155;    /* dusre user ka message bubble */
+
+  /* Peeche dikhne wale bade sajawati number ("08", "04", card ke 01-04).
+     Ye jaan-boojh kar bahut halke hain - background se sirf ek halka sa
+     alag shade. Inke liye alag rang isliye chahiye ki light mode me
+     app-panel lagbhag safed ho jata hai aur number gayab ho jate the
+     (light wali value ThemeContext.jsx me hai) */
+  --color-app-ghost: #1e293b;
   --color-brand: #8b5cf6;         /* violet - main accent color */
   --color-brand-dark: #7c3aed;    /* violet ka gehra shade */
   --color-brand-light: #a855f7;   /* violet ka halka shade */
@@ -168,14 +175,97 @@
   position: absolute;
 }
 
+/* ==========================================================
+   HERO KE TAIRTE HUE MESSAGE (sirf desktop / lg+)
+   Website ke naam ke upar wali khali jagah me chhote bubbles
+   neeche se upar uthte hain aur ghul jate hain.
+
+   Kitna upar uthna hai aur kitna daayein-baayein bahna hai -
+   ye do naap har bubble ke apne hain, JS unhe CSS variable ki
+   tarah bhejta hai (dekho HeroMessageFlow.jsx). Isliye keyframes
+   ek hi hai, aur har bubble alag chalta hai
+   ========================================================== */
+/* Uthna aur ghulna - DO alag animation hain, jaan-boojh kar: uthne ka
+   easing alag chahiye tha aur ghulne (fade) ka alag.
+
+   Uthne wala curve cubic-bezier(0.45,0.15,0.55,0.85) hai - dono taraf
+   se barabar (symmetric) ease-in-out: shuru me dheere, beech me tez,
+   ant me phir dheere. Symmetric hona zaroori hai: ek lane me do message
+   chalte hain jo aadha chakkar peeche hote hain, aur aise curve me unke
+   beech ka faasla kabhi bhi aadhe rise se kam nahi hota - yani wo ek
+   dusre par kabhi nahi chadhte.
+   (Pehle wala 0.33,0.02,0.28,1 dekhne me theek tha lekin ye faasla
+   beech me ghat kar 25% reh jata tha - card takra sakte the) */
+@keyframes hero-msg-rise {
+  from {
+    transform: translate3d(0, 0, 0) scale(0.94);
+  }
+  to {
+    transform: translate3d(var(--hero-msg-drift, 0px), calc(var(--hero-msg-rise, 0px) * -1), 0)
+      scale(1);
+  }
+}
+
+@keyframes hero-msg-fade {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.95;
+  }
+  72% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.hero-msg {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  animation-name: hero-msg-rise, hero-msg-fade;
+  animation-timing-function: cubic-bezier(0.45, 0.15, 0.55, 0.85), ease-in-out;
+  animation-iteration-count: infinite;
+  /* duration/delay JS se aate hain - ek hi value dono animation par
+     lag jati hai (CSS list ko dohra deta hai) */
+  will-change: transform, opacity;
+}
+
 /* Jin logon ne apne system me animation band ki hui hai unke liye rok dete hain
    (accessibility - kuch logon ko chalti hui cheezon se dikkat hoti hai) */
 @media (prefers-reduced-motion: reduce) {
+  /* Smooth scroll bhi band - kuch logon ko sarakta hua page
+     chakkar la deta hai */
+  html {
+    scroll-behavior: auto;
+  }
+
   .marquee-track,
   .floating-chip,
-  .testimonial-track {
+  .testimonial-track,
+  .toast-in {
     animation: none;
     opacity: 1;
+  }
+
+  /* Hero wale tairte message poori tarah hata dete hain - wo sirf
+     sajawat hain, ruk kar khade rehne ka koi matlab nahi
+     (JS bhi inhe render nahi karta, ye bas dohri surakcha hai) */
+  .hero-msg-flow {
+    display: none;
+  }
+
+  /* Reveal wale cards turant dikha dete hain, warna animation band
+     hone par wo hamesha ke liye gayab hi reh jate */
+  .reveal-armed .reveal-child {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 
@@ -194,6 +284,71 @@
 }
 .testimonial-track:hover {
   animation-play-state: paused;
+}
+
+/* ==========================================================
+   NAVBAR KE SECTION LINKS
+   Anchor par click karne se page jhatke se nahi, sarak kar
+   jata hai. scroll-behavior page ke SCROLL wale element par
+   lagni chahiye (yahan html), kisi andar wale div par lagane
+   se kuch nahi hota
+   ========================================================== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Navbar fixed hai aur 64px lambi. Bina iske anchor par jump
+   karte hi section ka heading navbar ke neeche chhup jata -
+   scroll-margin browser ko bolta hai ki itna upar rukо */
+.scroll-target {
+  scroll-margin-top: 5rem;
+}
+
+/* ==========================================================
+   SCROLL REVEAL
+   Section screen me aate hi neeche se upar fade hota hai.
+   .is-visible class JS se lagti hai - dekho hooks/useReveal.js
+
+   Andar ke cards par .reveal-child lagakar alag alag
+   transition-delay dete hain, isse wo ek-ek karke aate hain
+   ========================================================== */
+/* DHYAN DO: chhupane wali class `.reveal` nahi, `.reveal-armed` hai -
+   aur wo JS lagata hai (dekho useReveal.js).
+
+   Pehle chhupana seedha `.reveal` par tha, jo JSX me likhi hoti hai.
+   Uska matlab tha: agar observer kisi bhi wajah se na chala to
+   content hamesha ke liye opacity:0 par atak jata aur section
+   khali dikhta. Ab default me sab dikhta hai, aur animation
+   sirf tab lagti hai jab JS ne sach me observer chalu kar liya ho */
+.reveal-armed .reveal-child {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-armed.is-visible .reveal-child {
+  opacity: 1;
+  transform: none;
+}
+
+/* ==========================================================
+   FOOTER KE DEMO LINK KA TOAST
+   Neeche se upar aata hai, thodi der ruk kar apne aap hat jata hai.
+   Hatna JS se hota hai (timer), ye animation sirf aane wali hai
+   ========================================================== */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.toast-in {
+  animation: toast-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Chat list / messages ka scrollbar patla aur dark theme jaisa dikhe */

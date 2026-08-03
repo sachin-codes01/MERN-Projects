@@ -11,14 +11,26 @@ const STORAGE_KEY = 'instachats_theme'
 // Light mode ke rang - dark wale index.css ke @theme block me hain
 // (yahin se seedha inline style par lagate hain, isliye Tailwind ke
 // CSS layers se koi takraav nahi hota - inline style hamesha jeetta hai)
+//
+// DHYAN: yahi list index.html me bhi hai (React load hone se pehle
+// wala chhota script, taaki light wale user ko dark ka flash na dikhe).
+// Koi rang badlo to dono jagah badalna
 const LIGHT_VARS = {
   '--color-app-bg': '#ffffff',
   '--color-app-panel': '#f8fafc',
   '--color-app-hover': '#f1f5f9',
-  '--color-app-border': '#e2e8f0',
+  // #e2e8f0 tha, lekin safed background par wo lakeer dikhti hi nahi thi.
+  // #cbd5e1 par light mode ka border utna hi gehra lagta hai jitna dark
+  // mode me #334155 apne background par (dono ka contrast ~1.49)
+  '--color-app-border': '#cbd5e1',
   '--color-app-text': '#0f172a',
   '--color-app-muted': '#64748b',
   '--color-app-bubble': '#e2e8f0',
+
+  // Bade sajawati number. Dark me ye app-panel jitna halka hai, lekin
+  // light mode me app-panel safed ke barabar hai - us rang me number
+  // bilkul gayab ho jate the, isliye yahan thoda gehra slate rakha hai
+  '--color-app-ghost': '#cbd5e1',
 }
 
 const ThemeContext = createContext(null)

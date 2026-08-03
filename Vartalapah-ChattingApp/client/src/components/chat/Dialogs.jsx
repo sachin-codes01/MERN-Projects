@@ -19,6 +19,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import GroupsIcon from '@mui/icons-material/Groups'
 import { lastSeenText, senderIdOf } from '../../utils/format.js'
 import { useThemeMode } from '../../context/ThemeContext.jsx'
+import { dividerSx } from './muiStyles.js'
 
 // ==========================================================
 // DIALOGS
@@ -251,7 +252,7 @@ const Dialogs = ({
               </ToggleButtonGroup>
             </div>
 
-            <Divider flexItem sx={{ borderColor: '#334155', my: 1 }} />
+            <Divider flexItem sx={{ ...dividerSx, my: 1 }} />
 
             <Button fullWidth variant="outlined" startIcon={<LogoutIcon />} onClick={onLogout}>
               Log out

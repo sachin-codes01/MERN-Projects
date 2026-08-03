@@ -10,6 +10,7 @@ import PersonRemoveIcon from '@mui/icons-material/PersonRemove'
 import PersonAddIcon from '@mui/icons-material/PersonAdd'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import LogoutIcon from '@mui/icons-material/Logout'
+import { fieldSx, dividerSx } from './muiStyles.js'
 
 // ==========================================================
 // GROUP DIALOGS
@@ -36,7 +37,7 @@ const MemberPicker = ({ people, selected, onToggle }) => {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search people..."
           className="w-full text-sm"
-          sx={{ color: '#f1f5f9' }}
+          sx={fieldSx}
         />
       </div>
 
@@ -138,7 +139,7 @@ export const CreateGroupDialog = ({
           />
         </div>
 
-        <Divider sx={{ borderColor: '#334155', my: 2 }} />
+        <Divider sx={{ ...dividerSx, my: 2 }} />
 
         <p className="text-sm font-semibold">
           Add members {selected.length > 0 && `(${selected.length} selected)`}
@@ -261,7 +262,7 @@ export const GroupInfoDialog = ({
           </p>
         </div>
 
-        <Divider sx={{ borderColor: '#334155', my: 2 }} />
+        <Divider sx={{ ...dividerSx, my: 2 }} />
 
         {/* ---------- MEMBERS LIST ---------- */}
         <div className="flex items-center justify-between">
@@ -325,7 +326,7 @@ export const GroupInfoDialog = ({
           </div>
         )}
 
-        <Divider sx={{ borderColor: '#334155', my: 2 }} />
+        <Divider sx={{ ...dividerSx, my: 2 }} />
 
         {/* ---------- DANGER ZONE ---------- */}
         {isAdmin ? (

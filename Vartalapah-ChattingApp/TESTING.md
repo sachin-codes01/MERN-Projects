@@ -1,4 +1,4 @@
-# InstaChats — Testing Guide
+# Vārtālāpaḥ — Testing Guide
 
 Do tarah ki testing hai:
 
@@ -11,12 +11,12 @@ Do tarah ki testing hai:
 
 **Terminal 1** — server chalu karo:
 ```bash
-npm run dev --prefix D:\Programs\MERN-Projects\InstaChats\server
+npm run dev --prefix D:\Programs\MERN-Projects\Vartalapah-ChattingApp\server
 ```
 
 **Terminal 2** — tests chalao:
 ```bash
-npm test --prefix D:\Programs\MERN-Projects\InstaChats\server
+npm test --prefix D:\Programs\MERN-Projects\Vartalapah-ChattingApp\server
 ```
 
 Aakhir me ye aana chahiye:
@@ -57,10 +57,10 @@ Do windows chahiye:
 
 **Servers chalu karo:**
 ```bash
-npm run dev --prefix D:\Programs\MERN-Projects\InstaChats\server
+npm run dev --prefix D:\Programs\MERN-Projects\Vartalapah-ChattingApp\server
 ```
 ```bash
-npm run dev --prefix D:\Programs\MERN-Projects\InstaChats\client
+npm run dev --prefix D:\Programs\MERN-Projects\Vartalapah-ChattingApp\client
 ```
 
 Phir `http://localhost:5173` kholo (`127.0.0.1` nahi — Google inhe alag maanta hai).

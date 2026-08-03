@@ -89,8 +89,23 @@ router.post('/google', async (req, res, next) => {
 // GET /api/auth/me
 // Page refresh hone par frontend ye call karta hai
 // Cookie already browser me hai, isse pata chalta hai ki user logged in hai ya nahi
+//
+// Cookie hai HI NAHI to ye galti nahi hai - banda bas logged out hai.
+// Isliye yahan 401 nahi bhejte, 200 ke saath user: null bhejte hain.
+// Wajah: browser har failed request ko console me laal karke dikhata hai
+// (JS use chhupa nahi sakta), aur bina login wale HAR visitor ko landing
+// page kholte hi "401 Unauthorized" dikh raha tha - jabki app bilkul
+// theek chal raha tha.
+//
+// Cookie mojood ho lekin galat/expire ho to protect hi sambhalta hai
+// aur wahan 401 hi sahi jawab hai - wo behaviour waisa ka waisa hai
 // ==========================================================
-router.get('/me', protect, (req, res) => {
+const skipIfLoggedOut = (req, res, next) => {
+  if (!req.cookies[COOKIE_NAME]) return res.json({ success: true, user: null })
+  next()
+}
+
+router.get('/me', skipIfLoggedOut, protect, (req, res) => {
   res.json({ success: true, user: publicUser(req.user) })
 })
 
