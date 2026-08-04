@@ -39,13 +39,35 @@ const TAB_TITLES = {
 // (hook ko loop wale function ke andar nahi bula sakte), aur memo se
 // ek row badalne par baaki 50 rows dobara render nahi hote
 // ==========================================================
-const ChatRow = memo(({ row, isSelected, onOpen, onMenu }) => {
+// subtitle: naam ke neeche kya likhna hai. Har tab ki zarurat alag hai:
+//
+//   'preview' (Chats)       -> aakhri message. Jinse roz baat hoti hai
+//                              unhe email se pehchanne ki zarurat nahi
+//   'both'    (Requests)    -> email AUR aakhri message. Anjaan banda
+//                              hai, isliye "kaun hai" (email) aur "kya
+//                              bheja" (message) - dono chahiye, tabhi
+//                              tay kar paoge ki reply karna hai ya nahi
+//   'email'   (All people)  -> sirf email. Yahan sirf banda dhoondhna
+//                              hai, uski purani chat se matlab nahi
+const ChatRow = memo(({ row, isSelected, onOpen, onMenu, subtitle = 'preview' }) => {
   // Mobile par ungli dabaye rakho, desktop par right click - dono se
   // wahi menu. Scroll karte waqt galti se nahi khulta (10px tolerance)
   const pressHandlers = useLongPress({
     onLongPress: (point) => onMenu(row, point),
     onClick: () => onOpen(row),
   })
+
+  // Group ka koi email hota hi nahi, aur deleted account ki email
+  // dikhana bekaar hai (wo scramble ho chuki hoti hai) - dono is line
+  // se bahar rehte hain
+  const emailLine = subtitle !== 'preview' && !row.isGroup && !row.isDeleted && row.email
+    ? row.email
+    : null
+
+  // 'email' wale tab me preview nahi chahiye - lekin email mil hi na
+  // paye (group ya deleted account) to row khali reh jayegi, isliye
+  // wahan preview wapas dikha dete hain
+  const showPreview = subtitle !== 'email' || !emailLine
 
   return (
     <div
@@ -103,22 +125,33 @@ const ChatRow = memo(({ row, isSelected, onOpen, onMenu }) => {
         </div>
 
         <div className="flex justify-between items-center gap-2">
-          <p
-            className={`plain-text text-xs truncate ${
-              row.unreadCount > 0 ? 'text-app-text font-medium' : 'text-app-muted'
-            }`}
-          >
-            {row.isDeleted
-              ? 'Account deleted'
-              : row.isGroup && !row.lastMessage
-              ? `${row.members.length} members`
-              : // Koi conversation abhi shuru hi nahi hui - "Tap to start
-                // chatting" jaisa khaali placeholder dikhane se behtar hai
-                // email dikha do, kaam ki jaankari hai
-                !row.isGroup && !row.lastMessage && row.email
-              ? row.email
-              : previewOf(row.lastMessage)}
-          </p>
+          {/* Do lines ek column me, unread badge unke bagal me - isse
+              badge dono soorat me apni jagah rehta hai, chahe neeche ek
+              line ho ya do */}
+          <div className="min-w-0">
+            {emailLine && (
+              <p className="plain-text text-[11px] text-app-muted truncate">{emailLine}</p>
+            )}
+
+            {showPreview && (
+              <p
+                className={`plain-text text-xs truncate ${
+                  row.unreadCount > 0 ? 'text-app-text font-medium' : 'text-app-muted'
+                }`}
+              >
+                {row.isDeleted
+                  ? 'Account deleted'
+                  : row.isGroup && !row.lastMessage
+                  ? `${row.members.length} members`
+                  : // Koi conversation abhi shuru hi nahi hui - "Tap to start
+                    // chatting" jaisa khaali placeholder dikhane se behtar hai
+                    // email dikha do, kaam ki jaankari hai
+                    !row.isGroup && !row.lastMessage && row.email
+                  ? row.email
+                  : previewOf(row.lastMessage)}
+              </p>
+            )}
+          </div>
 
           {row.unreadCount > 0 && (
             <span className="text-[10px] text-white bg-brand rounded-full px-2 py-0.5 shrink-0">
@@ -307,6 +340,7 @@ const Sidebar = ({
                 isSelected={selectedUser?._id === row._id}
                 onOpen={onOpenChat}
                 onMenu={onRowMenu}
+                subtitle={tab === 'all' ? 'email' : tab === 'requests' ? 'both' : 'preview'}
               />
             ))}
 
@@ -338,6 +372,7 @@ const Sidebar = ({
                       isSelected={selectedUser?._id === row._id}
                       onOpen={onOpenChat}
                       onMenu={onRowMenu}
+                      subtitle={tab === 'all' ? 'email' : tab === 'requests' ? 'both' : 'preview'}
                     />
                   ))}
               </>
