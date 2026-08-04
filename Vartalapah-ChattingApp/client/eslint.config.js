@@ -40,10 +40,16 @@ export default [
       ...js.configs.recommended.rules,
 
       // ---------- REACT HOOKS RULES ----------
-      // Sabse zaroori rules - inhi se pata chalta hai ki useEffect/useState
-      // galat jagah (jaise if ke andar) to nahi laga diya, ya useEffect ki
-      // dependency list adhoori to nahi hai
-      ...reactHooks.configs.recommended.rules,
+      // Sirf DO classic rules - poora "recommended" config jaan-boojhkar
+      // nahi liya, kyunki eslint-plugin-react-hooks v7+ me usme naye
+      // experimental "React Compiler" rules bhi aa gaye hain
+      // (set-state-in-effect, refs, waghera) jo bilkul sahi, jaan-boojhkar
+      // likhe gaye patterns ko bhi error bata dete hain - jaise stale
+      // closure se bachne ke liye render ke beech ref.current set karna
+      // (dekho hooks/ui/useLongPress.js, useBackGuard.js). Sirf inhi do
+      // purane, sabko pata rules ko rakha hai:
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
 
       // ---------- VITE FAST REFRESH ----------
       // Ek file me sirf component export ho to hi hot-reload (bina page
