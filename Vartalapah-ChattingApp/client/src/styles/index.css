@@ -590,6 +590,45 @@ html.app-locked body {
   animation: nav-icon-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ==========================================================
+   FULL-PAGE LOADER (AppRoutes.jsx)
+   App khulte hi login-check ke dauraan plain spinner ki jagah naam
+   khud "saans" leta hua dikhta hai - halka bada-chhota + fade,
+   niche teen dot WhatsApp jaise ek-ek karke uchalte hain
+   ========================================================== */
+@keyframes brand-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+.brand-breathe {
+  animation: brand-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes loader-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.loader-dot {
+  animation: loader-dot-bounce 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell,
   .media-img-animated {
@@ -601,6 +640,11 @@ html.app-locked body {
   }
 
   .nav-icon-pop {
+    animation: none;
+  }
+
+  .brand-breathe,
+  .loader-dot {
     animation: none;
   }
 }

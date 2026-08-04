@@ -173,10 +173,12 @@ const Sidebar = ({
       <div className="shrink-0 pt-safe px-safe">
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <div className="min-w-0">
-            <h1 className="text-2xl brand-font brand-gradient-text truncate">Vārtālāpaḥ</h1>
-            {/* Mobile par tabs upar nahi hain (wo neeche nav me hain),
-                isliye yahan bata dete hain ki kaunsi list khuli hai */}
-            <p className="md:hidden text-xs text-app-muted -mt-0.5">{TAB_TITLES[tab]}</p>
+            <h1
+              className="text-[1.7rem] leading-tight brand-font brand-gradient-text truncate"
+              style={{ filter: 'drop-shadow(0 2px 10px rgba(139,92,246,0.35))' }}
+            >
+              Vārtālāpaḥ
+            </h1>
           </div>
 
           {!isProfileTab && (
@@ -224,13 +226,13 @@ const Sidebar = ({
         {/* Har tab ka apna alag search hai. Profile tab par iska matlab nahi */}
         {!isProfileTab && (
           <div className="px-4 pb-3">
-            <div className="flex items-center gap-2 bg-app-bg rounded-full px-3 py-2 no-zoom-input">
+            <div className="flex items-center gap-2 bg-app-bg rounded-full px-3.5 py-2.5 border border-transparent transition-colors duration-200 focus-within:border-brand/50 no-zoom-input">
               <SearchIcon fontSize="small" className="text-app-muted" />
               <InputBase
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={`Search in ${TAB_TITLES[tab]}...`}
-                className="plain-text w-full text-sm"
+                className="plain-text w-full text-sm font-medium"
                 sx={fieldSx}
                 inputProps={{ 'aria-label': `Search in ${TAB_TITLES[tab]}`, enterKeyHint: 'search' }}
               />

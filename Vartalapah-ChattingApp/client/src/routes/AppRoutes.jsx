@@ -1,14 +1,29 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { CircularProgress } from '@mui/material'
 import { useAuth } from '@/context/AuthContext.jsx'
 import Home from '@/pages/Home.jsx'
 import Login from '@/pages/Login.jsx'
 import Chat from '@/pages/Chat.jsx'
 
-// Poori screen par loader - jab tak pata na chale ki user logged in hai ya nahi
+// Poori screen par loader - jab tak pata na chale ki user logged in hai ya nahi.
+// Plain spinner ki jagah app ka naam khud "saans" leta hua (halka bada-chhota +
+// fade) dikhta hai, niche teen dot ek-ek karke uchalte hain - dekho index.css
+// ki .brand-breathe / .loader-dot
 const FullPageLoader = () => (
-  <div className="h-screen w-full flex items-center justify-center bg-app-bg">
-    <CircularProgress />
+  <div
+    className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-app-bg"
+    role="status"
+    aria-live="polite"
+    aria-label="Loading"
+  >
+    <h1 className="brand-font brand-gradient-text text-4xl sm:text-5xl brand-breathe">
+      Vārtālāpaḥ
+    </h1>
+
+    <div className="flex items-center gap-1.5" aria-hidden="true">
+      <span className="loader-dot w-2 h-2 rounded-full bg-brand" style={{ animationDelay: '0s' }} />
+      <span className="loader-dot w-2 h-2 rounded-full bg-brand" style={{ animationDelay: '0.15s' }} />
+      <span className="loader-dot w-2 h-2 rounded-full bg-brand" style={{ animationDelay: '0.3s' }} />
+    </div>
   </div>
 )
 
