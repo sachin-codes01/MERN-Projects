@@ -296,7 +296,7 @@ const socials = [
   { icon: <MailOutlineIcon sx={{ fontSize: 18 }} />, label: 'Email', href: 'mailto:sachin.codes01@gmail.com' },
 ]
 
-export const Footer = ({ user, goTo }) => {
+export const Footer = ({ goTo }) => {
   // Kaunsa demo link daba - toast me yahi naam dikhta hai
   const [picked, setPicked] = useState(null)
 

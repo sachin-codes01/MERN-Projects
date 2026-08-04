@@ -10,6 +10,23 @@ const userSchema = new mongoose.Schema({
   // email unique hai - ek email se ek hi account banega
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
 
+  // Sirf email+password se signup karne walon ka hota hai (routes/auth.js
+  // ka /register). Google se aaye users ka ye null hi rehta hai - unki
+  // pehchaan display ke liye "name" se hi chalti hai, poori app me wahi
+  // dikhta hai.
+  //
+  // JAAN-BOOJHKAR unique NAHI hai - asli pehchaan email se hoti hai
+  // (login bhi email+password se hota hai, username se nahi). Do alag
+  // logon ka username same ho sakta hai, bilkul theek hai
+  username: {
+    type: String,
+    trim: true,
+    minlength: 3,
+    maxlength: 20,
+    match: /^[a-zA-Z0-9_.]+$/,
+    default: null,
+  },
+
   // Google login se aane wali profile photo ka URL
   // Baad me user apni photo badle to Cloudinary ka URL yahan aayega
   profileImage: { type: String, default: '' },
@@ -19,6 +36,13 @@ const userSchema = new mongoose.Schema({
 
   // Google ka unique user id - isse pata chalta hai ki ye wahi user hai
   googleId: { type: String, index: true },
+
+  // Bcrypt se hash kiya hua password. Google se pehli baar login karne
+  // par ye null hota hai - user ko "Create Password" screen par bhej
+  // dete hain. Plaintext KABHI yahan nahi aata, aur select:false hone
+  // ki wajah se koi normal query (User.findById waghera) ise apne aap
+  // nahi laati - jab chahiye ho tabhi .select('+password') likhna padega
+  password: { type: String, default: null, select: false },
 
   // User abhi online hai ya nahi - Socket.IO connect/disconnect par update hoga
   isOnline: { type: Boolean, default: false },

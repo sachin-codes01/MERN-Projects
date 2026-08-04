@@ -359,6 +359,24 @@ html {
   background: transparent;
 }
 
+/* Chat messages wali list - scrollbar bilkul dikhna hi nahi chahiye,
+   lekin scroll (mouse wheel/touch/keyboard) pehle jaisa hi chalna chahiye.
+   Teeno engine alag property maangte hain isliye teeno yahan hain:
+     Firefox        -> scrollbar-width
+     IE/old Edge     -> -ms-overflow-style
+     Chrome/Safari/  -> ::-webkit-scrollbar ko display:none
+     naya Edge (Chromium)
+   overflow-y khud nahi badalte - wahi scroll ko zinda rakhta hai */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* Poore app ka default font system ka hi rakha hai - chat app me
    sabse zaroori padhne me aasani hai. Custom fonts sirf logo aur
    landing page ki heading par lagaye hain */

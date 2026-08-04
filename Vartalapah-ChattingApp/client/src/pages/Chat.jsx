@@ -123,7 +123,7 @@ const Chat = () => {
 
   const askConfirm = useCallback((options) => setConfirm(options), [])
 
-  const list = useChatList({ me, onlineUsers, tab, search, allPeopleSeenAt, toast })
+  const list = useChatList({ onlineUsers, tab, search, allPeopleSeenAt, toast })
 
   const selectedUser = list.allRows.find((row) => row._id === selectedId) || null
   const viewUser = list.allRows.find((row) => row._id === viewUserId) || null
@@ -145,6 +145,13 @@ const Chat = () => {
     loadConversations: list.loadConversations,
     toast,
   })
+
+  // useMessages() har render par ek NAYA `chat` object deta hai, isliye
+  // neeche useCallback ki dependency me poora "chat" nahi likhte - sirf
+  // ye do function seedhe nikaal lete hain, jo khud stable hain
+  // (cancelEdit useCallback([]) se bana hai, setTypingUserId useState ka
+  // setter hai)
+  const { cancelEdit, setTypingUserId } = chat
 
   useChatSocket({
     socket,
@@ -197,6 +204,10 @@ const Chat = () => {
     onDeleted: () => navigate('/'),
   })
 
+  // useProfileActions() bhi har render par NAYA object deta hai - setDraft
+  // khud useState ka setter hai, isliye stable hai
+  const { setDraft } = profile
+
   // ==========================================================
   // ANDROID BACK BUTTON
   //
@@ -230,18 +241,18 @@ const Chat = () => {
   // Mobile ka Profile tab wahi draft use karta hai jo desktop ka dialog -
   // kholte waqt use asli value se bharna zaroori hai
   useEffect(() => {
-    if (tab === 'profile') profile.setDraft({ name: me.name, image: me.profileImage || '' })
-  }, [tab, me.name, me.profileImage])
+    if (tab === 'profile') setDraft({ name: me.name, image: me.profileImage || '' })
+  }, [tab, me.name, me.profileImage, setDraft])
 
   // ---------------- CHHOTE HANDLERS ----------------
 
   const openChat = useCallback(
     (row) => {
       setSelectedId(row._id)
-      chat.cancelEdit()
-      chat.setTypingUserId(null)
+      cancelEdit()
+      setTypingUserId(null)
     },
-    [chat.cancelEdit, chat.setTypingUserId]
+    [cancelEdit, setTypingUserId]
   )
 
   const openRowMenu = useCallback((user, point) => setListMenu({ point, user }), [])
@@ -314,7 +325,13 @@ const Chat = () => {
         user={selectedUser}
         messages={chat.messages}
         loadingMessages={chat.loadingMessages}
-        isTyping={chat.typingUserId === selectedId}
+        // typingUserId sirf tabhi set hota hai jab wo CURRENTLY khuli
+        // chat ke liye ho - useChatSocket.js ka onTyping/onStopTyping
+        // pehle hi selectedIdRef se match karke filter kar deta hai.
+        // Isliye yahan seedha pass karo - selectedId se dobara compare
+        // karna galat hai (private me `true` hota hai, group me sender
+        // ka naam - dono kabhi selectedId (ek Mongo id) ke barabar nahi ho sakte)
+        isTyping={chat.typingUserId}
         text={chat.text}
         onTextChange={chat.handleTextChange}
         onSend={chat.sendMessage}

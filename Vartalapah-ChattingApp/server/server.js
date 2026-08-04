@@ -18,6 +18,7 @@ const cookieParser = require('cookie-parser')
 const { connectDB } = require('./config/db')
 const { initSocket } = require('./socket')
 const { notFound, errorHandler } = require('./middleware/errorHandler')
+const { verifyCsrf } = require('./middleware/csrf')
 const { User, Group, Message } = require('./models')
 
 const authRouter = require('./routes/auth')
@@ -44,6 +45,15 @@ const uploadRouter = require('./routes/upload')
 // ==========================================================
 const app = express()
 
+// Render (aur zyadatar hosting) ek reverse proxy ke peeche chalate hain -
+// asli request unke proxy se hokar aati hai, isliye req.ip by default
+// hamesha PROXY ka IP dikhata, sabka IP ek jaisa. Rate limiter (auth
+// routes) isi req.ip se IP pehchanta hai - iske bina ya to sab logon ko
+// ek hi banda maankar collectively rate-limit kar deta, ya error deta.
+// "1" matlab: sirf ek hop wale X-Forwarded-For header par bharosa karo
+// (jo bilkul Render/Vercel jaisे single-proxy setup ke liye sahi hai)
+app.set('trust proxy', 1)
+
 // Express ko seedha listen karane ki jagah ek HTTP server banate hain
 // Kyunki Socket.IO ko bhi isi server par baithna hota hai
 // Dono ek hi port (5000) share karte hain
@@ -69,19 +79,23 @@ app.use(cookieParser())
 // ---------------- ROUTES ----------------
 
 // Login / logout / apni profile - jaise POST /api/auth/google, GET /api/auth/me
+// (auth.js ke andar hi jin routes ko CSRF check chahiye - login/register
+// jaisi "session banane wali" routes ko nahi - unhe alag se laga rakha hai)
 app.use('/api/auth', authRouter)
 
-// User list aur search - ye saare routes login ke bina nahi chalte
-app.use('/api/users', usersRouter)
+// User list aur search - ye saare routes login ke bina nahi chalte.
+// verifyCsrf yahan poore router par - GET (list/search) waise bhi safe
+// method hai to chhoot jata hai, sirf PUT/POST/DELETE (block/pin/waghera) par lagta hai
+app.use('/api/users', verifyCsrf, usersRouter)
 
 // Private aur group chat ke messages - bhejna, padhna, edit, delete
-app.use('/api/messages', messagesRouter)
+app.use('/api/messages', verifyCsrf, messagesRouter)
 
 // Group banana, members add/remove, group settings
-app.use('/api/groups', groupsRouter)
+app.use('/api/groups', verifyCsrf, groupsRouter)
 
 // Image/video Cloudinary par upload karne ke liye
-app.use('/api/upload', uploadRouter)
+app.use('/api/upload', verifyCsrf, uploadRouter)
 
 // Health check - server chal raha hai ya nahi, ye check karne ke liye
 app.get('/api/health', (req, res) => {

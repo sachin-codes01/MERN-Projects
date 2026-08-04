@@ -2,6 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext.jsx'
 import Home from '@/pages/Home.jsx'
 import Login from '@/pages/Login.jsx'
+import Signup from '@/pages/Signup.jsx'
+import ForgotPassword from '@/pages/ForgotPassword.jsx'
+import CreatePassword from '@/pages/CreatePassword.jsx'
 import Chat from '@/pages/Chat.jsx'
 
 // Poori screen par loader - jab tak pata na chale ki user logged in hai ya nahi.
@@ -40,6 +43,10 @@ const ProtectedRoute = ({ children }) => {
   // Logged in nahi hai to login page par bhej do
   if (!user) return <Navigate to="/login" replace />
 
+  // Google se pehli baar aaya hai aur abhi tak application password nahi
+  // banaya - chat kholne se pehle wahi banwa lete hain
+  if (user.needsPassword) return <Navigate to="/create-password" replace />
+
   return children
 }
 
@@ -51,7 +58,24 @@ const PublicOnlyRoute = ({ children }) => {
   const { user, loading } = useAuth()
 
   if (loading) return <FullPageLoader />
-  if (user) return <Navigate to="/chat" replace />
+  if (user) return <Navigate to={user.needsPassword ? '/create-password' : '/chat'} replace />
+
+  return children
+}
+
+// ==========================================================
+// PASSWORD SETUP ROUTE
+// /create-password sirf un logged-in users ke liye hai jinhone abhi
+// tak password nahi banaya. Login hi nahi hai to login par bhej do.
+// Password pehle se ban chuka hai to yahan dobara aane ka koi kaam
+// nahi - seedha chat par
+// ==========================================================
+const PasswordSetupRoute = ({ children }) => {
+  const { user, loading } = useAuth()
+
+  if (loading) return <FullPageLoader />
+  if (!user) return <Navigate to="/login" replace />
+  if (!user.needsPassword) return <Navigate to="/chat" replace />
 
   return children
 }
@@ -77,6 +101,37 @@ const AppRoutes = () => {
           <PublicOnlyRoute>
             <Login />
           </PublicOnlyRoute>
+        }
+      />
+
+      {/* Signup page - naya account, Google ke bina bhi */}
+      <Route
+        path="/signup"
+        element={
+          <PublicOnlyRoute>
+            <Signup />
+          </PublicOnlyRoute>
+        }
+      />
+
+      {/* Forgot Password - Google se pehchaan karke naya password banate hain */}
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicOnlyRoute>
+            <ForgotPassword />
+          </PublicOnlyRoute>
+        }
+      />
+
+      {/* Create Password - sirf Google se aaye aur abhi tak password na
+          banaye users ke liye */}
+      <Route
+        path="/create-password"
+        element={
+          <PasswordSetupRoute>
+            <CreatePassword />
+          </PasswordSetupRoute>
         }
       />
 

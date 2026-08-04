@@ -1,9 +1,15 @@
 # Vārtālāpaḥ — Testing Guide
 
-Do tarah ki testing hai:
+Teen tarah ki testing hai:
 
-1. **Automated** — `npm test` (backend ki 53 checks apne aap chalti hain)
-2. **Manual** — browser me karni padti hai (Google login, real-time, media, UI)
+1. **Automated (backend)** — `npm test` (53 checks apne aap chalti hain)
+2. **Lint (frontend)** — `npm run lint` (ESLint, zero warnings expected)
+3. **Manual** — browser me karni padti hai (login/signup, real-time, media, UI)
+
+> `npm test` abhi bhi purani hai - username/password wale naye auth routes
+> (`register`, `login`, `set-password`, `reset-password`, `check-email`,
+> `google-check`) uski checks me shaamil nahi hain. Unhe sirf manual testing
+> (section 2, A2-A4) se hi verify karo abhi ke liye.
 
 ---
 
@@ -47,7 +53,19 @@ Aakhir me ye aana chahiye:
 
 ---
 
-## 2. Manual testing (browser me)
+## 2. Lint (frontend)
+
+```bash
+npm run lint --prefix D:\Programs\MERN-Projects\Vartalapah-ChattingApp\client
+```
+
+Koi output nahi aana chahiye - matlab zero warnings, zero errors. Kuch dikhe to
+usko "fix" karna hai, warning ko chhupana nahi (`eslint-disable` sirf tab jab
+sach me koi doosra rasta na ho, aur comment me wajah likhi ho).
+
+---
+
+## 3. Manual testing (browser me)
 
 Do windows chahiye:
 - **Window 1** — normal browser
@@ -76,6 +94,67 @@ Phir `http://localhost:5173` kholo (`127.0.0.1` nahi — Google inhe alag maanta
 - [ ] Logged in hote hue `/` kholo → seedha `/chat` par redirect
 - [ ] Logout ke baad `/chat` kholo → `/login` par redirect
 - [ ] Compass me `users` collection me account dikhta hai
+- [ ] Pehli baar Google se login karo (naya email) → seedha `/create-password`
+      par bhej diya jaye, `/chat` par nahi
+- [ ] Create Password screen par kamzor password try karo → checklist me
+      jo shart puri nahi hui wo laal/khaali dikhe
+- [ ] Sahi password bharo → Save → ab seedha `/chat` khule
+- [ ] Dobara logout-login karo (same Google account) → is baar seedha `/chat`
+      (ab `/create-password` na aaye, kyunki password ban chuka hai)
+
+### A2. Signup (username + email + password)
+
+- [ ] Login page se "Create an account" link → `/signup` khule
+- [ ] Username, email, password, confirm password bharo aur **Continue**
+- [ ] Google verify step khule - **kisi aur Gmail se** sign in karo (jo
+      form wali email se match na kare) → clear error: "That Google account
+      is X, but you entered Y"
+- [ ] Ab **sahi (matching) Gmail** se verify karo → account ban jaye aur
+      seedha `/chat` khule (auto-login)
+- [ ] Wahi email dobara signup karne ki koshish karo → "An account with this
+      email already exists"
+- [ ] Ek email do baar alag-alag username ke saath signup ho sakti hai
+      **nahi** honi chahiye (email hi unique hai), lekin do ALAG email same
+      username ke saath signup ho sakni chahiye (username unique nahi hai)
+
+### A3. Login (email + password)
+
+- [ ] Login page par email + password fields, show/hide eye icon password par
+- [ ] Galat password → "Invalid email or password" (email exist karta hai ya
+      nahi, ye kabhi na bataye)
+- [ ] Sahi email + password → `/chat` khule
+- [ ] **Remember me** check karke login karo → cookie 30 din ki bane (DevTools
+      → Application → Cookies me `Max-Age` check karo)
+- [ ] Google-only account (jisne kabhi password nahi banaya) ki email se login
+      try karo → "This account uses Google sign-in and has not set a password
+      yet"
+
+### A4. Forgot password
+
+- [ ] Login page se "Forgot password?" → `/forgot-password`
+- [ ] Email daale bina Continue dabao → "Email is required"
+- [ ] Aisi email daalo jiska account hi nahi hai → "No account found for this
+      email" (login/signup ke link ke saath)
+- [ ] Registered email daalo → Google verify step khule
+- [ ] **Doosra (galat) Google account** se verify karo → "That's X, but you
+      entered Y" jaisa error, wapas Step 1 par nahi jaana padta (dobara Google
+      button try kar sakte ho)
+- [ ] **Sahi (matching) Google account** se verify karo → "Verified as
+      {email}" dikhe, naya password + confirm form khule
+- [ ] Naya password bhar ke submit karo → `/login` par bhej diya jaye, **login
+      na ho jaaye apne aap** (session set nahi hona chahiye)
+- [ ] Login page par "Password updated" wala hara message dikhe
+- [ ] Naye password se login karo → kaam kare
+
+### A5. CSRF sanity check (DevTools se)
+
+- [ ] Login karne ke baad DevTools → Application → Cookies me DO cookies dikhni
+      chahiye: `instachats_token` (HttpOnly ✓) aur `csrf_token` (HttpOnly ✗)
+- [ ] Koi bhi action karo (jaise naam badlo profile me) → Network tab me us
+      request ke Headers me `X-CSRF-Token` header dikhna chahiye
+- [ ] `csrf_token` cookie DevTools se manually delete karo, phir koi action
+      karo (jaise message bhejo) → 403 "Invalid or missing CSRF token" aana
+      chahiye. Page refresh karo (naya cookie mil jayega) to phir se kaam kare
 
 ### B. Users aur search
 

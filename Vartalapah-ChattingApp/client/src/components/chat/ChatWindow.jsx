@@ -135,9 +135,10 @@ const ChatWindow = ({
 
               {isGroup ? (
                 <p className="text-xs text-app-muted truncate">
-                  {/* Group me typing par bhejne wale ka naam dikhate hain */}
+                  {/* Group me typing par bhejne wale ka naam dikhate hain -
+                      isTyping ab { id, name } object hai (avatar ke liye id chahiye) */}
                   {isTyping
-                    ? `${isTyping} is typing...`
+                    ? `${isTyping.name} is typing...`
                     : user.members.map((m) => (m._id === me._id ? 'You' : m.name.split(' ')[0])).join(', ')}
                 </p>
               ) : (
@@ -171,7 +172,7 @@ const ChatWindow = ({
           padh deta hai, poori list dobara nahi */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto thin-scroll chat-scroll px-safe"
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar chat-scroll px-safe"
         role="log"
         aria-live="polite"
         aria-relevant="additions"
@@ -249,9 +250,19 @@ const ChatWindow = ({
             )
           })}
 
-          {/* Typing indicator - teen bouncing dots */}
+          {/* Typing indicator - saamne wale ki photo + teen bouncing dots.
+              Bilkul MessageBubble jaisa hi layout (items-end gap-1) taaki
+              indicator asli message bubble jaisa hi lage, achanak se alag na dikhe */}
           {isTyping && (
-            <div className="flex justify-start" aria-label="Typing">
+            <div className="flex items-end gap-1 justify-start" aria-label="Typing">
+              <ChatAvatar
+                user={
+                  isGroup
+                    ? user.members.find((m) => m._id === isTyping.id) || { name: isTyping.name }
+                    : user
+                }
+                size={26}
+              />
               <div className="bg-app-bubble rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
                 <span className="w-2 h-2 bg-app-muted rounded-full animate-bounce" />
                 <span className="w-2 h-2 bg-app-muted rounded-full animate-bounce [animation-delay:0.15s]" />

@@ -15,7 +15,14 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 ## Features
 
 ### Chat
-- Google OAuth login — no manual registration, account created on first sign-in
+- Sign in with Google, or create an account with a username, email and password
+- Email ownership is verified through a one-time Google sign-in even for
+  password-based signup and password reset — there is no email/SMS service, so
+  Google is the proof of identity
+- Existing Google accounts can add a password later ("Create Password" screen)
+  and log in either way afterwards — same account, never duplicated
+- "Forgot password" without an active session: confirm your email, verify it
+  with Google, set a new password
 - One-to-one private chats with any registered user
 - Group chats with an admin, member add/remove, and group rename
 - Photo and short video sharing, uploaded to Cloudinary (5 MB image / 20 MB video limits)
@@ -32,10 +39,19 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - Sidebar shows the latest message preview, unread state and timestamp for every chat
 
 ### Account
-- Profile page showing account info (name, email, avatar) sourced from the Google account
+- Profile page showing account info (name, email, avatar)
 - Light and dark theme toggle, persisted across sessions
 - Account deletion using a soft delete, so the other person's chat history stays intact
 - Session persists across page refreshes via an httpOnly cookie
+- "Remember me" on login for a 30-day session instead of the default 7 days
+
+### Security
+- Passwords hashed with bcrypt — never stored or returned in plain text
+- CSRF protection (double-submit cookie) on every state-changing request
+- Rate limiting on all auth endpoints, tuned separately for sensitive
+  actions (login, register) versus lightweight lookups (email checks)
+- Google ID tokens verified server-side, including Google's own
+  `email_verified` claim — never trusted from the frontend
 
 ### Mobile
 - Composer stays above the on-screen keyboard on both iOS and Android, using the
@@ -66,12 +82,16 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - Google OAuth (`@react-oauth/google`)
 - Socket.IO client for real-time events
 - Context API for auth, socket connection and theme
+- ESLint (flat config) — `npm run lint`
 
 ### Backend (`/server`)
 - Node.js + Express
 - MongoDB with Mongoose
 - Socket.IO for real-time messaging, typing and presence
 - Google OAuth verification + JWT session tokens stored in httpOnly cookies
+- bcryptjs for password hashing
+- express-rate-limit on all auth routes
+- CSRF protection via a custom double-submit-cookie middleware
 - Cloudinary for image and video storage (via Multer + `multer-storage-cloudinary`)
 - REST API with route-level middleware for authentication
 
@@ -94,21 +114,24 @@ Vartalapah-ChattingApp/
 │   │   ├── hooks/
 │   │   │   ├── chat/         Chat logic (messages, list, groups, socket)
 │   │   │   └── ui/           Browser logic (keyboard, long press, back button)
-│   │   ├── pages/            Home, Login, Chat — one per route
+│   │   ├── pages/            Home, Login, Signup, ForgotPassword,
+│   │   │                     CreatePassword, Chat — one per route
 │   │   ├── routes/           The route table
 │   │   ├── styles/           Global CSS and shared MUI style objects
 │   │   └── utils/            Small pure functions
+│   ├── eslint.config.js      ESLint flat config (`npm run lint`)
 │   ├── jsconfig.json         Makes the `@/` -> src alias work in editors
 │   ├── vercel.json           SPA rewrite for client-side routing
 │   └── .env
 │
 └── server/
     ├── config/               MongoDB and Cloudinary setup
-    ├── middleware/           JWT auth guard, error handler
+    ├── middleware/           JWT auth guard, CSRF, rate limiting, error handler
     ├── models/               User, Group, Message
     ├── routes/               auth, users, messages, groups, upload
     ├── socket/               Socket.IO auth, rooms, typing, presence
-    ├── utils/                Token, relations and group-room helpers
+    ├── utils/                Token, password validation, relations,
+    │                         group-room helpers
     ├── test-api.js           Automated API test suite
     ├── server.js
     └── .env
@@ -232,6 +255,19 @@ npm test
 
 Runs an automated API test suite covering auth, users, blocking, messages, groups, uploads and account deletion. The script creates its own test users, signs their JWTs directly (no Google login needed) and cleans up all test data from the database when it finishes.
 
+> This suite predates the username/password auth system and does not yet cover
+> `/auth/register`, `/auth/login`, `/auth/set-password`, `/auth/reset-password`,
+> `/auth/check-email` or `/auth/google-check`. Those were verified manually
+> with live requests during development — extending `test-api.js` to cover them
+> is on the future-improvements list.
+
+```bash
+cd client
+npm run lint
+```
+
+Runs ESLint across the frontend — should report zero warnings and zero errors.
+
 A manual browser checklist is available in [TESTING.md](TESTING.md).
 
 ## Deployment
@@ -249,7 +285,12 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 
 - MERN Stack Architecture
 - Real-time Messaging with Socket.IO Rooms
-- Google OAuth Authentication & JWT Session Handling via httpOnly Cookies
+- Hybrid Auth — Google OAuth and Username/Password, Same Account Either Way
+- Google ID Token Verification as an Email-ownership Proof for Signup and Password Reset (no email service)
+- Bcrypt Password Hashing, Never Stored or Returned in Plain Text
+- CSRF Protection via Double-submit Cookie
+- Tiered Rate Limiting on Auth Endpoints
+- JWT Session Handling via httpOnly Cookies
 - Typing Indicators, Online Presence and Read Receipts
 - Cloudinary Media Uploads with Type, Size and Duration Validation
 - Group Chats with Admin-controlled Membership
@@ -268,6 +309,8 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - **MUI components don't read Tailwind classes.** Shared `sx` values for MUI inputs and dividers live in `client/src/styles/muiStyles.js` and point at the same CSS variables, so they follow the theme too. Avoid hard-coding hex colours in `sx` — import them from `client/src/constants/theme.js` instead. Hard-coded hexes are what previously made input text and placeholders invisible in light mode.
 - **`GET /api/auth/me` returns `200` with `user: null`** when no session cookie is present, since being logged out is a normal state and a `401` shows up as a red console error for every visitor. A cookie that is present but invalid or expired still returns `401`.
 - **The hero animation is desktop-only and self-measuring.** It reads the rendered width of the app name and the real glyph bounds of the background month number, then derives its lanes from those. Nothing about it is hard-coded to a breakpoint, so changing the heading size or the number does not require touching the animation.
+- **`useToast()` returns a new object every render.** `error`/`info` are `useState` values and `setError`/`setInfo` are their setters, but the `{ error, info, setError, setInfo }` wrapper object itself is a fresh literal each time. Effects/callbacks that need `toast` must destructure `setError`/`setInfo` (stable, guaranteed by React) rather than depending on the whole `toast` object, or `react-hooks/exhaustive-deps` either re-fires them every render or has to be silenced. See `useMessages.js`, `useChatList.js` and `useChatSocket.js` for the pattern.
+- **`client/eslint.config.js` intentionally skips `eslint-plugin-react`** — at time of writing it isn't compatible with the installed ESLint 10, and its rules aren't essential with React 17+'s JSX transform anyway. Only `eslint-plugin-react-hooks` (pinned to the stable v5, not the v7 line with experimental React Compiler rules) and `eslint-plugin-react-refresh` are used.
 
 ## Documentation
 

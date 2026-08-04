@@ -19,7 +19,13 @@ import { SEARCH_DEBOUNCE_MS } from '@/constants/chat.js'
 // aur jo andar React ke hooks (useState/useEffect) use karta hai.
 // Fayda: ye saara code chat page se bahar nikal jata hai
 // ==========================================================
-export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toast }) => {
+export const useChatList = ({ onlineUsers, tab, search, allPeopleSeenAt, toast }) => {
+  // toast har render par NAYA object hota hai (useToast.js dekho), lekin
+  // setError khud ek React useState setter hai - uski identity kabhi
+  // nahi badalti. Effects/useCallback ki dependency list me isi stable
+  // setError ko rakhte hain, poore "toast" object ko nahi
+  const { setError } = toast
+
   const [users, setUsers] = useState([])                 // saare registered users
   const [groups, setGroups] = useState([])               // mere saare groups
   const [conversations, setConversations] = useState({}) // { userId: { lastMessage, unreadCount, ... } }
@@ -49,7 +55,10 @@ export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toa
   // ya request fail ho jaye to sidebar chupchaap khali dikhta rehta aur
   // user samajhta ki uski saari chat gayab ho gayi. Ab kam se kam ek
   // toast dikha dete hain - app phir bhi chalti rehti hai
-  const loadConversations = async () => {
+  //
+  // useCallback zaroori hai - warna useChatSocket.js aur neeche wala mount
+  // effect inhe deps me daalte hi har render par dobara chalte
+  const loadConversations = useCallback(async () => {
     try {
       const data = await messageApi.getConversations()
 
@@ -60,19 +69,19 @@ export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toa
       })
       setConversations(map)
     } catch (err) {
-      toast.setError(`Could not load your chats: ${err.message}`)
+      setError(`Could not load your chats: ${err.message}`)
     }
-  }
+  }, [setError])
 
   // Mere saare groups - inme last message aur unread count already aa jate hain
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       const data = await groupApi.list()
       setGroups(data.groups)
     } catch (err) {
-      toast.setError(`Could not load your groups: ${err.message}`)
+      setError(`Could not load your groups: ${err.message}`)
     }
-  }
+  }, [setError])
 
   // "All people" tab ka search server par jata hai (list badi ho sakti hai)
   // Baaki do tabs ka search neeche client par hota hai
@@ -81,19 +90,19 @@ export const useChatList = ({ me, onlineUsers, tab, search, allPeopleSeenAt, toa
       try {
         await loadUsers(tab === 'all' ? search : '')
       } catch (err) {
-        toast.setError(err.message)
+        setError(err.message)
       } finally {
         setLoadingUsers(false)
       }
     }, SEARCH_DEBOUNCE_MS) // har akshar par API call na jaye
 
     return () => clearTimeout(timer)
-  }, [search, tab])
+  }, [search, tab, setError])
 
   useEffect(() => {
     loadConversations()
     loadGroups()
-  }, [])
+  }, [loadConversations, loadGroups])
 
   // ==========================================================
   // SIDEBAR KI LIST BANANA

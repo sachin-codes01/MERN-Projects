@@ -41,6 +41,42 @@ export const AuthProvider = ({ children }) => {
     return data.user
   }
 
+  // Email + password se login - koi bhi device ho, wahi purana account khul jata hai
+  const loginWithPassword = async (email, password, rememberMe) => {
+    const data = await authApi.loginWithPassword(email, password, rememberMe)
+    setUser(data.user)
+    return data.user
+  }
+
+  // Naya account - username + email + password. credential = Google se
+  // usi email ki malikiyat verify karne wala token (dekho Signup.jsx).
+  // Success hote hi turant login bhi ho jata hai (backend cookie bhej deta hai)
+  const register = async (username, email, password, confirmPassword, credential) => {
+    const data = await authApi.register(username, email, password, confirmPassword, credential)
+    setUser(data.user)
+    return data.user
+  }
+
+  // Google se pehli baar aaya user apna application password banata hai
+  const setPassword = async (password, confirmPassword) => {
+    const data = await authApi.setPassword(password, confirmPassword)
+    setUser(data.user)
+    return data.user
+  }
+
+  // "Forgot password" Step 1 - email se account check karna
+  const checkEmail = (email) => authApi.checkEmail(email)
+
+  // "Forgot password" Step 2 ke baad - is Google email ka account hai ya nahi
+  const checkGoogleAccount = (credential) => authApi.checkGoogleAccount(credential)
+
+  // "Forgot password" - Google se pehchaan karke naya password set karte hain.
+  // Jaan-boojhkar setUser NAHI karte - backend yahan login nahi karata
+  // (koi cookie nahi bhejta), user ko wapas login page par bhejkar apne
+  // naye password se khud login karwate hain
+  const resetPassword = (credential, password, confirmPassword) =>
+    authApi.resetPassword(credential, password, confirmPassword)
+
   // Logout - backend cookie hata dega aur user ko offline mark karega
   const logout = async () => {
     try {
@@ -67,7 +103,11 @@ export const AuthProvider = ({ children }) => {
   }
 
   // Jo bhi is value me hai, wo poori app me kahin bhi useAuth() se mil jayega
-  const value = { user, loading, loginWithGoogle, logout, updateProfile, deleteAccount }
+  const value = {
+    user, loading,
+    loginWithGoogle, loginWithPassword, register, setPassword, checkEmail, checkGoogleAccount, resetPassword,
+    logout, updateProfile, deleteAccount,
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

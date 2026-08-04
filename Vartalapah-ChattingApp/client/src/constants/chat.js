@@ -43,22 +43,11 @@ export const LONG_PRESS_MS = 450
 export const LONG_PRESS_MOVE_TOLERANCE_PX = 10
 
 // ---------- LAYOUT ----------
-// Apple aur Google dono guidelines me 44px (44dp) minimum tap area hai.
-// Isse chhota button ungli se theek se dabta nahi
-export const MIN_TAP_TARGET_PX = 44
-
 // Viewport itne px se zyada chhota hua tabhi "keyboard khul gaya" maante hain.
 // Chrome ka URL bar aur bottom toolbar chhupne-dikhne par bhi height
 // ~100px tak badal jati hai - us par keyboard samajh lena galat hoga.
 // Asli mobile keyboard 250px+ ka hota hai
 export const KEYBOARD_DETECT_THRESHOLD_PX = 150
-
-// ---------- MESSAGES ----------
-// Ek chat kholne par kitne purane messages aate hain (server par bhi yahi limit hai)
-export const MESSAGE_PAGE_SIZE = 100
-
-// Ek message me itne se zyada akshar nahi (server par bhi yahi check hai)
-export const MAX_MESSAGE_LENGTH = 2000
 
 // ---------- TOASTS ----------
 export const TOAST_ERROR_MS = 4000

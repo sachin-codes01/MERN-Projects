@@ -10,8 +10,9 @@ It is written for **you** (the person who built it), not for a user. It says
 
 ## 1. What is this project, in one paragraph
 
-Vārtālāpaḥ is a real-time chat web app. You sign in with Google, see a list of
-people and groups, open a conversation, and send text, photos or short videos.
+Vārtālāpaḥ is a real-time chat web app. You sign in with Google or with a
+username/email/password account, see a list of people and groups, open a
+conversation, and send text, photos or short videos.
 Messages appear on the other person's screen instantly — without refreshing —
 because the server pushes them over a WebSocket. It works on desktop and is
 built to feel like a native app on a phone browser.
@@ -138,9 +139,11 @@ a point where you cannot find things in it, *that* is the moment to split.
 
 ## 4. Authentication — how login actually works
 
-There is **no password anywhere in this project.** That is deliberate: storing
-passwords means salting, hashing, reset emails and breach risk. Google does it
-better.
+There are **two ways in**: Google OAuth, and a normal username + email +
+password account. Both end up as the same kind of `User` document and the same
+JWT-in-a-cookie session — the app does not treat them differently after login.
+
+### 4.1 Google sign-in (the original, still the simplest path)
 
 ```
  1. User clicks "Sign in with Google"
@@ -155,12 +158,74 @@ better.
  7. Every later request carries that cookie automatically
 ```
 
-### The two questions you will definitely be asked
+A Google-only user has `password: null` in the database. `publicUser()` in
+`utils/token.js` computes `needsPassword: !user.password` on every response, and
+the frontend router (`AppRoutes.jsx`) redirects anyone with `needsPassword: true`
+to `/create-password` before letting them into `/chat`.
+
+### 4.2 Username + password signup — and the problem it had to solve
+
+There is no email or SMS service in this project, so a normal "type any email
+you want" signup would let someone register with an email they do not own.
+The fix reuses Google as an identity check, even for the non-Google signup path:
+
+```
+ 1. User fills in username, email, password, confirm password (client-side
+    validation only — nothing is created yet)
+ 2. User signs in with Google, using the SAME email
+ 3. Frontend sends { username, email, password, confirmPassword, credential }
+    to POST /api/auth/register in one request
+ 4. Backend verifies the Google credential, then checks
+    payload.email === the email the user typed
+       mismatch -> reject: "you verified a different Google account"
+       match    -> the email really does belong to this person
+ 5. Backend hashes the password with bcrypt, creates the User with
+    googleId ALSO set (so Google sign-in works for this account too),
+    and logs them straight in
+```
+
+**"Isn't that just Google login with extra steps?"** No — the end state is
+different. After this flow the account has a real bcrypt password, so the user
+can log in with `POST /api/auth/login` (email + password) on a device or browser
+where they've never touched Google, which is the entire point of offering a
+password option at all.
+
+### 4.3 Forgot password — same trick, used for recovery instead of signup
+
+```
+ 1. User types their email (required first — this is intentional, see below)
+ 2. POST /api/auth/check-email confirms an account exists for it
+ 3. User signs in with Google
+ 4. POST /api/auth/google-check confirms this Google email is the SAME one
+    from step 1, and that an account exists for it
+ 5. Only now does the "set a new password" form appear
+ 6. POST /api/auth/reset-password re-verifies the credential server-side,
+    hashes the new password, saves it — and does NOT log the user in.
+    They're sent back to /login to prove the new password works
+```
+
+Two deliberate design choices worth explaining out loud:
+
+- **Email first, then Google, not Google first.** Asking for the email up front
+  and cross-checking it against whatever Google account the user actually
+  signs in with catches the "picked the wrong Google account" mistake with a
+  specific, useful error message, instead of silently trusting whatever
+  Google returns.
+- **Any account can use this, not just Google-created ones.** The check is
+  "does an account exist for this email", never "was this account created via
+  Google" — `googleId` is not part of the check. A user who signed up with
+  username + password can still recover access by proving they own that same
+  email address through Google. Ownership of the email is what matters, not
+  how the account was originally created.
+
+### The three questions you will definitely be asked
 
 **"Why verify on the backend? The frontend already got the token from Google."**
 Because anything the frontend sends can be faked. A person with curl can post
-`{ credential: "anything" }`. Step 4 is the only thing that makes login real.
-**Never trust the client** is the rule this whole app follows.
+`{ credential: "anything" }`. Backend verification is the only thing that makes
+login (or the email-ownership proof in 4.2/4.3) real. **Never trust the client**
+is the rule this whole app follows. The backend even checks Google's own
+`email_verified` claim on the token, not just that the token is genuine.
 
 **"Why a cookie and not localStorage?"**
 The cookie is `httpOnly`, which means JavaScript *cannot read it* — not our
@@ -170,7 +235,35 @@ not. The cookie is also `secure` (HTTPS only) and `sameSite` in production.
 
 The cost of cookies is that they need `credentials: 'include'` on every fetch
 and matching CORS settings on the server — that is why `httpClient.js` sets it
-in one place, and why `server.js` sets `cors({ credentials: true })`.
+in one place, and why `server.js` sets `cors({ credentials: true })`. It also
+means logins are vulnerable to CSRF unless you explicitly guard against it —
+see section 4.4.
+
+**"How do you stop someone signing up twice with the same email — once via
+Google, once via password?"**
+Both `/api/auth/google` and `/api/auth/register` look a user up **by email**,
+never by how the account was created. If the email already exists, Google
+sign-in logs into that existing account (and fills in `googleId` if it was
+missing) instead of creating a new one, and password registration is rejected
+outright with "an account with this email already exists". One email, one
+account, no matter which door you came in through.
+
+### 4.4 CSRF protection
+
+Because the session cookie is `sameSite: 'none'` in production (required for
+the Vercel frontend to talk to the Render backend, which are different
+domains), the browser will attach it to a request from *any* site, not just
+this one. Without a second check, a malicious page could trick a logged-in
+user's browser into firing a request here and it would look authenticated.
+
+The fix is the standard **double-submit cookie** pattern
+(`middleware/csrf.js`): on login, the server also sets a *second*, non-`httpOnly`
+cookie (`csrf_token`) that JavaScript on our own frontend can read. Every
+non-GET request must echo that value back as an `X-CSRF-Token` header
+(`api/httpClient.js` does this automatically). The server rejects the request
+unless the header matches the cookie. A different website can make the browser
+*send* the cookie, but it can never *read* its value to build a matching
+header — same-origin policy blocks that.
 
 ### How a protected route stays protected
 
@@ -373,7 +466,9 @@ the error messages can never disagree.
 
 Three collections:
 
-**User** — name, email, googleId, profileImage, isOnline, lastSeen, plus four
+**User** — name, username (optional, not unique — only email is), email,
+password (bcrypt hash, `select: false` so normal queries never return it, `null`
+for Google-only accounts), googleId, profileImage, isOnline, lastSeen, plus four
 relationship arrays: `blockedUsers`, `pinnedChats`, `archivedChats`,
 `hiddenChats`, `chatList`.
 
@@ -416,15 +511,18 @@ leave a broken picture in the first chat.
 
 ## 11. Routing
 
-Three routes, defined in `routes/AppRoutes.jsx`:
+Six routes, defined in `routes/AppRoutes.jsx`:
 
 | Path | Page | Guard |
 |---|---|---|
 | `/` | Landing page | Public only — logged-in users go to `/chat` |
-| `/login` | Google sign-in | Public only |
-| `/chat` | The app | Protected — logged-out users go to `/login` |
+| `/login` | Email+password login, or Google | Public only |
+| `/signup` | Username + email + password signup, or Google | Public only |
+| `/forgot-password` | Email → Google verify → new password | Public only |
+| `/create-password` | First-time password for a Google-only account | Logged in, `needsPassword: true` only |
+| `/chat` | The app | Protected — logged-out users go to `/login`; `needsPassword: true` users go to `/create-password` first |
 
-Both guards wait for `loading` to finish first. Without that wait there is a
+Every guard waits for `loading` to finish first. Without that wait there is a
 moment where `user` is still `null` because `/auth/me` has not answered yet, and
 a logged-in user gets bounced to the login page on every refresh.
 
@@ -474,17 +572,26 @@ would not see each other's rooms. The fix is the Redis adapter, which puts room
 membership in Redis. Messages are already capped at 100 per load; the next step
 is proper pagination.
 
+**"How do you sign someone up with a password without an email service to verify them?"**
+You reuse an identity provider you already trust for something else. Google
+already proves someone owns an email when they sign in with it — the signup
+and forgot-password flows just ask for one extra Google sign-in at the right
+moment and check its email against what the user typed. See section 4.2 / 4.3.
+
 **"What is the weakest part?"**
-No automated tests beyond one integration script, no TypeScript, and no rate
-limiting on the auth and upload endpoints. Those are the top three things to
-fix, in that order.
+No automated tests beyond one integration script (and that script does not yet
+cover the newer password-auth endpoints — see `TESTING.md`), and no
+TypeScript. Rate limiting and CSRF protection used to be on this list — both
+are now in place (`middleware/rateLimit.js`, `middleware/csrf.js`).
 
 ---
 
-## 14. If you only remember five things
+## 14. If you only remember six things
 
 1. **HTTP saves it, the socket announces it.** Two channels, two jobs.
 2. **Never trust the client.** Every rule is enforced again on the server.
 3. **The JWT lives in an httpOnly cookie**, so page scripts cannot read it.
 4. **`min-h-0`** is what keeps the message box above the keyboard.
 5. **Soft delete** keeps the other person's chat history from breaking.
+6. **No email service? Borrow Google's.** Signup and password reset both prove
+   email ownership by asking for one Google sign-in, not by sending mail.

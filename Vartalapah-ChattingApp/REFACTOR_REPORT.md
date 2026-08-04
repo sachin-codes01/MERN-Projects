@@ -133,12 +133,16 @@ a format meant remembering three places.
 All moved into `constants/chat.js`, each with a comment explaining what breaks if
 you change it:
 
-`TYPING_IDLE_MS` (1500), `SEARCH_DEBOUNCE_MS` (400),
+`TYPING_IDLE_MS` (1000), `SEARCH_DEBOUNCE_MS` (400),
 `SCROLL_STICK_THRESHOLD_PX` (120), `MESSAGE_HIGHLIGHT_MS` (1500),
 `LONG_PRESS_MS` (450), `LONG_PRESS_MOVE_TOLERANCE_PX` (10),
-`MIN_TAP_TARGET_PX` (44), `KEYBOARD_DETECT_THRESHOLD_PX` (150),
-`MESSAGE_PAGE_SIZE` (100), `MAX_MESSAGE_LENGTH` (2000),
-`TOAST_ERROR_MS` (4000), `TOAST_SUCCESS_MS` (2500)
+`KEYBOARD_DETECT_THRESHOLD_PX` (150), `TOAST_ERROR_MS` (4000), `TOAST_SUCCESS_MS` (2500)
+
+> `MIN_TAP_TARGET_PX`, `MESSAGE_PAGE_SIZE` and `MAX_MESSAGE_LENGTH` were removed
+> in the August 2026 lint cleanup (section 15) — a later ESLint audit found
+> none of the three were ever actually imported anywhere; the 44px tap target
+> and the message-length limit are enforced directly in CSS (`.tap-target`) and
+> on the server, not through these constants.
 
 ---
 
@@ -202,11 +206,17 @@ seeing a blanket success.
 - Every permission rule (block, group admin, message ownership) is enforced
   server-side, not just hidden in the UI
 
-**Not fixed — recommended, but out of scope for a no-behaviour-change pass:**
+**Fixed since this report was first written (see section 15):**
 
-- **No rate limiting** on `/api/auth/google` or `/api/upload`. `express-rate-limit`
-  would be roughly ten lines and is the single highest-value security addition.
+- ~~No rate limiting on auth endpoints~~ — `express-rate-limit` is now applied
+  to every route in `routes/auth.js`, tiered by sensitivity.
+- ~~No CSRF protection~~ — double-submit cookie middleware now guards every
+  mutating request (`middleware/csrf.js`).
+
+**Still not fixed — recommended:**
+
 - **No `helmet`** for security headers.
+- **No rate limiting on `/api/upload`** specifically — only the auth routes are covered.
 - The screenshot endpoint has a 5-second dedupe but no hard per-user cap.
 
 ---
@@ -255,15 +265,75 @@ message, and press Android Back inside a chat. That exercises every layer.
 
 In the order I would actually do them:
 
-1. **Run `test-api.js`** and extend it to cover reply, forward and delete-for-me.
-2. **Rate limiting + helmet** on the server (~15 lines, real security gain).
+1. **Run `test-api.js`** and extend it to cover reply, forward, delete-for-me,
+   and the newer auth endpoints (`register`, `login`, `set-password`,
+   `reset-password`, `check-email`, `google-check` — none of these are covered yet).
+2. **`helmet`** for security headers (~5 lines, rate limiting and CSRF are
+   already done — see section 15).
 3. **TypeScript**, incrementally — start with `api/` and `constants/`, where
    types pay off immediately and the risk is lowest.
 4. **Message pagination.** The 100-message cap is a silent truncation today; an
    older-messages loader would fix it.
 5. **Socket.IO Redis adapter**, needed the moment there is more than one server
    process.
-6. **ESLint + Prettier** with a pre-commit hook, so formatting stops being a
-   manual concern.
+6. ~~ESLint~~ — done, see section 15. **Prettier** with a pre-commit hook is
+   still open, so formatting stops being a manual concern.
 7. **Component tests** for the tricky hooks — `useBackGuard` and
    `useVisualViewport` have subtle logic that deserves protection.
+
+---
+
+## 15. August 2026 — auth system, CSRF/rate-limiting, and an ESLint cleanup pass
+
+Two separate pieces of work, done later than the rest of this report.
+
+### Auth system additions
+
+The app went from Google-only to a hybrid system: Google OAuth, a normal
+username + email + password account, "forgot password", and set-password for
+Google-only accounts wanting a password. Full explanation, including the two
+non-obvious design decisions (using Google as an email-ownership check without
+an email service, and the CSRF double-submit cookie), is in
+**[PROJECT_EXPLANATION.md](PROJECT_EXPLANATION.md) section 4** rather than
+duplicated here.
+
+New files: `server/middleware/csrf.js`, `server/middleware/rateLimit.js`,
+`server/utils/validatePassword.js`, `client/src/pages/Signup.jsx`,
+`client/src/pages/ForgotPassword.jsx`, `client/src/pages/CreatePassword.jsx`,
+`client/src/components/ui/PasswordChecklist.jsx`,
+`client/src/hooks/ui/usePasswordRules.js`.
+
+### ESLint audit and cleanup
+
+`client/eslint.config.js` did not exist before this pass — it was added from
+scratch (flat config, `eslint-plugin-react-hooks` pinned to the stable v5 line,
+not the v7 line which ships experimental "React Compiler" rules that flag
+deliberate, correct patterns like syncing a ref during render as errors).
+
+A full read-only audit (files, exports, imports, dead code, debug leftovers,
+npm dependencies, CSS classes, assets) found the codebase already clean — only
+3 truly dead constants (see section 6). Running the new ESLint config then
+found 15 real warnings, all fixed properly rather than suppressed:
+
+- 2 unused function parameters removed
+- 1 actual bug: `Signup.jsx` form fields had lost `disabled={busy}` during an
+  earlier edit, so they didn't disable while a Google popup was in progress
+- `PasswordChecklist.jsx` split into a pure component + `usePasswordRules.js`
+  hook, fixing a Fast Refresh warning by matching the existing `hooks/ui/`
+  convention rather than suppressing the rule
+- 6 `react-hooks/exhaustive-deps` warnings, all traced to the same root cause:
+  `useToast()` returns a new `{ error, info, setError, setInfo }` object every
+  render, so effects that used `toast.setError` looked unstable to ESLint even
+  though `setError` itself (a `useState` setter) never changes identity. Fixed
+  by destructuring `setError`/`setInfo` out of `toast` once per hook and
+  depending on those instead of the whole object — zero suppressions needed
+- 1 deliberate exception, with an inline comment explaining why: `useMessages.js`
+  intentionally does not depend on the full `selectedUser` object in its
+  message-loading effect, because that object's identity changes whenever
+  *anyone's* online status changes (it's derived from a list that includes
+  presence), and blindly satisfying the rule would reload messages on every
+  such change — this is the one case in the whole audit that used
+  `eslint-disable-next-line`, and only after confirming the "correct" fix
+  would introduce a real bug
+
+`npm run lint` → 0 warnings, 0 errors. `npm run build` still passes.

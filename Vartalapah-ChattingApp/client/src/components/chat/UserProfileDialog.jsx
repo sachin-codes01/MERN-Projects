@@ -8,6 +8,7 @@ import { lastSeenText } from '@/utils/format.js'
 import { useBackGuard } from '@/hooks/ui/useBackGuard.js'
 import { useIsMobile } from '@/hooks/ui/useMediaQuery.js'
 import { BRAND } from '@/constants/theme.js'
+import UserIdentity from '@/components/ui/UserIdentity.jsx'
 
 // ==========================================================
 // USER PROFILE DIALOG
@@ -44,12 +45,14 @@ const UserProfileDialog = ({ user, onClose, onBlockToggle, onUnsendAll }) => {
             {user?.name[0]}
           </Avatar>
 
-          <h3 className="text-lg font-semibold mt-2 text-center">{user?.name}</h3>
-
           {/* Deleted account ka email dikhane ka koi matlab nahi */}
-          {!user?.isDeleted && (
-            <p className="plain-text text-sm text-app-muted break-all text-center">{user?.email}</p>
-          )}
+          <UserIdentity
+            name={user?.name}
+            email={!user?.isDeleted ? user?.email : ''}
+            align="center"
+            size="lg"
+            className="mt-2"
+          />
 
           <p className={`text-sm mt-1 ${user?.isOnline ? 'text-green-400' : 'text-app-muted'}`}>
             {user?.isDeleted

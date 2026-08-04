@@ -28,6 +28,14 @@ export const useMessages = ({
   loadConversations,
   toast,
 }) => {
+  // toast har render par NAYA object hota hai (useToast.js dekho), lekin
+  // setError/setInfo khud React ke useState setters hain - unki identity
+  // KABHI nahi badalti. Inhe yahan seedha nikaal lete hain taaki useEffect
+  // ki dependency list me "toast" ki jagah inhi stable functions ko likha
+  // ja sake - warna exhaustive-deps ya to warning deta, ya "toast" jodne se
+  // effect har render par dobara chalta
+  const { setError, setInfo } = toast
+
   const [messages, setMessages] = useState([])
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [sending, setSending] = useState(false)
@@ -48,6 +56,7 @@ export const useMessages = ({
   // Typing event bar-bar na jaye, iske liye
   const typingTimerRef = useRef(null)
   const typingSentRef = useRef(false)
+  const typingTargetRef = useRef(null) // { receiverId } ya { groupId } - kisko aakhri baar bheja tha
 
   // ==========================================================
   // SCROLL
@@ -151,14 +160,21 @@ export const useMessages = ({
           )
         }
       } catch (err) {
-        toast.setError(err.message)
+        setError(err.message)
       } finally {
         setLoadingMessages(false)
       }
     }
 
     loadMessages()
-  }, [selectedId, selectedUser?.isGroup, loadingUsers])
+    // selectedUser (poora object) jaan-boojhkar deps me nahi hai - sirf
+    // uska .isGroup rakha hai. Wajah: selectedUser Chat.jsx me har render
+    // par allRows.find() se aata hai, aur allRows kisi ke bhi online/offline
+    // hote hi badal jata hai - selectedUser ko poora dep bana dete to ye
+    // effect har baar messages DOBARA load karta jab kisi ka bhi presence
+    // badalta, chahe khuli hui chat se koi lena-dena na ho
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, selectedUser?.isGroup, loadingUsers, selectedRef, setGroups, setConversations, setError])
 
   // Nayi chat kholi - hamesha sabse neeche se shuru, aur purani chat ka
   // reply/edit saaf
@@ -203,7 +219,7 @@ export const useMessages = ({
     if (!el) {
       // Bahut purana message ho sakta hai jo abhi load nahi hua (hum
       // aakhri 100 hi laate hain) - jhooth mat bolo, saaf bata do
-      toast.setInfo('Original message is not loaded')
+      setInfo('Original message is not loaded')
       return
     }
 
@@ -211,17 +227,31 @@ export const useMessages = ({
     setHighlightId(id)
 
     setTimeout(() => setHighlightId((current) => (current === id ? null : current)), MESSAGE_HIGHLIGHT_MS)
-  }, [toast])
+  }, [setInfo])
 
   // ==========================================================
   // TYPING
   // ==========================================================
   const handleTextChange = (e) => {
-    setText(e.target.value)
+    const value = e.target.value
+    setText(value)
 
     if (!socket || !selectedId) return
 
     const target = selectedUser?.isGroup ? { groupId: selectedId } : { receiverId: selectedId }
+    typingTargetRef.current = target
+
+    // Input khali kar diya - turant "stop typing" bhejo, 1 second ka
+    // wait mat karo. Warna khali box dikhne ke baad bhi "typing..." kuch
+    // der saamne wale ko dikhta rehta
+    if (!value.trim()) {
+      clearTimeout(typingTimerRef.current)
+      if (typingSentRef.current) {
+        socket.emit('stop-typing', target)
+        typingSentRef.current = false
+      }
+      return
+    }
 
     // Har keystroke par event bhejne ki zarurat nahi - ek baar bhej do
     if (!typingSentRef.current) {
@@ -229,13 +259,28 @@ export const useMessages = ({
       typingSentRef.current = true
     }
 
-    // 1.5 second tak kuch na type kiya to "stop typing" bhej do
+    // Itni der tak kuch na type kiya to "stop typing" bhej do
     clearTimeout(typingTimerRef.current)
     typingTimerRef.current = setTimeout(() => {
       socket.emit('stop-typing', target)
       typingSentRef.current = false
     }, TYPING_IDLE_MS)
   }
+
+  // Chat badli (ya poora component hi hat gaya) - purani chat ko "stop
+  // typing" bata do. Warna dusri chat par chale jao aur udhar kuch type
+  // kar do to purani chat wale ko hamesha ke liye "typing..." dikhta reh
+  // jata, kyunki uska timeout kabhi chala hi nahi (naye selectedId ka
+  // naya timer ban chuka hota hai)
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimerRef.current)
+      if (typingSentRef.current && socket && typingTargetRef.current) {
+        socket.emit('stop-typing', typingTargetRef.current)
+        typingSentRef.current = false
+      }
+    }
+  }, [selectedId, socket])
 
   // ==========================================================
   // MEDIA
@@ -249,7 +294,7 @@ export const useMessages = ({
 
     const result = await validateMediaFile(file)
 
-    if (!result.ok) toast.setError(result.error)
+    if (!result.ok) setError(result.error)
     else setMedia(result)
   }
 
@@ -356,7 +401,7 @@ export const useMessages = ({
       typingSentRef.current = false
       socket?.emit('stop-typing', isGroup ? { groupId: selectedId } : { receiverId: selectedId })
     } catch (err) {
-      toast.setError(err.message)
+      setError(err.message)
     } finally {
       setSending(false)
       setUploading(false)
@@ -445,7 +490,7 @@ export const useMessages = ({
   const saveEdit = async () => {
     const trimmed = text.trim()
     if (!trimmed) {
-      toast.setError('Message cannot be empty')
+      setError('Message cannot be empty')
       return
     }
 
@@ -454,9 +499,9 @@ export const useMessages = ({
       const data = await messageApi.edit(editingId, trimmed)
       setMessages((prev) => prev.map((m) => (m._id === editingId ? data.message : m)))
       cancelEdit()
-      toast.setInfo('Message updated')
+      setInfo('Message updated')
     } catch (err) {
-      toast.setError(err.message)
+      setError(err.message)
     } finally {
       setSending(false)
     }
@@ -471,7 +516,7 @@ export const useMessages = ({
       if (replyTo?._id === msg._id) setReplyTo(null)
       loadConversations()
     } catch (err) {
-      toast.setError(err.message)
+      setError(err.message)
     }
   }
 
@@ -482,9 +527,9 @@ export const useMessages = ({
       setMessages((prev) => prev.filter((m) => m._id !== msg._id))
       if (replyTo?._id === msg._id) setReplyTo(null)
       loadConversations()
-      toast.setInfo('Deleted for you')
+      setInfo('Deleted for you')
     } catch (err) {
-      toast.setError(err.message)
+      setError(err.message)
     }
   }
 
@@ -507,9 +552,9 @@ export const useMessages = ({
       if (!navigator.clipboard) throw new Error('no clipboard')
 
       await navigator.clipboard.writeText(value)
-      toast.setInfo('Copied')
+      setInfo('Copied')
     } catch {
-      toast.setError('Could not copy')
+      setError('Could not copy')
     }
   }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Checkbox, InputBase } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import ChatAvatar from '@/components/ui/ChatAvatar.jsx'
+import UserIdentity from '@/components/ui/UserIdentity.jsx'
 import { fieldSx } from '@/styles/muiStyles.js'
 
 // ==========================================================
@@ -75,10 +76,7 @@ const MemberPicker = ({ people, selected, onToggle }) => {
 
             <ChatAvatar user={person} size={30} />
 
-            <div className="min-w-0">
-              <p className="text-sm truncate">{person.name}</p>
-              <p className="plain-text text-[11px] text-app-muted truncate">{person.email}</p>
-            </div>
+            <UserIdentity name={person.name} email={person.email} />
           </label>
         ))}
       </div>

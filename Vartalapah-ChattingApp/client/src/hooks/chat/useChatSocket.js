@@ -33,6 +33,11 @@ export const useChatSocket = ({
   loadConversations,
   toast,
 }) => {
+  // toast har render par NAYA object hota hai, lekin setInfo khud ek
+  // React useState setter hai - uski identity kabhi nahi badalti.
+  // Isliye deps array me "toast" ki jagah isi stable setInfo ko rakhte hain
+  const { setInfo } = toast
+
   useEffect(() => {
     if (!socket) return
 
@@ -107,7 +112,7 @@ export const useChatSocket = ({
     // ---------- GROUP EVENTS ----------
     const onGroupCreated = (group) => {
       setGroups((prev) => (prev.some((g) => g._id === group._id) ? prev : [...prev, group]))
-      toast.setInfo(`You were added to "${group.name}"`)
+      setInfo(`You were added to "${group.name}"`)
     }
 
     const onGroupUpdated = (group) => {
@@ -147,10 +152,13 @@ export const useChatSocket = ({
       setMessages((prev) => prev.map((m) => (m.sender === me._id ? { ...m, isRead: true } : m)))
     }
 
-    // Group me typing par naam dikhate hain, private me sirf "typing..."
+    // Group me typing par naam + avatar dikhate hain (isliye id bhi
+    // rakhte hain - ChatWindow.jsx usi id se group.members me se sahi
+    // banda dhoondhkar uski photo lagata hai), private me sirf "typing..."
+    // aur user ki apni photo (wo to already props me hai)
     const onTyping = ({ userId, userName, groupId }) => {
       if (groupId) {
-        if (groupId === selectedIdRef.current) setTypingUserId(userName || 'Someone')
+        if (groupId === selectedIdRef.current) setTypingUserId({ id: userId, name: userName || 'Someone' })
       } else if (userId === selectedIdRef.current) {
         setTypingUserId(true)
       }
@@ -190,5 +198,17 @@ export const useChatSocket = ({
       socket.off('group-updated', onGroupUpdated)
       socket.off('group-removed', onGroupRemoved)
     }
-  }, [socket, me._id, refreshUsers])
+  }, [
+    socket,
+    me._id,
+    refreshUsers,
+    selectedIdRef,
+    setSelectedId,
+    setMessages,
+    setGroups,
+    setConversations,
+    setTypingUserId,
+    loadConversations,
+    setInfo,
+  ])
 }

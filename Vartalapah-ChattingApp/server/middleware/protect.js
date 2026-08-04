@@ -24,8 +24,11 @@ const protect = async (req, res, next) => {
     // Token verify karo - agar kisi ne token se chhed-chhad ki hogi to yahan error aayega
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
-    // Token me sirf id thi, ab poora user database se laate hain
-    const user = await User.findById(decoded.id)
+    // Token me sirf id thi, ab poora user database se laate hain.
+    // password schema me select:false hai (default query me nahi aata) -
+    // +password se jaan-boojhkar mangwate hain, kyunki publicUser() isse
+    // dekhkar hi decide karta hai ki "needsPassword" true hai ya false
+    const user = await User.findById(decoded.id).select('+password')
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found' })
     }

@@ -3,6 +3,12 @@
 Do external services chahiye: **Google** (login ke liye) aur **Cloudinary** (photo/video store karne ke liye).
 Dono bilkul free hain, credit card nahi maangte.
 
+> **Google Client ID ab sirf "Sign in with Google" button ke liye nahi chahiye.**
+> Username + password se signup karte waqt, aur "Forgot password" karte waqt bhi
+> email ki malikiyat isi Google se verify hoti hai (koi email/SMS service nahi
+> hai project me) - isliye Part 1 skip mat karna, chahe tum sirf password wala
+> login banana chahte ho.
+
 ---
 
 ## Part 1 — Google Client ID
@@ -17,9 +23,9 @@ Apne Gmail se login karo. Pehli baar ho to Terms accept karna padega.
 
 - Upar left me project dropdown (Google Cloud ke bagal me) par click karo
 - **New Project**
-- Name: `InstaChats`
+- Name: `Vartalapah`
 - **Create** → 10-15 second lagenge
-- Ban jane ke baad usi dropdown se **InstaChats select karo** (ye step log bhool jate hain)
+- Ban jane ke baad usi dropdown se **Vartalapah select karo** (ye step log bhool jate hain)
 
 ### Step 3: OAuth consent screen setup
 
@@ -32,7 +38,7 @@ Bharna kya hai:
 
 | Field | Value |
 |---|---|
-| App name | `InstaChats` |
+| App name | `Vartalapah` |
 | User support email | apna Gmail |
 | Audience / User Type | **External** |
 | Developer contact email | apna Gmail |
@@ -56,7 +62,7 @@ Left menu → **Credentials** (ya **Clients** tab)
 
 - **+ Create Credentials** → **OAuth client ID**
 - Application type: **Web application**
-- Name: `InstaChats Web`
+- Name: `Vartalapah Web`
 
 **Authorized JavaScript origins** — **+ Add URI** dabakar ye dono daalo:
 
@@ -158,7 +164,7 @@ http://localhost:5000/api/health
 `"database":"connected"` aana chahiye.
 
 Login test: `http://localhost:5173` → Login → Google → chat khul jaye.
-Phir MongoDB Compass me `instachats` → `users` collection me apna account dikhega.
+Phir MongoDB Compass me apne `MONGO_URI` wale database (naam `.env` ki connection string ke aakhir me hai, jaise `vartalapah-chatting-webapp`) ke andar `users` collection me apna account dikhega.
 
 ---
 
@@ -166,7 +172,7 @@ Phir MongoDB Compass me `instachats` → `users` collection me apna account dikh
 
 | Error | Kya karna hai |
 |---|---|
-| `Access blocked: InstaChats has not completed verification` | Step 4 miss hua — apna email Test Users me add karo |
+| `Access blocked: Vartalapah has not completed verification` | Step 4 miss hua — apna email Test Users me add karo |
 | `redirect_uri_mismatch` | JavaScript origins me `http://localhost:5173` daalo (`https` nahi, slash bina) |
 | `The given origin is not allowed for the given client ID` | Origin add karne ke baad 2-3 minute lagte hain. Wait karo, phir hard refresh (Ctrl+Shift+R) |
 | Google button dikh hi nahi raha | `client/.env` me Client ID khali hai, ya dev server restart nahi kiya |

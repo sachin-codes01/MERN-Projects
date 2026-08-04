@@ -67,7 +67,7 @@ const Home = () => {
         <UseCasesSection />
         <TestimonialsSection />
         <FaqSection />
-        <Footer user={user} goTo={goTo} />
+        <Footer goTo={goTo} />
       </div>
     </ClickSpark>
   )

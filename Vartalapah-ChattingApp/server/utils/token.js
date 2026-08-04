@@ -40,19 +40,35 @@ const cookieOptions = {
 
 // JWT token banane ka function
 // Token ke andar sirf user ki id daalte hain, koi sensitive data nahi
-const createToken = (userId) =>
-  jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' })
+//
+// expiresIn default 7 din hai. "Remember me" wale login (routes/auth.js)
+// isse 30d bhejte hain - baaki sab jagah default hi chalta hai
+const createToken = (userId, expiresIn = '7d') =>
+  jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn })
+
+// createToken ke expiresIn se cookie ki maxAge bhi match honi chahiye,
+// warna cookie token se pehle hi expire ho jayegi (ya ulta, token expire
+// ho chuke hoga lekin cookie abhi bhi browser me padi rahegi)
+const cookieOptionsFor = (maxAgeMs = cookieOptions.maxAge) => ({
+  ...cookieOptions,
+  maxAge: maxAgeMs,
+})
 
 // Frontend ko bhejne se pehle user ka safe version banate hain
 // Yahan se aage chalkar koi private field nikalna ho to ek hi jagah change karna padega
+//
+// needsPassword: password abhi tak bana hi nahi (Google se pehli baar aaya
+// user). Frontend isse dekhkar seedha "Create Password" screen kholta hai
 const publicUser = (user) => ({
   _id: user._id,
   name: user.name,
+  username: user.username || null,
   email: user.email,
   profileImage: user.profileImage,
   isOnline: user.isOnline,
   lastSeen: user.lastSeen,
   createdAt: user.createdAt,
+  needsPassword: !user.password,
 })
 
-module.exports = { COOKIE_NAME, cookieOptions, createToken, publicUser }
+module.exports = { COOKIE_NAME, cookieOptions, cookieOptionsFor, createToken, publicUser }

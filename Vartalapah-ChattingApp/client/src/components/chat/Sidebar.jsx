@@ -13,6 +13,7 @@ import { timeOf, previewOf } from '@/utils/format.js'
 import { fieldSx, dividerSx } from '@/styles/muiStyles.js'
 import { useLongPress } from '@/hooks/ui/useLongPress.js'
 import ChatAvatar from '@/components/ui/ChatAvatar.jsx'
+import UserIdentity from '@/components/ui/UserIdentity.jsx'
 import BottomNav from './BottomNav.jsx'
 import ProfilePanel from './ProfilePanel.jsx'
 
@@ -111,6 +112,11 @@ const ChatRow = memo(({ row, isSelected, onOpen, onMenu }) => {
               ? 'Account deleted'
               : row.isGroup && !row.lastMessage
               ? `${row.members.length} members`
+              : // Koi conversation abhi shuru hi nahi hui - "Tap to start
+                // chatting" jaisa khaali placeholder dikhane se behtar hai
+                // email dikha do, kaam ki jaankari hai
+                !row.isGroup && !row.lastMessage && row.email
+              ? row.email
               : previewOf(row.lastMessage)}
           </p>
 
@@ -353,10 +359,7 @@ const Sidebar = ({
             DUSRE logon ke liye hai (chat rows me already hai) */}
         <ChatAvatar user={me} size={40} />
 
-        <div className="min-w-0">
-          <p className="text-sm font-semibold truncate">{me.name}</p>
-          <p className="plain-text text-xs text-app-muted truncate">{me.email}</p>
-        </div>
+        <UserIdentity name={me.name} email={me.email} />
       </button>
 
       {/* ---------- BOTTOM NAV (sirf mobile) ----------
