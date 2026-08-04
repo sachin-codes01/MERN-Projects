@@ -14,48 +14,77 @@ import { useEffect, useRef } from 'react'
 // usi nakli entry ko hatata hai, website band nahi hoti - aur hum
 // popstate sunkar us cheez ko band kar dete hain.
 //
-// Isse Chats page par back apne aap website band kar dega, kyunki wahan
-// koi nakli entry hai hi nahi. Bilkul wahi behaviour jo maanga gaya tha.
+// ---- DEPTH-RECONCILE DESIGN ----
+// Purana code har guard ko apna push/back khud chalane deta tha. Us se
+// ek real bug tha: "Unsend" dabane par EK hi click me ActionSheet band
+// (jo khud history.back() chalata - ASYNC) aur ConfirmDialog khulta
+// (jo khud pushState() chalata - SYNC) hota tha. back() ka result
+// baad me aata hai, isliye pushState purani (abhi tak na hati) entry
+// ke UPAR chadh jata - history stack tut jata, aur Unsend/back dono
+// kabhi kabhi kuch nahi karte (isi wajah se image viewer se back karne
+// par kabhi kabhi Profile tab khul jata tha - dono ek hi root cause).
 //
-// ---- Ek peech jise samajhna zaroori hai ----
-// Cheez do tarah se band ho sakti hai:
-//   (a) BACK dabane se     -> entry pehle hi hat chuki hai, kuch mat karo
-//   (b) Button/backdrop se -> entry abhi history me padi hai, use hatao
-//
-// (b) me hum khud history.back() chalate hain. Us se ek popstate event
-// aata hai jo BAAHAR wale guard (jaise khuli hui chat) ko galti se band
-// kar deta. Isliye ek chhota sa "suppress" flag rakha hai jo sirf usi
-// ek event ke liye sab guards ko chup kara deta hai
+// Naya tarika: kaun sa layer khula/band hua uska hisaab EK JS array me
+// rakhte hain (activeLayers). History ko chhedte nahi turant - ek
+// microtask tak ruk kar sirf AAKHRI (net) girti-chadhti depth ke
+// hisaab se ek hi baar history badalte hain. Isliye upar wala example
+// me ActionSheet hatna aur ConfirmDialog aana - dono milakar depth
+// 1 -> 1 hi rehti hai, to history ko haath hi nahi lagta. Koi race nahi
 // ==========================================================
 
-// Poori app me ek hi - isliye module level par hai, kisi component me nahi
-let suppressNextPop = false
+// Poori app ke saare khule "layers" (sheet/dialog/viewer/chat) - jis
+// order me khule usi order me hain
+let activeLayers = []
+let nextId = 0
+let reconcileScheduled = false
 
-// Har guard ki apni pehchaan, taaki wo bata sake ki history me sabse upar
-// uski hi entry hai ya nahi
-let guardSeq = 0
+// history.pushState/go turant nahi, ek microtask baad chalate hain -
+// taaki ek hi React commit ke andar ke saare open/close (band + khulna
+// ek saath) pehle activeLayers me jud/hat jayein, aur history sirf
+// AAKHRI (net) result dekhe
+const scheduleReconcile = () => {
+  if (reconcileScheduled) return
+  reconcileScheduled = true
 
-// Apni daali hui entry hatana - lekin is se aane wale popstate ko
-// baaki guards tak nahi pahunchne dena
-const popOwnEntry = () => {
-  suppressNextPop = true
+  queueMicrotask(() => {
+    reconcileScheduled = false
+    reconcile()
+  })
+}
 
-  // Ye listener SABSE AAKHIR me juda hai, isliye usi popstate par baaki
-  // saare handlers ke BAAD chalta hai - tab tak flag apna kaam kar chuka
-  // hota hai. Phir khud ko hata deta hai
-  const release = () => {
-    suppressNextPop = false
-    window.removeEventListener('popstate', release)
-    clearTimeout(failsafe)
+const reconcile = () => {
+  const desired = activeLayers.length
+  const current = window.history.state?.__navDepth || 0
+
+  if (desired === current) return // net me kuch nahi badla - history ko chhuo hi mat
+
+  if (desired > current) {
+    // Har naye level ki apni entry - taaki back button EK-EK karke
+    // band kare, sabko ek saath nahi
+    for (let depth = current + 1; depth <= desired; depth++) {
+      window.history.pushState({ ...window.history.state, __navDepth: depth }, '')
+    }
+  } else {
+    // UI se (button/backdrop) band hua hai - utni hi entries wapas
+    window.history.go(desired - current)
   }
+}
 
-  // Agar history me peeche jaane ko kuch bacha hi nahi (browser kuch nahi
-  // karta, popstate aata hi nahi) to flag hamesha ke liye atak jata.
-  // Ye timer usse bachata hai
-  const failsafe = setTimeout(release, 400)
+// Hardware/browser ka BACK - poori app me EK hi listener, kisi ek
+// guard ka nahi. history.state already browser ne update kar diya
+// hota hai jab tak ye event chalta hai, isliye "asli depth" wahi se milti hai
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    const realDepth = window.history.state?.__navDepth || 0
 
-  window.addEventListener('popstate', release)
-  window.history.back()
+    // Jitni layers zyada khuli hain asli depth se, sabse UPAR wali
+    // (sabse baad me khuli) ko band karte jao - LIFO
+    while (activeLayers.length > realDepth) {
+      const top = activeLayers[activeLayers.length - 1]
+      activeLayers = activeLayers.slice(0, -1)
+      top.onBackRef.current?.()
+    }
+  })
 }
 
 // ==========================================================
@@ -69,26 +98,15 @@ export const useBackGuard = (active, onBack) => {
   useEffect(() => {
     if (!active) return
 
-    const id = ++guardSeq
-
-    // Nakli entry. URL bilkul wahi rehta hai (teesra argument nahi diya) -
-    // sirf history stack me ek kadam judta hai
-    window.history.pushState({ ...window.history.state, __guard: id }, '')
-
-    const handlePop = () => {
-      if (suppressNextPop) return
-      onBackRef.current?.()
-    }
-
-    window.addEventListener('popstate', handlePop)
+    const layer = { id: ++nextId, onBackRef }
+    activeLayers = [...activeLayers, layer]
+    scheduleReconcile()
 
     return () => {
-      window.removeEventListener('popstate', handlePop)
-
-      // Sabse upar meri hi entry hai? Matlab cheez back se nahi, kisi
-      // button/backdrop se band hui - to apni entry khud hatani padegi.
-      // Warna user ko ek "khaali" back dabana padta (kuch hota hi nahi)
-      if (window.history.state?.__guard === id) popOwnEntry()
+      // Back button se pehle hi hat chuki ho sakti hai (popstate
+      // listener ne upar hata di) - filter tab bhi safe hai
+      activeLayers = activeLayers.filter((l) => l.id !== layer.id)
+      scheduleReconcile()
     }
   }, [active])
 }

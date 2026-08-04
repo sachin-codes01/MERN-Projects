@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { messageApi } from '@/api/messageApi.js'
 import { senderIdOf } from '@/utils/format.js'
+import { playNotificationSound } from '@/utils/sound.js'
 
 // ==========================================================
 // useChatSocket - REAL-TIME ka dil
@@ -71,6 +72,11 @@ export const useChatSocket = ({
 
         // Chat khuli hai matlab turant padh liya
         messageApi.markPrivateRead(msg.sender).catch(() => {})
+      } else {
+        // Kisi aur ki chat khuli hai (ya koi bhi nahi) - Chats list me
+        // badge/preview to already update ho raha hai neeche, bas ek
+        // halki si ping bhi de dete hain
+        playNotificationSound()
       }
 
       // Sidebar ka last message aur unread count update karo

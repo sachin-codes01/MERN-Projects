@@ -15,7 +15,7 @@
 // Bahut kam rakhne par indicator har do akshar par jhilmilata hai,
 // bahut zyada rakhne par user type karna band kar chuka hota hai aur
 // dusri taraf "typing..." dikhta rehta hai
-export const TYPING_IDLE_MS = 1500
+export const TYPING_IDLE_MS = 1000
 
 // ---------- SEARCH ----------
 // Har akshar par API call na jaye. 400ms me aadmi agla akshar daba

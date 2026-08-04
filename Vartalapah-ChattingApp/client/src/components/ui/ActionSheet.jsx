@@ -1,6 +1,7 @@
 import { Drawer, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material'
 import { useIsTouch } from '@/hooks/ui/useMediaQuery.js'
 import { useBackGuard } from '@/hooks/ui/useBackGuard.js'
+import { DANGER, BRAND } from '@/constants/theme.js'
 
 // ==========================================================
 // ACTION SHEET
@@ -33,7 +34,9 @@ const ActionSheet = ({ open, onClose, items, anchorPosition, title, ariaLabel = 
   const visibleItems = items.filter(Boolean)
 
   const renderItem = (item, index) => {
-    if (item.divider) return <Divider key={item.key || `divider-${index}`} />
+    if (item.divider) return <Divider key={item.key || `divider-${index}`} sx={{ my: 0.5 }} />
+
+    const tint = item.danger ? DANGER : BRAND.main
 
     return (
       <MenuItem
@@ -46,12 +49,28 @@ const ActionSheet = ({ open, onClose, items, anchorPosition, title, ariaLabel = 
         }}
         sx={{
           // 44px minimum touch target. Mobile par thoda aur khula rakha hai
-          minHeight: isTouch ? 52 : 40,
-          gap: 0.5,
+          minHeight: isTouch ? 56 : 42,
+          gap: 1,
+          mx: isTouch ? 1 : 0,
+          borderRadius: isTouch ? 2.5 : 1.5,
           color: item.danger ? 'error.main' : 'inherit',
+          transition: 'background-color 0.15s ease',
         }}
       >
-        <ListItemIcon sx={{ color: item.danger ? 'error.main' : 'inherit', minWidth: 40 }}>
+        {/* Icon ka apna tinted gol background - danger red, baaki brand violet */}
+        <ListItemIcon
+          sx={{
+            color: tint,
+            minWidth: 38,
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: `${tint}1f`,
+          }}
+        >
           {item.icon}
         </ListItemIcon>
 
@@ -59,7 +78,7 @@ const ActionSheet = ({ open, onClose, items, anchorPosition, title, ariaLabel = 
           primary={item.label}
           secondary={item.subtitle}
           slotProps={{
-            primary: { fontSize: isTouch ? 15 : 14 },
+            primary: { fontSize: isTouch ? 15 : 14, fontWeight: 500 },
             secondary: { fontSize: 12 },
           }}
         />
@@ -74,19 +93,28 @@ const ActionSheet = ({ open, onClose, items, anchorPosition, title, ariaLabel = 
         anchor="bottom"
         open={open}
         onClose={onClose}
+        transitionDuration={{ enter: 260, exit: 200 }}
         // Sheet ke andar focus rehna chahiye (screen reader + keyboard)
         slotProps={{
           paper: {
             role: 'menu',
             'aria-label': ariaLabel,
             sx: {
-              borderTopLeftRadius: 18,
-              borderTopRightRadius: 18,
+              borderTopLeftRadius: 22,
+              borderTopRightRadius: 22,
               // Gesture bar / home indicator ke upar hi rukna hai
               pb: 'calc(var(--safe-bottom) + 8px)',
               // Bahut lambi list par sheet poori screen na khaye
               maxHeight: '80vh',
               backgroundImage: 'none',
+            },
+          },
+          // Peeche ka background blur - background me kya hai wo dhundhla
+          // dikhta hai, dhyan poora sheet par chala jata hai
+          backdrop: {
+            sx: {
+              backdropFilter: 'blur(4px)',
+              backgroundColor: 'rgba(0,0,0,0.45)',
             },
           },
         }}

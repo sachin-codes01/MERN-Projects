@@ -50,7 +50,7 @@ const BottomNav = ({ tab, onChange, counts, me }) => (
     className="md:hidden shrink-0 bg-app-panel border-t border-app-border px-safe"
     style={{ paddingBottom: 'var(--safe-bottom)' }}
   >
-    <div className="flex items-stretch">
+    <div className="flex items-stretch gap-1 px-2 py-1.5">
       {NAV_ITEMS.map(({ key, label, Icon, ActiveIcon }) => {
         const active = tab === key
         const count = counts?.[key] || 0
@@ -64,10 +64,11 @@ const BottomNav = ({ tab, onChange, counts, me }) => (
             // aria-current screen reader ko batata hai ki abhi kaunsa khula hai
             aria-current={active ? 'page' : undefined}
             aria-label={count > 0 ? `${label}, ${count} new` : label}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 no-tap-flash transition-colors ${
-              active ? 'text-brand-light' : 'text-app-muted'
+            className={`nav-tab-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-2xl no-tap-flash transition-all duration-200 active:scale-90 ${
+              active
+                ? 'brand-gradient text-white shadow-[0_4px_16px_-2px_rgba(139,92,246,0.55)]'
+                : 'text-app-muted hover:text-app-text hover:bg-app-hover'
             }`}
-            // 44px minimum - guideline ke hisaab se
             style={{ minHeight: 52 }}
           >
             <Badge
@@ -76,10 +77,14 @@ const BottomNav = ({ tab, onChange, counts, me }) => (
               overlap="circular"
               sx={{ '& .MuiBadge-badge': { fontSize: 9, height: 16, minWidth: 16 } }}
             >
-              <ShownIcon sx={{ fontSize: 22 }} />
+              <ShownIcon
+                key={active ? `${key}-active` : key}
+                className={active ? 'nav-icon-pop' : ''}
+                sx={{ fontSize: 22 }}
+              />
             </Badge>
 
-            <span className="text-[10px] font-medium leading-none">{label}</span>
+            <span className="text-[10px] font-semibold leading-none">{label}</span>
           </button>
         )
       })}
@@ -90,24 +95,27 @@ const BottomNav = ({ tab, onChange, counts, me }) => (
         onClick={() => onChange('profile')}
         aria-current={tab === 'profile' ? 'page' : undefined}
         aria-label="Profile"
-        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 no-tap-flash transition-colors ${
-          tab === 'profile' ? 'text-brand-light' : 'text-app-muted'
+        className={`nav-tab-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-2xl no-tap-flash transition-all duration-200 active:scale-90 ${
+          tab === 'profile'
+            ? 'brand-gradient text-white shadow-[0_4px_16px_-2px_rgba(139,92,246,0.55)]'
+            : 'text-app-muted hover:text-app-text hover:bg-app-hover'
         }`}
         style={{ minHeight: 52 }}
       >
         <Avatar
           src={me.profileImage}
+          className={tab === 'profile' ? 'nav-icon-pop' : ''}
           sx={{
             width: 22, height: 22, fontSize: 11, bgcolor: BRAND.light,
-            // Active tab par photo ke chaaron taraf halka sa ring
-            outline: tab === 'profile' ? '2px solid currentColor' : 'none',
+            // Active tab par photo ke chaaron taraf glow wala ring
+            outline: tab === 'profile' ? '2px solid white' : 'none',
             outlineOffset: 1,
           }}
         >
           {me.name[0]}
         </Avatar>
 
-        <span className="text-[10px] font-medium leading-none">Profile</span>
+        <span className="text-[10px] font-semibold leading-none">Profile</span>
       </button>
     </div>
   </nav>

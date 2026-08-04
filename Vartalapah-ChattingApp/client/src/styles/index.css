@@ -14,7 +14,7 @@
    ========================================================== */
 @font-face {
   font-family: "Cyrene";
-  src: url("./assets/Cyrene-Regular.otf") format("opentype");
+  src: url("../assets/Cyrene-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -22,7 +22,7 @@
 
 @font-face {
   font-family: "Belgium";
-  src: url("./assets/Belgium-Regular.otf") format("opentype");
+  src: url("../assets/Belgium-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -30,7 +30,7 @@
 
 @font-face {
   font-family: "Belgium";
-  src: url("./assets/Belgium-Italic.otf") format("opentype");
+  src: url("../assets/Belgium-Italic.otf") format("opentype");
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -572,6 +572,24 @@ html.app-locked body {
   border-radius: 1rem;
 }
 
+/* Bottom nav ka icon active hote hi halka sa "pop" karta hai -
+   WhatsApp/Instagram jaise apps me active tab ka icon aise hi uchalta hai */
+@keyframes nav-icon-pop {
+  0% {
+    transform: scale(0.85);
+  }
+  55% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.nav-icon-pop {
+  animation: nav-icon-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell,
   .media-img-animated {
@@ -579,6 +597,10 @@ html.app-locked body {
   }
 
   .msg-highlight {
+    animation: none;
+  }
+
+  .nav-icon-pop {
     animation: none;
   }
 }
