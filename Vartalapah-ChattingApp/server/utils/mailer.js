@@ -23,16 +23,54 @@ const SMTP_PASS = process.env.SMTP_PASS || ''
 // sirf apne hi account se bhejne dete hain, isliye default SMTP_USER hi hai
 const SMTP_FROM = process.env.SMTP_FROM || (SMTP_USER ? `Vartalapah <${SMTP_USER}>` : '')
 
-// Teeno cheezein na hon to mail bhejna possible hi nahi
-const isMailConfigured = Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS)
+// ==========================================================
+// HTTP API WALA RASTA (Brevo) - deployment ke liye zaroori
+//
+// Render ka free plan outbound SMTP ports (25 / 465 / 587) BLOCK karta
+// hai. Isliye localhost par mail turant chala jata hai aur deployed
+// site par wahi code ya to timeout hota hai ya "could not send" deta
+// hai - galti code me nahi, hosting ki policy me hai
+//
+// Iska hal: SMTP ki jagah HTTPS (port 443) par mail bhejo. Brevo ka
+// free plan 300 mail/din deta hai aur bas ek verified sender email
+// mangta hai (apna hi Gmail chalega, domain ki zarurat nahi)
+//
+// BREVO_API_KEY set hai to wahi use hota hai, warna purana SMTP.
+// Localhost par dono me se kuch bhi chalega
+// ==========================================================
+const BREVO_API_KEY = process.env.BREVO_API_KEY || ''
+const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email'
 
-const isProduction = process.env.NODE_ENV === 'production'
+const useHttpApi = Boolean(BREVO_API_KEY)
 
 // "Vartalapah <abc@gmail.com>" me se sirf abc@gmail.com nikalta hai
 const extractAddress = (value) => {
   const match = String(value).match(/<([^>]+)>/)
   return (match ? match[1] : String(value)).trim().toLowerCase()
 }
+
+// Wahi string me se sirf naam ("Vartalapah") nikalta hai
+const extractName = (value) => {
+  const match = String(value).match(/^\s*"?([^"<]*?)"?\s*</)
+  return match ? match[1].trim() : ''
+}
+
+// API wale rraste me sender wahi email hona chahiye jo Brevo me verify
+// kiya hai - SMTP_FROM / SMTP_USER dono me se jo mile
+const FROM_ADDRESS = extractAddress(SMTP_FROM || SMTP_USER)
+const FROM_NAME = extractName(SMTP_FROM) || 'Vartalapah'
+
+// Mail bhejna possible hai ya nahi - dono raston ke apne requirements
+const isMailConfigured = useHttpApi
+  ? Boolean(BREVO_API_KEY && FROM_ADDRESS)
+  : Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS)
+
+// HTTP API ~1 second me poora ho jata hai, SMTP (cold connection par)
+// 20+ second bhi le sakta hai. auth.js isi se tay karta hai ki user ko
+// kitni der rokna hai - detail wahan MAIL_WAIT_MS ke paas likhi hai
+const isFastTransport = useHttpApi
+
+const isProduction = process.env.NODE_ENV === 'production'
 
 // ---- SPAM SE BACHNE KA SABSE BADA NIYAM ----
 // From wali email WAHI honi chahiye jis account se SMTP login kiya hai.
@@ -42,7 +80,9 @@ const extractAddress = (value) => {
 //
 // Isliye startup par hi cheekh kar bata dete hain - warna pata tab
 // chalta jab users "code nahi aaya" bolna shuru karte
-if (isMailConfigured && extractAddress(SMTP_FROM) !== SMTP_USER.trim().toLowerCase()) {
+// (Ye check sirf SMTP ke liye hai - API wale raste me sender ki
+// verification Brevo apne dashboard me karta hai)
+if (!useHttpApi && isMailConfigured && extractAddress(SMTP_FROM) !== SMTP_USER.trim().toLowerCase()) {
   console.warn(
     `[MAIL] Chetavni: SMTP_FROM (${extractAddress(SMTP_FROM)}) aur SMTP_USER (${SMTP_USER}) alag hain.\n` +
     '       Inka same hona zaroori hai, warna mails Spam folder me jayenge.'
@@ -146,6 +186,57 @@ const buildText = ({ heading, line, code, minutes }) =>
   `${heading}\n\n${line}\n\nCode: ${code}\n\nThis code expires in ${minutes} minutes.\nIf you did not request this, you can safely ignore this email.`
 
 // ==========================================================
+// sendViaApi - Brevo ke HTTPS API se mail bhejta hai
+//
+// Yahi wo rasta hai jo Render ke free plan par kaam karta hai, kyunki
+// ye normal HTTPS request hai (port 443) - SMTP ports se koi lena dena
+// nahi. Koi extra npm package nahi chahiye, Node ka apna fetch kaafi hai
+// ==========================================================
+const API_TIMEOUT_MS = 10000
+
+const sendViaApi = async ({ to, subject, text, html }) => {
+  // AbortController: API jawab hi na de to 10 second me haar maan lo -
+  // warna request minute bhar latki rahegi (wahi dikkat jo SMTP me thi)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS)
+
+  try {
+    const res = await fetch(BREVO_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: FROM_NAME, email: FROM_ADDRESS },
+        to: [{ email: to }],
+        replyTo: { email: FROM_ADDRESS },
+        subject,
+        textContent: text,
+        htmlContent: html,
+      }),
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      // Brevo error ka matlab body me hota hai (jaise sender verified
+      // nahi hai) - use uthakar aage phenkte hain, warna logs me sirf
+      // "401" dikhta hai aur kuch samajh nahi aata
+      const detail = await res.text().catch(() => '')
+      throw new Error(`Brevo API ${res.status}: ${detail.slice(0, 300)}`)
+    }
+  } catch (err) {
+    // abort ka error message ("This operation was aborted") kuch batata
+    // nahi - use saaf kar dete hain
+    if (err.name === 'AbortError') throw new Error('Brevo API timed out')
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// ==========================================================
 // sendOtpEmail - OTP wala mail bhejta hai
 //
 // SMTP configure hi nahi hai to:
@@ -170,6 +261,20 @@ const sendOtpEmail = async ({ to, code, purpose, minutes }) => {
   // handshake) me hai ya Gmail ke andar (delivery). Server 1-2 second
   // dikhaye lekin mail 2 minute baad pahunche, to wo Gmail ka hissa hai
   const startedAt = Date.now()
+
+  const body = { ...copy, code, minutes }
+
+  if (useHttpApi) {
+    await sendViaApi({
+      to,
+      subject: copy.subject,
+      text: buildText(body),
+      html: buildHtml(body),
+    })
+
+    console.log(`[MAIL] ${purpose} code -> ${to} (${Date.now() - startedAt}ms, api)`)
+    return
+  }
 
   await getTransporter().sendMail({
     from: SMTP_FROM,
@@ -237,6 +342,13 @@ const warmUpMailer = () => {
     return
   }
 
+  // API wale raste me na pool hai na handshake - har request apne aap
+  // me poori hai. Isliye warm-up/keep-alive ki zarurat hi nahi
+  if (useHttpApi) {
+    console.log(`[OK] Mail via Brevo API: ${FROM_ADDRESS}`)
+    return
+  }
+
   getTransporter().verify()
     .then(() => console.log(`[OK] SMTP ready: ${SMTP_USER}`))
     .catch((err) => console.error(`[MAIL] SMTP login fail: ${err.message}`))
@@ -254,4 +366,4 @@ const warmUpMailer = () => {
   keepAlive.unref()
 }
 
-module.exports = { sendOtpEmail, warmUpMailer, isMailConfigured }
+module.exports = { sendOtpEmail, warmUpMailer, isMailConfigured, isFastTransport }

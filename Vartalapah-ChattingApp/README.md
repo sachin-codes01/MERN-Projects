@@ -16,7 +16,7 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 
 ### Chat
 - Sign in with Google, or create an account with a username, email and password
-- Email ownership is verified with a 6-digit code emailed over SMTP — signup
+- Email ownership is verified with a 6-digit code sent to the address — signup
   and password reset both require repeating that code back, so nobody can
   register or take over an address they do not actually receive mail at
 - Existing Google accounts can add a password later ("Create Password" screen)
@@ -93,13 +93,33 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - MongoDB with Mongoose
 - Socket.IO for real-time messaging, typing and presence
 - Google OAuth verification + JWT session tokens stored in httpOnly cookies
-- Nodemailer over plain SMTP for the emailed verification codes (no paid
-  email service — a pooled, kept-warm connection to any SMTP account)
+- Two interchangeable mail transports for the verification codes, chosen by
+  environment: Nodemailer over plain SMTP (a pooled, kept-warm connection to
+  any SMTP account) for local development, and Brevo's HTTPS API in
+  deployment, where the host blocks outbound SMTP ports. Neither costs money
 - bcryptjs for password hashing
 - express-rate-limit on all auth routes
 - CSRF protection via a custom double-submit-cookie middleware
 - Cloudinary for image and video storage (via Multer + `multer-storage-cloudinary`)
 - REST API with route-level middleware for authentication
+
+### External Services
+
+Every one of these runs on a free tier — the project has no running cost.
+
+| Service | What it does here | Free tier | Configured via |
+|---|---|---|---|
+| [MongoDB Atlas](https://www.mongodb.com/atlas) | Database — users, messages, groups, one-time codes | 512 MB shared cluster | `MONGO_URI`, `DB_NAME` |
+| [Cloudinary](https://cloudinary.com) | Stores images and videos sent in chat | 25 GB storage and bandwidth | `CLOUDINARY_*` |
+| [Google Cloud Console](https://console.cloud.google.com) | OAuth 2.0 Client ID behind "Sign in with Google" | Free | `GOOGLE_CLIENT_ID` (server + client) |
+| Gmail SMTP | Sends the 6-digit verification codes **in local development** | ~500 emails/day | `SMTP_*` + a 16-char App Password |
+| [Brevo](https://www.brevo.com) | Sends the same codes **in deployment**, over HTTPS | 300 emails/day, no card | `BREVO_API_KEY` |
+| [Render](https://render.com) | Hosts the backend (Express + Socket.IO) | Free instance — sleeps after 15 min idle, blocks SMTP ports | Environment tab |
+| [Vercel](https://vercel.com) | Hosts the frontend (built React app) | Free | Project Settings → Environment Variables |
+
+Two of them exist for the same job on purpose: Render's free tier blocks
+outbound SMTP, so Gmail SMTP covers local development and Brevo's HTTPS API
+covers production. See **[SETUP.md](SETUP.md)** Part 3 and Part 3B.
 
 ## Project Structure
 
@@ -138,7 +158,8 @@ Vartalapah-ChattingApp/
     ├── routes/               auth, users, messages, groups, upload
     ├── socket/               Socket.IO auth, rooms, typing, presence
     ├── utils/                Token, password validation, one-time codes,
-    │                         SMTP mailer, relations, group-room helpers
+    │                         mailer (SMTP + Brevo API), relations,
+    │                         group-room helpers
     ├── test-api.js           Automated API test suite
     ├── server.js
     └── .env
@@ -165,6 +186,9 @@ language.
 - An SMTP account for the verification emails — a normal Gmail address with a
   16-character App Password works and costs nothing. Leave it out during local
   development and the codes are printed to the server terminal instead
+- A [Brevo](https://www.brevo.com) account **if you intend to deploy** — its
+  free tier (300 emails/day, no card) provides the HTTPS sending route that
+  works on hosts which block SMTP ports. Not needed to run the app locally
 
 ### 1. Clone the Repository
 
@@ -187,6 +211,7 @@ Create a `.env` file inside the `server` directory:
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
+DB_NAME=vartalapah-chatting-webapp
 JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
 SMTP_HOST=smtp.gmail.com
@@ -194,6 +219,7 @@ SMTP_PORT=465
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_16_char_app_password
 SMTP_FROM=Vartalapah <your_email@gmail.com>
+BREVO_API_KEY=your_brevo_api_key   # required in deployment, optional locally
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
@@ -243,6 +269,7 @@ http://localhost:5173
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
+DB_NAME=vartalapah-chatting-webapp
 JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
 SMTP_HOST=smtp.gmail.com
@@ -250,6 +277,7 @@ SMTP_PORT=465
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_16_char_app_password
 SMTP_FROM=Vartalapah <your_email@gmail.com>
+BREVO_API_KEY=your_brevo_api_key   # required in deployment, optional locally
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
@@ -263,6 +291,13 @@ seconds on a Windows machine with antivirus TLS scanning, versus 1.4 seconds on
 `465`. The SMTP block is optional during local development — leave it empty and
 verification codes are printed to the server terminal instead. See
 **[SETUP.md](SETUP.md)** for generating the Gmail App Password.
+
+`BREVO_API_KEY` selects a different delivery route: when it is set, mail goes out
+over Brevo's HTTPS API instead of SMTP, and the `SMTP_*` credentials are ignored
+(`SMTP_FROM` / `SMTP_USER` is still read, as the sender address). This is not a
+preference — Render's free plan blocks outbound traffic on all SMTP ports (25,
+465, 587), so a deployed instance can only send over HTTPS. Locally either route
+works.
 
 ### Frontend (`client/.env`)
 
@@ -305,7 +340,8 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - `NODE_ENV=production` must be set on Render so the session cookie is issued with `secure: true` and `sameSite: 'none'`, which is what makes cross-domain login work between Vercel and Render.
 - `CLIENT_URL` on Render must match the deployed Vercel URL exactly, since it drives CORS for both the REST API and the Socket.IO connection.
 - The Google Cloud Console OAuth Client must have the deployed frontend URL added under **Authorized JavaScript origins** for Google login to work in production.
-- The `SMTP_*` variables must be set on Render too — `.env` files are not deployed. Without them the server refuses to send verification codes in production (it does not silently fall back to printing them, which is development-only behaviour), so signup and password reset would both break.
+- The mail variables must be set on Render too — `.env` files are not deployed. Without them the server refuses to send verification codes in production (it does not silently fall back to printing them, which is development-only behaviour), so signup and password reset would both break.
+- **`BREVO_API_KEY` is mandatory on Render**, along with `SMTP_FROM` for the sender address. Render's free plan blocks outbound traffic to SMTP ports 25, 465 and 587, so the Nodemailer route that works locally simply times out there — the signup screen would say a code was sent while nothing ever arrives. The Brevo route sends over HTTPS, which is not blocked. `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` can stay unset in production.
 - MongoDB Atlas must allow `0.0.0.0/0` under Network Access, because Render and Vercel do not use fixed outbound IPs.
 
 > The backend runs on Render's free tier, which sleeps after 15 minutes of inactivity. The first request after a sleep can take up to 50 seconds to wake the service.
@@ -315,7 +351,7 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - MERN Stack Architecture
 - Real-time Messaging with Socket.IO Rooms
 - Hybrid Auth — Google OAuth and Username/Password, Same Account Either Way
-- Emailed One-time Codes as Proof of Email Ownership for Signup and Password Reset, over Free SMTP
+- Emailed One-time Codes as Proof of Email Ownership for Signup and Password Reset, over Free SMTP or a Free HTTPS Mail API
 - HMAC-hashed Codes with Expiry, Attempt Limits and Per-address Resend Cooldowns
 - Bcrypt Password Hashing, Never Stored or Returned in Plain Text
 - CSRF Protection via Double-submit Cookie

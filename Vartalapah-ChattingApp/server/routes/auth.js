@@ -7,7 +7,7 @@ const { authLimiter, lookupLimiter, otpLimiter } = require('../middleware/rateLi
 const { issueCsrfCookie, clearCsrfCookie, verifyCsrf } = require('../middleware/csrf')
 const { validatePassword, PASSWORD_REQUIREMENTS_MESSAGE } = require('../utils/validatePassword')
 const { COOKIE_NAME, cookieOptions, cookieOptionsFor, createToken, publicUser } = require('../utils/token')
-const { sendOtpEmail } = require('../utils/mailer')
+const { sendOtpEmail, isFastTransport } = require('../utils/mailer')
 const {
   OTP_TTL_MINUTES, OTP_TTL_MS, OTP_RESEND_COOLDOWN_MS, OTP_RESEND_COOLDOWN_SECONDS, OTP_MAX_ATTEMPTS,
   generateOtp, hashOtp, matchOtp, createVerificationToken, readVerificationToken,
@@ -225,7 +225,16 @@ const OTP_PURPOSES = ['register', 'reset']
 //
 // 3 second itna hai ki normal (warm connection wala) send poora ho
 // jaye - yaani asli SMTP error abhi bhi user tak turant pahunchta hai
-const MAIL_WAIT_MS = 3000
+//
+// LEKIN ye chhota intezaar sirf SMTP ki majboori hai, aur iski keemat
+// hai: mail 3 second ke BAAD fail ho to user ko "code bhej diya" wali
+// screen dikh chuki hoti hai jabki koi mail aaya hi nahi (deployed
+// site par yahi ho raha tha - Render free plan SMTP block karta hai)
+//
+// Brevo API wale raste me send ~1 second ka hai, isliye wahan poora
+// intezaar karte hain aur user ko hamesha sach batate hain. 10 second
+// ki chhat sirf isliye ki API hi latak jaye to request phansi na rahe
+const MAIL_WAIT_MS = isFastTransport ? 10000 : 3000
 
 // ==========================================================
 // POST /api/auth/send-otp

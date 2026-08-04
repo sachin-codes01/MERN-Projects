@@ -173,7 +173,7 @@ lands in that inbox, so repeating it back is proof of ownership.
  1. User fills in username, email, password, confirm password (client-side
     validation only — nothing is created yet)
  2. POST /api/auth/send-otp { email, purpose: 'register' } emails a
-    6-digit code (nodemailer over plain SMTP — see utils/mailer.js)
+    6-digit code (utils/mailer.js — SMTP or an HTTPS mail API, see 4.4)
  3. User types the code -> POST /api/auth/verify-otp
     Backend HMACs the code and compares it to the stored hash. On success
     it deletes the record and returns a signed verificationToken (15 min)
@@ -256,7 +256,7 @@ The cost of cookies is that they need `credentials: 'include'` on every fetch
 and matching CORS settings on the server — that is why `httpClient.js` sets it
 in one place, and why `server.js` sets `cors({ credentials: true })`. It also
 means logins are vulnerable to CSRF unless you explicitly guard against it —
-see section 4.4.
+see section 4.5.
 
 **"How do you stop someone signing up twice with the same email — once via
 Google, once via password?"**
@@ -267,7 +267,54 @@ missing) instead of creating a new one, and password registration is rejected
 outright with "an account with this email already exists". One email, one
 account, no matter which door you came in through.
 
-### 4.4 CSRF protection
+### 4.4 Actually delivering the code — two transports, one forced by the host
+
+Everything above assumes the email arrives. Getting that right turned out to be
+the least obvious part of the feature, because it broke *only* in production.
+
+The original implementation was Nodemailer talking to Gmail's SMTP server on
+port 465, with a pooled connection kept warm by a `verify()` ping every four
+minutes. Locally it delivers a code in under two seconds. Deployed to Render's
+free tier, it never delivered anything.
+
+The reason is not in the code at all: **Render blocks outbound traffic to SMTP
+ports 25, 465 and 587 on free instances** (an anti-spam measure). The server
+simply cannot open a socket to `smtp.gmail.com`.
+
+What made it hard to diagnose was the failure *mode*. `send-otp` did not wait
+for the send to finish — it raced it against a 3-second timer and answered the
+request with whichever won, so a slow-but-successful send would not leave the
+user staring at a spinner. On Render the connection attempt hung well past
+three seconds, so the API cheerfully replied "code sent", the UI showed the
+"we sent a 6-digit code to..." screen, and about ten seconds later the send
+timed out and deleted the stored code. **No email, no error, no log the user
+could see.** Occasionally the connection was refused fast enough to lose the
+race, and then — same bug, different face — the user got "Could not send the
+verification email."
+
+The fix has two halves:
+
+- **A transport that the host allows.** `utils/mailer.js` now sends over
+  Brevo's HTTPS API when `BREVO_API_KEY` is set, and falls back to SMTP when
+  it is not. Port 443 is never blocked, so the same code works in both places.
+  It is one `fetch` with an `AbortController` timeout — no extra dependency.
+- **Not lying to the user.** The 3-second race existed only to hide SMTP's slow
+  handshake. The API route completes in well under a second, so on that
+  transport the route waits for the real result and reports real failures. The
+  race is kept for SMTP, where it is still the right trade-off.
+
+The lesson worth keeping: an optimistic response that reports success before
+the work is confirmed will eventually report success for work that failed. That
+is fine when the fallback is "slightly late", and dangerous when the fallback is
+"never happened".
+
+There is a residual deliverability caveat. Sending from a `@gmail.com` address
+through a third party cannot satisfy DMARC, because Brevo cannot sign as Gmail
+and Gmail publishes `p=quarantine`. Codes arrive, but some land in spam. The
+real cure is a domain you own, with SPF/DKIM records pointed at the provider —
+at which point only `SMTP_FROM` changes.
+
+### 4.5 CSRF protection
 
 Because the session cookie is `sameSite: 'none'` in production (required for
 the Vercel frontend to talk to the Render backend, which are different

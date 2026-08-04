@@ -5,11 +5,18 @@ const mongoose = require('mongoose')
 // server.js sirf connectDB() bulata hai - connection ki saari
 // tension (timeout, error ke hints) yahan alag rakhi hai
 // ==========================================================
+// Database ka naam MONGO_URI ke aakhir wale path se aata hai. Kisi bhi
+// jagah purani URI (jaise .../instachats) reh jaye - Render ka env var,
+// koi purana .env - to Atlas me chupchap ek aur khali database ban jata
+// hai. Isliye naam yahan fix kar dete hain, URI par nahi chhodte
+const DB_NAME = process.env.DB_NAME || 'vartalapah-chatting-webapp'
+
 const connectDB = async () => {
   try {
     // serverSelectionTimeoutMS: 15 second me connect na ho to error do
     // Iske bina server chupchap hang hota rehta hai aur pata hi nahi chalta
-    await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 15000 })
+    // dbName: URI me jo bhi likha ho, database yahi rahega
+    await mongoose.connect(process.env.MONGO_URI, { dbName: DB_NAME, serverSelectionTimeoutMS: 15000 })
     console.log('[OK] MongoDB connected:', mongoose.connection.name)
   } catch (err) {
     // MongoDB connect nahi hua to server chalane ka koi fayda nahi

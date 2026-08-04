@@ -43,7 +43,12 @@ const call = async (token, method, url, body) => {
 }
 
 const run = async () => {
-  await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 15000 })
+  // dbName wahi jo config/db.js use karta hai - warna test alag database
+  // bana dega (URI me purana naam pada ho to)
+  await mongoose.connect(process.env.MONGO_URI, {
+    dbName: process.env.DB_NAME || 'vartalapah-chatting-webapp',
+    serverSelectionTimeoutMS: 15000,
+  })
   console.log('Connected to', mongoose.connection.name, '\n')
 
   const stamp = Date.now()

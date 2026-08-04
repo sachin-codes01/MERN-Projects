@@ -311,4 +311,5 @@ Browser chhota karo ya F12 → mobile view:
 | Cloudinary upload fail | `server/.env` me teeno keys sahi hain? Server restart kiya? |
 | Verification code aaya hi nahi | Pehle **Spam** dekho. SMTP set na ho to code server terminal par print hota hai (`[DEV MAIL]`) |
 | `Could not send the verification email` | `SMTP_PASS` me Gmail App Password hona chahiye, normal password nahi (SETUP.md Part 3) |
+| **Deployed site** par code nahi aata, localhost par aata hai | Render free plan SMTP ports block karta hai — `BREVO_API_KEY` set karo (SETUP.md Part 3B). Logs me `[OK] Mail via Brevo API` dikhna chahiye |
 | `Please wait 42s before requesting another code` | Ek email par har 60 second me ek hi code — normal hai |

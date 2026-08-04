@@ -5,6 +5,11 @@ Teen cheezein chahiye: **Google** (sirf "Sign in with Google" button ke liye),
 (verification code wale email bhejne ke liye). Teeno bilkul free hain, credit
 card nahi maangte.
 
+> **Deploy bhi karna hai?** To ek chauthi cheez lagegi — **Brevo** ka free
+> account (**Part 3B**). Wajah: Render ka free plan SMTP ports block karta hai,
+> isliye Gmail SMTP sirf localhost par chalta hai. Ye bhi free hai. Sirf apne
+> computer par app chalani hai to Part 3B chhod sakte ho.
+
 > **Sirf password wala login chahiye, Google bilkul nahi?** To Part 1 skip kar
 > sakte ho. Email ki malikiyat ab Google se nahi, email par bheje gaye 6-digit
 > code se verify hoti hai (Part 3) - signup aur "Forgot password", dono me.
@@ -218,6 +223,80 @@ Isse bina kisi setup ke poora signup/reset flow test kar sakte ho. Production
 
 ---
 
+## Part 3B — Brevo API key (DEPLOY karne ke liye zaroori)
+
+Upar wala Gmail SMTP **localhost par hi** chalega. Deployed site (Render free
+plan) par wo kabhi kaam nahi karega — aur galti tumhare code me nahi hai:
+
+> Render ne apne **free** web services par outbound SMTP ports **25, 465 aur
+> 587 block** kar diye hain (spam rokne ke liye, Sept 2025 se). Yaani server
+> Gmail ke SMTP se baat hi nahi kar pata.
+
+Isika natija wahi tha jo deployed site par dikh raha tha: screen par
+_"We sent a 6-digit code to ..."_ aa jata tha lekin mail kabhi nahi aata, aur
+kabhi kabhi _"Could not send the verification email"_ dikh jata tha.
+
+Do raste hain: Render ka paid plan lo (tab 465/587 khul jate hain), ya mail
+**HTTPS par** bhejo — port 443 kabhi block nahi hota. Doosra rasta free hai,
+aur code me wahi jud chuka hai.
+
+### Step 1: Brevo account banao
+
+https://www.brevo.com → Sign up (free plan, **roz 300 mail**, card nahi mangta)
+
+### Step 2: Sender email verify karo
+
+Brevo dashboard → **Senders, Domains & Dedicated IPs** → **Senders** → **Add a
+sender**
+
+- Wahi email daalo jo `SMTP_FROM` me hai (tumhara Gmail hi chalega — apna
+  domain hona zaroori nahi)
+- Us email par Brevo ek confirmation mail bhejega → link kholo
+
+Verify na kiya to API `401`/`400` dega aur mail nahi jayega.
+
+### Step 3: API key banao
+
+Dashboard → upar right me apna naam → **SMTP & API** → **API Keys** →
+**Generate a new API key**
+
+Key sirf **ek baar** dikhti hai — turant copy kar lo (`xkeysib-...` se shuru hoti hai).
+
+### Step 4: Render par env variable daalo
+
+Render dashboard → apni service → **Environment** → **Add Environment Variable**
+
+```
+BREVO_API_KEY=xkeysib-...
+SMTP_FROM=Vartalapah <tumhara.email@gmail.com>
+```
+
+Save karte hi Render khud redeploy kar dega. `SMTP_HOST` / `SMTP_USER` /
+`SMTP_PASS` Render par ab zaroori nahi — `BREVO_API_KEY` set hai to code SMTP
+ko haath hi nahi lagata.
+
+Logs me ye line dikhni chahiye:
+
+```
+[OK] Mail via Brevo API: tumhara.email@gmail.com
+```
+
+Aur har mail par:
+
+```
+[MAIL] register code -> koi@email.com (612ms, api)
+```
+
+`api` shabd hi confirm karta hai ki naya rasta use ho raha hai.
+
+### Localhost ka kya?
+
+Kuch badalne ki zarurat nahi — `BREVO_API_KEY` local `.env` me na ho to Gmail
+SMTP hi chalta rahega. Chaho to local me bhi wahi key daal do, taaki dono jagah
+bilkul ek jaisa behave kare.
+
+---
+
 ## Code Spam me na jaye — iska dhyan rakha gaya hai
 
 Code me pehle se:
@@ -238,9 +317,22 @@ Tumhare taraf se:
 | Ek hi Gmail account se test karte raho | Naya account "warm up" nahi hota, uske mails zyada filter hote hain |
 | Bahut zyada test mat karo | Roz ~500 se upar jaate hi Google account 24 ghante block kar deta hai |
 
-Apna asli domain ho (jaise `mail.tumhara-domain.com`) to Brevo/Resend ka free
-plan + SPF/DKIM records sabse best deliverability deta hai. Gmail SMTP chhote
-projects aur college demo ke liye bilkul theek hai.
+### Brevo (Part 3B) ke saath ek extra baat
+
+Brevo se bhejte waqt `@gmail.com` wala sender **DMARC pass nahi kar sakta** —
+Brevo Gmail ke naam par sign nahi kar sakta, aur Gmail ne Feb 2024 se apni
+policy `p=quarantine` kar di hai. Isliye Brevo dashboard par bhi warning dikhti
+hai: *"Freemail domain is not recommended"*.
+
+Matlab: **mail jayega zaroor, lekin kuch mails Spam folder me ja sakte hain.**
+Blocked nahi hota, bas filter zyada sakht ho jata hai. College project/demo ke
+liye ye theek hai — testers ko bol dena ki pehli baar Spam bhi dekh lein.
+
+Iska asli ilaj sirf ek hai: **apna domain**. Sasta domain (₹200-800/saal) lekar
+Brevo ke **Domains** tab me add karo, wahan diye gaye DKIM/SPF records apne
+registrar par paste karo, aur phir `no-reply@tumhara-domain.com` se bhejo. Tab
+alignment poora ho jata hai aur mail seedha Inbox me jata hai. Code me kuch
+badalna nahi padega — bas Render par `SMTP_FROM` update karna hoga.
 
 ---
 
@@ -271,6 +363,9 @@ Phir MongoDB Compass me apne `MONGO_URI` wale database (naam `.env` ki connectio
 | `Invalid Signature` (Cloudinary) | API Secret galat copy hua — dobara reveal karke copy karo |
 | `Must supply api_key` | `server/.env` me Cloudinary values nahi hain, ya server restart nahi kiya |
 | `Could not send the verification email` | `SMTP_PASS` me App Password ki jagah normal Gmail password hai, ya `SMTP_HOST/PORT` galat |
+| **Deployed site par** code nahi aata (localhost par aata hai) | Render free plan SMTP ports block karta hai — **Part 3B** karo (`BREVO_API_KEY`) |
+| `Brevo API 401: Key not found` | `BREVO_API_KEY` galat ya adhoora copy hua — Brevo me nayi key banao |
+| `Brevo API 400: ... sender ... not valid` | Brevo me sender email verify nahi hui — Part 3B ka Step 2 dekho |
 | `Invalid login: 535-5.7.8 Username and Password not accepted` | App Password galat/purana hai — naya banao (spaces hata kar paste karo) |
 | Code aaya hi nahi | Pehle **Spam folder** dekho. Server terminal par bhi dekho — SMTP set na ho to code wahin print hota hai |
 | `Please wait 42s before requesting another code` | Ek email par har 60 second me ek hi code. Normal hai, ruk jao |
