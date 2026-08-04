@@ -1,13 +1,15 @@
 # Vārtālāpaḥ — Setup Guide
 
-Do external services chahiye: **Google** (login ke liye) aur **Cloudinary** (photo/video store karne ke liye).
-Dono bilkul free hain, credit card nahi maangte.
+Teen cheezein chahiye: **Google** (sirf "Sign in with Google" button ke liye),
+**Cloudinary** (photo/video store karne ke liye) aur ek **SMTP account**
+(verification code wale email bhejne ke liye). Teeno bilkul free hain, credit
+card nahi maangte.
 
-> **Google Client ID ab sirf "Sign in with Google" button ke liye nahi chahiye.**
-> Username + password se signup karte waqt, aur "Forgot password" karte waqt bhi
-> email ki malikiyat isi Google se verify hoti hai (koi email/SMS service nahi
-> hai project me) - isliye Part 1 skip mat karna, chahe tum sirf password wala
-> login banana chahte ho.
+> **Sirf password wala login chahiye, Google bilkul nahi?** To Part 1 skip kar
+> sakte ho. Email ki malikiyat ab Google se nahi, email par bheje gaye 6-digit
+> code se verify hoti hai (Part 3) - signup aur "Forgot password", dono me.
+> Google Client ID ke bina bas "Sign in with Google" button gayab rahega,
+> baaki app poori chalegi.
 
 ---
 
@@ -153,6 +155,95 @@ API Secret leak ho gaya to koi bhi tumhare account par kuch bhi upload kar sakta
 
 ---
 
+## Part 3 — SMTP (email par 6-digit code)
+
+Signup aur "Forgot password" me email par **6-digit code** jata hai. Sahi code bharne
+se hi saabit hota hai ki email tumhari hai. Koi paid service nahi chahiye — Gmail ka
+SMTP free hai (roz ~500 mails).
+
+### Step 1: 2-Step Verification ON karo
+
+https://myaccount.google.com/security → **2-Step Verification** → ON
+
+Ye zaroori hai. Iske bina App Password wala option dikhta hi nahi.
+
+### Step 2: App Password banao
+
+https://myaccount.google.com/apppasswords
+
+- App ka naam: `Vartalapah`
+- **Create** dabao
+- 16 akshar ka password milega, jaise `abcd efgh ijkl mnop`
+
+⚠️ Ye **apna normal Gmail password nahi hai**. Normal password SMTP me kaam
+nahi karega — Google use turant reject kar deta hai.
+
+### Step 3: server/.env me daalo
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=tumhara.email@gmail.com
+SMTP_PASS=abcdefghijklmnop
+SMTP_FROM=Vartalapah <tumhara.email@gmail.com>
+```
+
+**Port 465 hi rakhna, 587 nahi.** Dono chalte hain, lekin 465 shuru se
+encrypted hota hai jabki 587 pehle plain connect karke phir TLS par
+upgrade karta hai (STARTTLS). Windows par wo upgrade wala step antivirus
+ke TLS scan me phans jata hai — is machine par naap kar dekha:
+
+| | Pehla connect | Baad wale |
+|---|---|---|
+| Port 587 | **57 second** | ~1.8s |
+| Port 465 | **1.4 second** | ~2.3s |
+
+`SMTP_PASS` me **spaces hata do** (Google spaces ke saath dikhata hai, lekin
+paste karte waqt bina space ke hi daalna hai).
+
+⚠️ `SMTP_FROM` wali email aur `SMTP_USER` wali email **same honi chahiye**.
+Alag hui to mails seedha Spam me jayenge (wajah niche "Spam" section me).
+
+### Step 4: Server restart karo
+
+**SMTP daale bina bhi kaam chal jayega** — development me code seedha server ke
+terminal par print ho jata hai:
+
+```
+[DEV MAIL] SMTP set nahi hai - register OTP for koi@email.com: 481902 (10 min)
+```
+
+Isse bina kisi setup ke poora signup/reset flow test kar sakte ho. Production
+(`NODE_ENV=production`) me ye chhoot nahi milti — wahan SMTP na hone par saaf error aata hai.
+
+---
+
+## Code Spam me na jaye — iska dhyan rakha gaya hai
+
+Code me pehle se:
+
+- **From = SMTP_USER** — SPF/DKIM "align" hote hain. Alag hone par server startup
+  par hi warning aa jati hai
+- **Text + HTML dono** bhejte hain — sirf HTML wale mail ka spam score zyada hota hai
+- **Koi link, koi image, koi attachment nahi** — phishing filters inhi teeno par sabse
+  zyada shak karte hain. Code copy karna hi kaafi hai
+- **Seedhi subject line** — `FREE`, `URGENT`, saare CAPS, `!!!` kuch nahi
+
+Tumhare taraf se:
+
+| Karo | Kyun |
+|---|---|
+| Pehla mail Spam me mile to **"Report not spam"** dabao | Gmail us sender ko aage se Inbox me rakhta hai |
+| Sender ko **Contacts** me add kar lo | Contacts wale mails lagbhag kabhi spam nahi hote |
+| Ek hi Gmail account se test karte raho | Naya account "warm up" nahi hota, uske mails zyada filter hote hain |
+| Bahut zyada test mat karo | Roz ~500 se upar jaate hi Google account 24 ghante block kar deta hai |
+
+Apna asli domain ho (jaise `mail.tumhara-domain.com`) to Brevo/Resend ka free
+plan + SPF/DKIM records sabse best deliverability deta hai. Gmail SMTP chhote
+projects aur college demo ke liye bilkul theek hai.
+
+---
+
 ## Sab kuch sahi hai ya nahi — check karo
 
 Server restart karke browser me kholo:
@@ -179,6 +270,13 @@ Phir MongoDB Compass me apne `MONGO_URI` wale database (naam `.env` ki connectio
 | `Google login fail hua` | `client/.env` aur `server/.env` ki Client ID match nahi kar rahi |
 | `Invalid Signature` (Cloudinary) | API Secret galat copy hua — dobara reveal karke copy karo |
 | `Must supply api_key` | `server/.env` me Cloudinary values nahi hain, ya server restart nahi kiya |
+| `Could not send the verification email` | `SMTP_PASS` me App Password ki jagah normal Gmail password hai, ya `SMTP_HOST/PORT` galat |
+| `Invalid login: 535-5.7.8 Username and Password not accepted` | App Password galat/purana hai — naya banao (spaces hata kar paste karo) |
+| Code aaya hi nahi | Pehle **Spam folder** dekho. Server terminal par bhi dekho — SMTP set na ho to code wahin print hota hai |
+| `Please wait 42s before requesting another code` | Ek email par har 60 second me ek hi code. Normal hai, ruk jao |
+| `Too many verification emails requested` | Per-IP limit (15 min me 8 mails). Server restart karne se counter saaf ho jata hai — memory me hota hai |
+| Code aane me 20-50 second lag rahe hain | `SMTP_PORT=465` karo (587 nahi). Terminal par `[MAIL] ... (842ms)` wala number batata hai der kahan hai |
+| `This code has expired` | Code 10 minute chalta hai — **Resend code** dabao |
 
 ---
 

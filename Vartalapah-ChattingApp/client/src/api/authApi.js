@@ -28,30 +28,38 @@ export const authApi = {
   loginWithPassword: (email, password, rememberMe) =>
     request('/auth/login', { method: 'POST', body: { email, password, rememberMe } }),
 
-  // Naya account - username + email + password. credential = Google se
-  // usi email ki malikiyat verify karne wala token (dekho Signup.jsx) -
-  // iske bina backend account banata hi nahi. Success hote hi login
-  // bhi kar deta hai (JWT cookie)
-  register: (username, email, password, confirmPassword, credential) =>
-    request('/auth/register', { method: 'POST', body: { username, email, password, confirmPassword, credential } }),
+  // Naya account - username + email + password. verificationToken =
+  // email par aaye 6-digit code ko verify karne par mila token (dekho
+  // EmailOtpStep.jsx) - iske bina backend account banata hi nahi.
+  // Success hote hi login bhi kar deta hai (JWT cookie)
+  register: (username, email, password, confirmPassword, verificationToken) =>
+    request('/auth/register', { method: 'POST', body: { username, email, password, confirmPassword, verificationToken } }),
 
   // Google se pehli baar aaya user - apna application password banata hai
   setPassword: (password, confirmPassword) =>
     request('/auth/set-password', { method: 'POST', body: { password, confirmPassword } }),
 
-  // "Forgot password" ka STEP 1 - email se check karte hain account hai
-  // ya nahi, aur Google se bana hai ya nahi
+  // "Forgot password" ka STEP 1 - email se check karte hain account
+  // hai ya nahi (code bhejne se pehle hi saaf message dikha sakein)
   checkEmail: (email) => request('/auth/check-email', { method: 'POST', body: { email } }),
 
-  // "Forgot password" ke Step 2 (Google verify) ke turant baad - kya is
-  // Google email ka koi account YAHAN hai? Password form dikhane se
-  // pehle hi confirm kar lete hain
-  checkGoogleAccount: (credential) =>
-    request('/auth/google-check', { method: 'POST', body: { credential } }),
+  // ---- EMAIL VERIFICATION (OTP) ----
+  // Dono flows yahi do routes use karte hain, bas purpose alag:
+  //   'register' -> naya account banate waqt
+  //   'reset'    -> password bhool jane par
+  //
+  // sendOtp email par 6-digit code bhejta hai, verifyOtp use check
+  // karke ek short-lived verificationToken deta hai. Wahi token aage
+  // register / resetPassword ko jata hai
+  sendOtp: (email, purpose) =>
+    request('/auth/send-otp', { method: 'POST', body: { email, purpose } }),
 
-  // "Forgot password" - Google se dobara pehchaan karke naya password banate hain
-  resetPassword: (credential, password, confirmPassword) =>
-    request('/auth/reset-password', { method: 'POST', body: { credential, password, confirmPassword } }),
+  verifyOtp: (email, code, purpose) =>
+    request('/auth/verify-otp', { method: 'POST', body: { email, code, purpose } }),
+
+  // "Forgot password" - email verify karke naya password banate hain
+  resetPassword: (verificationToken, password, confirmPassword) =>
+    request('/auth/reset-password', { method: 'POST', body: { verificationToken, password, confirmPassword } }),
 
   logout: () => request('/auth/logout', { method: 'POST' }),
 

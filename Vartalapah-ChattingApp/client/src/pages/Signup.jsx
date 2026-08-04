@@ -13,6 +13,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { useAuth } from '@/context/AuthContext.jsx'
 import { BRAND_GRADIENT, BRAND_GRADIENT_HOVER } from '@/constants/theme.js'
 import PasswordChecklist from '@/components/ui/PasswordChecklist.jsx'
+import EmailOtpStep from '@/components/auth/EmailOtpStep.jsx'
 import { usePasswordRules } from '@/hooks/ui/usePasswordRules.js'
 
 // Ek hi illustration - Login.jsx wali - dono screens ek hi visual
@@ -28,14 +29,15 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_.]{3,20}$/
 // SIGNUP - do step
 //
 //   1. DETAILS -> username, email, password, confirm password
-//   2. VERIFY  -> usi email ke Google account se sign in karke saabit
-//                 karo ki tum SACH ME uske malik ho - warna koi bhi
-//                 kisi aur ki email likhkar uske naam account bana leta
+//   2. VERIFY  -> usi email par 6-digit code bhejte hain, wahi code
+//                 wapas maangte hain. Code sirf inbox me pahunchta hai,
+//                 isliye sahi code bata dena hi saboot hai ki email
+//                 tumhari hai - warna koi bhi kisi aur ki email
+//                 likhkar uske naam account bana leta
 //
-// Bilkul wahi technique jo ForgotPassword.jsx me hai: pehle email lo,
-// phir Google se USI email ko verify karwao. Verify hote hi backend
-// account banata hai (aur googleId bhi jod deta hai, taaki aage se
-// "Continue with Google" se bhi ye account khul sake)
+// Bilkul wahi technique jo ForgotPassword.jsx me hai (dono ek hi
+// EmailOtpStep component use karte hain). Code verify hote hi backend
+// account bana deta hai aur turant login bhi kar deta hai
 // ==========================================================
 const Signup = () => {
   const navigate = useNavigate()
@@ -95,21 +97,23 @@ const Signup = () => {
   }
 
   // ==========================================================
-  // STEP 2 - VERIFY EMAIL WITH GOOGLE
+  // STEP 2 - EMAIL VERIFY HO CHUKI
+  // EmailOtpStep code check kar chuka hai aur token de chuka hai -
+  // ab bas account banana baaki hai
   // ==========================================================
-  const handleVerifySuccess = async (response) => {
+  const handleVerified = async (verificationToken) => {
     setError('')
     setVerifying(true)
 
     try {
-      await register(username.trim(), email, password, confirmPassword, response.credential)
+      await register(username.trim(), email, password, confirmPassword, verificationToken)
       navigate('/chat', { replace: true })
     } catch (err) {
       setError(err.message)
 
-      // "email already exists" / "username taken" / "email doesn't match" -
-      // teeno hi kisi field ki galti hai, Google ki nahi. Wapas details
-      // par bhej dete hain taaki wo field theek kar sakein
+      // "email already exists" / "email doesn't match" - dono hi kisi
+      // field ki galti hai, code ki nahi. Wapas details par bhej dete
+      // hain taaki wo field theek kar sakein
       setStep('details')
     } finally {
       setVerifying(false)
@@ -148,7 +152,7 @@ const Signup = () => {
       <p className="plain-text mt-3 text-xs sm:text-sm text-app-muted leading-relaxed">
         {step === 'details'
           ? 'Pick a username and password, or continue with Google.'
-          : `Verify ${email} with Google to finish creating your account.`}
+          : `Enter the code we emailed to ${email} to finish creating your account.`}
       </p>
 
       {error && (
@@ -327,40 +331,29 @@ const Signup = () => {
         </>
       )}
 
-      {/* ---------- STEP 2: VERIFY EMAIL WITH GOOGLE ---------- */}
+      {/* ---------- STEP 2: VERIFY EMAIL WITH A CODE ---------- */}
       {step === 'verify' && (
-        <div className="mt-6 flex flex-col items-center gap-4">
-          {verifying ? (
-            <div className="flex items-center gap-3 min-h-[44px]">
+        <>
+          {verifying && (
+            <div className="mt-6 flex items-center justify-center gap-3 min-h-[44px]">
               <CircularProgress size={20} />
               <span className="text-sm">Creating your account...</span>
             </div>
-          ) : !GOOGLE_CLIENT_ID ? (
-            <Alert severity="warning" className="!text-left !text-xs">
-              <b>Setup needed:</b> add <code>VITE_GOOGLE_CLIENT_ID</code> to
-              client/.env, then restart the dev server.
-            </Alert>
-          ) : (
-            <div className="rounded-full overflow-hidden shadow-lg shadow-black/30">
-              <GoogleLogin
-                onSuccess={handleVerifySuccess}
-                onError={() => setError('Google verification failed, please try again')}
-                theme="outline"
-                shape="pill"
-                size="large"
-                width="280"
-              />
-            </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => { setStep('details'); setError('') }}
-            className="text-xs text-app-muted hover:text-app-text no-tap-flash"
-          >
-            Change details
-          </button>
-        </div>
+          {/* Account bante waqt bhi component mounted rehta hai (hidden) -
+              warna uska mount-effect dobara chalta aur ek aur mail chala jata */}
+          <div className={verifying ? 'hidden' : ''}>
+            <EmailOtpStep
+              email={email}
+              purpose="register"
+              onVerified={handleVerified}
+              onBack={() => { setStep('details'); setError('') }}
+              backLabel="Change details"
+              busy={verifying}
+            />
+          </div>
+        </>
       )}
 
       <div className="mt-5 pt-4 border-t border-app-border">

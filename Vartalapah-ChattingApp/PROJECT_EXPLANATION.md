@@ -165,67 +165,86 @@ to `/create-password` before letting them into `/chat`.
 
 ### 4.2 Username + password signup — and the problem it had to solve
 
-There is no email or SMS service in this project, so a normal "type any email
-you want" signup would let someone register with an email they do not own.
-The fix reuses Google as an identity check, even for the non-Google signup path:
+A normal "type any email you want" signup would let someone register with an
+email they do not own. The fix is an emailed one-time code: the code only ever
+lands in that inbox, so repeating it back is proof of ownership.
 
 ```
  1. User fills in username, email, password, confirm password (client-side
     validation only — nothing is created yet)
- 2. User signs in with Google, using the SAME email
- 3. Frontend sends { username, email, password, confirmPassword, credential }
-    to POST /api/auth/register in one request
- 4. Backend verifies the Google credential, then checks
-    payload.email === the email the user typed
-       mismatch -> reject: "you verified a different Google account"
+ 2. POST /api/auth/send-otp { email, purpose: 'register' } emails a
+    6-digit code (nodemailer over plain SMTP — see utils/mailer.js)
+ 3. User types the code -> POST /api/auth/verify-otp
+    Backend HMACs the code and compares it to the stored hash. On success
+    it deletes the record and returns a signed verificationToken (15 min)
+ 4. Frontend sends { username, email, password, confirmPassword,
+    verificationToken } to POST /api/auth/register
+ 5. Backend re-reads the token server-side and checks
+    token.email === the email the user typed
+       mismatch -> reject (the form was edited after verifying)
        match    -> the email really does belong to this person
- 5. Backend hashes the password with bcrypt, creates the User with
-    googleId ALSO set (so Google sign-in works for this account too),
-    and logs them straight in
+ 6. Backend hashes the password with bcrypt, creates the User, logs them in
 ```
 
-**"Isn't that just Google login with extra steps?"** No — the end state is
-different. After this flow the account has a real bcrypt password, so the user
-can log in with `POST /api/auth/login` (email + password) on a device or browser
-where they've never touched Google, which is the entire point of offering a
-password option at all.
+The verification token exists because verifying the code and creating the
+account are two separate requests, with the user typing a password in between.
+It is the note that carries "this email was just proven" across that gap —
+exactly the job the Google credential used to do.
 
-### 4.3 Forgot password — same trick, used for recovery instead of signup
+**Why not just use Google for this?** It worked, but it forced every signup
+through a Google account. Anyone with an email address can now sign up, and the
+end state is still a real bcrypt password, so they can log in with
+`POST /api/auth/login` on a device where they've never touched Google.
+
+### 4.3 Forgot password — same mechanism, used for recovery instead of signup
 
 ```
  1. User types their email (required first — this is intentional, see below)
  2. POST /api/auth/check-email confirms an account exists for it
- 3. User signs in with Google
- 4. POST /api/auth/google-check confirms this Google email is the SAME one
-    from step 1, and that an account exists for it
+ 3. POST /api/auth/send-otp { email, purpose: 'reset' } emails a code
+ 4. POST /api/auth/verify-otp returns a verificationToken for that email
  5. Only now does the "set a new password" form appear
- 6. POST /api/auth/reset-password re-verifies the credential server-side,
+ 6. POST /api/auth/reset-password re-reads the token server-side,
     hashes the new password, saves it — and does NOT log the user in.
     They're sent back to /login to prove the new password works
 ```
 
+Both flows share one React component (`components/auth/EmailOtpStep.jsx`) and
+the same two routes; only `purpose` differs. `purpose` is part of the stored
+record *and* the token, so a signup code can never be replayed as a password
+reset.
+
+The code itself is defended four ways: 10-minute expiry, 5 wrong attempts before
+it is destroyed, a 60-second per-email resend cooldown, and one live code per
+(email, purpose) — sending a new one overwrites the old.
+
 Two deliberate design choices worth explaining out loud:
 
-- **Email first, then Google, not Google first.** Asking for the email up front
-  and cross-checking it against whatever Google account the user actually
-  signs in with catches the "picked the wrong Google account" mistake with a
-  specific, useful error message, instead of silently trusting whatever
-  Google returns.
+- **Email first, then the code, not the other way round.** Asking for the email
+  up front lets `check-email` give a specific, useful error ("no account for
+  this address — create one?") before any mail is sent.
 - **Any account can use this, not just Google-created ones.** The check is
   "does an account exist for this email", never "was this account created via
-  Google" — `googleId` is not part of the check. A user who signed up with
-  username + password can still recover access by proving they own that same
-  email address through Google. Ownership of the email is what matters, not
-  how the account was originally created.
+  Google" — `googleId` is not part of the check. A user who signed up through
+  Google can still recover access by proving they own that same inbox.
+  Ownership of the email is what matters, not how the account was created.
 
 ### The three questions you will definitely be asked
 
-**"Why verify on the backend? The frontend already got the token from Google."**
+**"Why verify on the backend? The frontend already checked."**
 Because anything the frontend sends can be faked. A person with curl can post
-`{ credential: "anything" }`. Backend verification is the only thing that makes
-login (or the email-ownership proof in 4.2/4.3) real. **Never trust the client**
-is the rule this whole app follows. The backend even checks Google's own
-`email_verified` claim on the token, not just that the token is genuine.
+`{ credential: "anything" }` or `{ verificationToken: "anything" }`. Backend
+verification is the only thing that makes login (or the email-ownership proof
+in 4.2/4.3) real. **Never trust the client** is the rule this whole app follows.
+For Google the backend checks Google's own `email_verified` claim, not just that
+the token is genuine; for OTP the token is signed with `JWT_SECRET`, so a forged
+one fails `jwt.verify` immediately.
+
+**"Why is the OTP hashed with HMAC and not plain SHA-256?"**
+A 6-digit code has only a million possible values. If the database leaked,
+plain SHA-256 hashes could be reversed by hashing all million in seconds. HMAC
+keyed with `JWT_SECRET` means the hash cannot even be computed without the
+server's secret.
 
 **"Why a cookie and not localStorage?"**
 The cookie is `httpOnly`, which means JavaScript *cannot read it* — not our
@@ -518,7 +537,7 @@ Six routes, defined in `routes/AppRoutes.jsx`:
 | `/` | Landing page | Public only — logged-in users go to `/chat` |
 | `/login` | Email+password login, or Google | Public only |
 | `/signup` | Username + email + password signup, or Google | Public only |
-| `/forgot-password` | Email → Google verify → new password | Public only |
+| `/forgot-password` | Email → emailed code → new password | Public only |
 | `/create-password` | First-time password for a Google-only account | Logged in, `needsPassword: true` only |
 | `/chat` | The app | Protected — logged-out users go to `/login`; `needsPassword: true` users go to `/create-password` first |
 
@@ -593,5 +612,6 @@ are now in place (`middleware/rateLimit.js`, `middleware/csrf.js`).
 3. **The JWT lives in an httpOnly cookie**, so page scripts cannot read it.
 4. **`min-h-0`** is what keeps the message box above the keyboard.
 5. **Soft delete** keeps the other person's chat history from breaking.
-6. **No email service? Borrow Google's.** Signup and password reset both prove
-   email ownership by asking for one Google sign-in, not by sending mail.
+6. **Proof of email ownership is a code you had to receive.** Signup and
+   password reset both email a 6-digit code and ask for it back — hashed,
+   expiring, attempt-limited, and never reusable across the two flows.

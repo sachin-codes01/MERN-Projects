@@ -48,11 +48,12 @@ export const AuthProvider = ({ children }) => {
     return data.user
   }
 
-  // Naya account - username + email + password. credential = Google se
-  // usi email ki malikiyat verify karne wala token (dekho Signup.jsx).
-  // Success hote hi turant login bhi ho jata hai (backend cookie bhej deta hai)
-  const register = async (username, email, password, confirmPassword, credential) => {
-    const data = await authApi.register(username, email, password, confirmPassword, credential)
+  // Naya account - username + email + password. verificationToken =
+  // email par aaya 6-digit code verify karne se mila token (dekho
+  // EmailOtpStep.jsx). Success hote hi turant login bhi ho jata hai
+  // (backend cookie bhej deta hai)
+  const register = async (username, email, password, confirmPassword, verificationToken) => {
+    const data = await authApi.register(username, email, password, confirmPassword, verificationToken)
     setUser(data.user)
     return data.user
   }
@@ -67,15 +68,20 @@ export const AuthProvider = ({ children }) => {
   // "Forgot password" Step 1 - email se account check karna
   const checkEmail = (email) => authApi.checkEmail(email)
 
-  // "Forgot password" Step 2 ke baad - is Google email ka account hai ya nahi
-  const checkGoogleAccount = (credential) => authApi.checkGoogleAccount(credential)
+  // ---- EMAIL VERIFICATION (OTP) ----
+  // Signup aur "forgot password" dono me EmailOtpStep.jsx yahi do
+  // bulata hai. verifyEmailOtp ka jawab { verificationToken } hota hai -
+  // wahi aage register / resetPassword ko jata hai
+  const sendEmailOtp = (email, purpose) => authApi.sendOtp(email, purpose)
 
-  // "Forgot password" - Google se pehchaan karke naya password set karte hain.
+  const verifyEmailOtp = (email, code, purpose) => authApi.verifyOtp(email, code, purpose)
+
+  // "Forgot password" - email verify karke naya password set karte hain.
   // Jaan-boojhkar setUser NAHI karte - backend yahan login nahi karata
   // (koi cookie nahi bhejta), user ko wapas login page par bhejkar apne
   // naye password se khud login karwate hain
-  const resetPassword = (credential, password, confirmPassword) =>
-    authApi.resetPassword(credential, password, confirmPassword)
+  const resetPassword = (verificationToken, password, confirmPassword) =>
+    authApi.resetPassword(verificationToken, password, confirmPassword)
 
   // Logout - backend cookie hata dega aur user ko offline mark karega
   const logout = async () => {
@@ -105,7 +111,8 @@ export const AuthProvider = ({ children }) => {
   // Jo bhi is value me hai, wo poori app me kahin bhi useAuth() se mil jayega
   const value = {
     user, loading,
-    loginWithGoogle, loginWithPassword, register, setPassword, checkEmail, checkGoogleAccount, resetPassword,
+    loginWithGoogle, loginWithPassword, register, setPassword,
+    checkEmail, sendEmailOtp, verifyEmailOtp, resetPassword,
     logout, updateProfile, deleteAccount,
   }
 

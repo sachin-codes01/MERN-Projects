@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Alert, CircularProgress, IconButton, InputAdornment, TextField } from '@mui/material'
-import { GoogleLogin } from '@react-oauth/google'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
@@ -11,32 +10,30 @@ import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined'
 import { useAuth } from '@/context/AuthContext.jsx'
 import { BRAND_GRADIENT, BRAND_GRADIENT_HOVER } from '@/constants/theme.js'
 import PasswordChecklist from '@/components/ui/PasswordChecklist.jsx'
+import EmailOtpStep from '@/components/auth/EmailOtpStep.jsx'
 import { usePasswordRules } from '@/hooks/ui/usePasswordRules.js'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ==========================================================
 // FORGOT PASSWORD - teen step
 //
 //   1. EMAIL     -> pehle apna email batao (required). Isi se pata
-//                   chalta hai account hai ya nahi, aur Google se
-//                   bana hai ya nahi
-//   2. GOOGLE    -> usi email ke Google account se sign in karke saabit
-//                   karo ki tum SACH ME uske malik ho. Doosra Google
-//                   account chun liya (jo Step 1 wali email se nahi
-//                   milta) to turant mana kar dete hain
+//                   chalta hai account hai bhi ya nahi
+//   2. CODE      -> usi email par 6-digit code bhejte hain, wahi code
+//                   wapas maangte hain. Code inbox me hi aata hai,
+//                   isliye sahi code bata dena hi saboot hai ki email
+//                   tumhari hai
 //   3. PASSWORD  -> ab naya password banao
 //
-// Is app me email/SMS bhejne wala koi service nahi hai, isliye
-// pehchaan Google se hi karwate hain - bilkul waisi hi jaisi normal
-// "Sign in with Google" karte waqt hoti hai
+// Signup bhi bilkul yahi karta hai - dono ek hi EmailOtpStep component
+// use karte hain, bas purpose alag hota hai ('reset' vs 'register')
 // ==========================================================
 const ForgotPassword = () => {
   const navigate = useNavigate()
-  const { checkEmail, checkGoogleAccount, resetPassword } = useAuth()
+  const { checkEmail, resetPassword } = useAuth()
 
-  const [step, setStep] = useState('email') // 'email' | 'google' | 'password'
+  const [step, setStep] = useState('email') // 'email' | 'code' | 'password'
 
   // ---- STEP 1 ----
   const [email, setEmail] = useState('')
@@ -44,8 +41,8 @@ const ForgotPassword = () => {
   const [checkingEmail, setCheckingEmail] = useState(false)
 
   // ---- STEP 2 ----
-  const [credential, setCredential] = useState(null)
-  const [checkingAccount, setCheckingAccount] = useState(false)
+  // Code verify hone par mila token - Step 3 me yahi backend ko jata hai
+  const [verificationToken, setVerificationToken] = useState(null)
 
   // ---- STEP 3 ----
   const [password, setPasswordValue] = useState('')
@@ -97,9 +94,9 @@ const ForgotPassword = () => {
 
       // Account chahe Google se bana ho ya seedha username+password se
       // signup kiya ho - dono ke liye ye kaam karta hai. Agle step me
-      // isi email ka Google account verify karwate hain
+      // isi email par code bhejte hain
       setEmail(cleanEmail)
-      setStep('google')
+      setStep('code')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -108,32 +105,14 @@ const ForgotPassword = () => {
   }
 
   // ==========================================================
-  // STEP 2 - GOOGLE VERIFY (must match Step 1 email)
+  // STEP 2 - CODE VERIFY HO CHUKA
+  // EmailOtpStep khud hi code bhejta aur check karta hai - yahan sirf
+  // uska diya hua token sambhal kar agle step par chale jate hain
   // ==========================================================
-  const handleGoogleSuccess = async (response) => {
+  const handleVerified = (token) => {
     setError('')
-    setCheckingAccount(true)
-
-    try {
-      const { email: googleEmail, exists } = await checkGoogleAccount(response.credential)
-
-      if (!exists) {
-        setError(`No account found for ${googleEmail}. Choose a different Google account.`)
-        return
-      }
-
-      if (googleEmail.toLowerCase() !== email.toLowerCase()) {
-        setError(`That's ${googleEmail}, but you entered ${email}. Please sign in with the matching Google account.`)
-        return
-      }
-
-      setCredential(response.credential)
-      setStep('password')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCheckingAccount(false)
-    }
+    setVerificationToken(token)
+    setStep('password')
   }
 
   // ==========================================================
@@ -154,7 +133,7 @@ const ForgotPassword = () => {
 
     setSaving(true)
     try {
-      await resetPassword(credential, password, confirmPassword)
+      await resetPassword(verificationToken, password, confirmPassword)
 
       // Yahan seedha chat par nahi bhejte - login page par bhejte hain,
       // taaki user apne NAYE password se khud login kare (aur wahan
@@ -163,19 +142,19 @@ const ForgotPassword = () => {
       navigate('/login', { replace: true, state: { resetSuccess: true } })
     } catch (err) {
       setError(err.message)
-      // Credential ek hi baar use ho sakta hai (Google ID token) - fail
-      // hone par (jaise ki backend me kuch aur wajah se reject ho gaya)
-      // wapas Google step par bhej dete hain
-      setCredential(null)
-      setStep('google')
+      // Token 15 minute me expire ho jata hai - fail hone ki sabse
+      // aam wajah yahi hai. Wapas code wale step par bhej dete hain,
+      // jahan naya code mangwaya ja sake
+      setVerificationToken(null)
+      setStep('code')
     } finally {
       setSaving(false)
     }
   }
 
   const stepSubtitle = {
-    email: "We don't send reset emails yet - first tell us which account you're trying to recover.",
-    google: `Verify it's really you by signing in with the Google account for ${email}.`,
+    email: "First tell us which account you're trying to recover.",
+    code: `We'll email a 6-digit code to ${email} to make sure it's really you.`,
     password: 'Identity verified. Choose a new password for your account.',
   }[step]
 
@@ -251,40 +230,15 @@ const ForgotPassword = () => {
           </form>
         )}
 
-        {/* ---------- STEP 2: GOOGLE VERIFY ---------- */}
-        {step === 'google' && (
-          <div className="mt-8 flex flex-col items-center gap-4">
-            {checkingAccount ? (
-              <div className="flex items-center gap-3 min-h-[44px]">
-                <CircularProgress size={20} />
-                <span className="text-sm">Verifying...</span>
-              </div>
-            ) : !GOOGLE_CLIENT_ID ? (
-              <Alert severity="warning" className="!text-left !text-xs">
-                <b>Setup needed:</b> add <code>VITE_GOOGLE_CLIENT_ID</code> to
-                client/.env, then restart the dev server.
-              </Alert>
-            ) : (
-              <div className="rounded-full overflow-hidden shadow-lg shadow-black/30">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setError('Google verification failed, please try again')}
-                  theme="outline"
-                  shape="pill"
-                  size="large"
-                  width="280"
-                />
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => { setStep('email'); setError('') }}
-              className="text-xs text-app-muted hover:text-app-text no-tap-flash"
-            >
-              Wrong email? Go back
-            </button>
-          </div>
+        {/* ---------- STEP 2: EMAIL CODE ---------- */}
+        {step === 'code' && (
+          <EmailOtpStep
+            email={email}
+            purpose="reset"
+            onVerified={handleVerified}
+            onBack={() => { setStep('email'); setError('') }}
+            backLabel="Wrong email? Go back"
+          />
         )}
 
         {/* ---------- STEP 3: NEW PASSWORD ---------- */}

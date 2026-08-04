@@ -8,8 +8,8 @@ Teen tarah ki testing hai:
 
 > `npm test` abhi bhi purani hai - username/password wale naye auth routes
 > (`register`, `login`, `set-password`, `reset-password`, `check-email`,
-> `google-check`) uski checks me shaamil nahi hain. Unhe sirf manual testing
-> (section 2, A2-A4) se hi verify karo abhi ke liye.
+> `send-otp`, `verify-otp`) uski checks me shaamil nahi hain. Unhe sirf manual
+> testing (section 2, A2-A4) se hi verify karo abhi ke liye.
 
 ---
 
@@ -106,11 +106,14 @@ Phir `http://localhost:5173` kholo (`127.0.0.1` nahi — Google inhe alag maanta
 
 - [ ] Login page se "Create an account" link → `/signup` khule
 - [ ] Username, email, password, confirm password bharo aur **Continue**
-- [ ] Google verify step khule - **kisi aur Gmail se** sign in karo (jo
-      form wali email se match na kare) → clear error: "That Google account
-      is X, but you entered Y"
-- [ ] Ab **sahi (matching) Gmail** se verify karo → account ban jaye aur
-      seedha `/chat` khule (auto-login)
+- [ ] Code wala step khule aur "We sent a 6-digit code to {email}" dikhe.
+      Code apne inbox me (ya SMTP set na ho to server terminal par) mile
+- [ ] **Galat code** bharo → "Incorrect code. 4 attempts left." (har galat
+      koshish par ginti ghatti jaye, 5 ke baad code hi cancel ho jaye)
+- [ ] Turant **Resend code** dabane ki koshish karo → button 60 second tak
+      disabled rahe aur ulti ginti dikhaye
+- [ ] **Sahi code** bharo → 6th digit type karte hi apne aap verify ho,
+      account ban jaye aur seedha `/chat` khule (auto-login)
 - [ ] Wahi email dobara signup karne ki koshish karo → "An account with this
       email already exists"
 - [ ] Ek email do baar alag-alag username ke saath signup ho sakti hai
@@ -135,12 +138,11 @@ Phir `http://localhost:5173` kholo (`127.0.0.1` nahi — Google inhe alag maanta
 - [ ] Email daale bina Continue dabao → "Email is required"
 - [ ] Aisi email daalo jiska account hi nahi hai → "No account found for this
       email" (login/signup ke link ke saath)
-- [ ] Registered email daalo → Google verify step khule
-- [ ] **Doosra (galat) Google account** se verify karo → "That's X, but you
-      entered Y" jaisa error, wapas Step 1 par nahi jaana padta (dobara Google
-      button try kar sakte ho)
-- [ ] **Sahi (matching) Google account** se verify karo → "Verified as
-      {email}" dikhe, naya password + confirm form khule
+- [ ] Registered email daalo → code wala step khule, code email par jaye
+- [ ] 10 minute purana code bharo → "This code has expired. Please request a
+      new one." (jaldi test karna ho to `utils/otp.js` me TTL ghata lo)
+- [ ] **Sahi code** bharo → "Verified as {email}" dikhe, naya password +
+      confirm form khule
 - [ ] Naya password bhar ke submit karo → `/login` par bhej diya jaye, **login
       na ho jaaye apne aap** (session set nahi hona chahiye)
 - [ ] Login page par "Password updated" wala hara message dikhe
@@ -307,3 +309,6 @@ Browser chhota karo ya F12 → mobile view:
 | CORS error | Frontend 5173 par hi chalna chahiye |
 | Real-time kaam nahi kar raha | Console me socket error dekho, dono servers chalu hain? |
 | Cloudinary upload fail | `server/.env` me teeno keys sahi hain? Server restart kiya? |
+| Verification code aaya hi nahi | Pehle **Spam** dekho. SMTP set na ho to code server terminal par print hota hai (`[DEV MAIL]`) |
+| `Could not send the verification email` | `SMTP_PASS` me Gmail App Password hona chahiye, normal password nahi (SETUP.md Part 3) |
+| `Please wait 42s before requesting another code` | Ek email par har 60 second me ek hi code — normal hai |

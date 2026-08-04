@@ -17,6 +17,7 @@ const cookieParser = require('cookie-parser')
 
 const { connectDB } = require('./config/db')
 const { initSocket } = require('./socket')
+const { warmUpMailer } = require('./utils/mailer')
 const { notFound, errorHandler } = require('./middleware/errorHandler')
 const { verifyCsrf } = require('./middleware/csrf')
 const { User, Group, Message } = require('./models')
@@ -141,6 +142,10 @@ const startServer = async () => {
   // Socket.IO ko HTTP server se jod dete hain
   initSocket(httpServer)
   console.log('[OK] Socket.IO ready')
+
+  // SMTP se pehla connection abhi bana lete hain (background me) - taaki
+  // pehla verification code bhejne wale user ko intezaar na karna pade
+  warmUpMailer()
 
   // Port pehle se busy ho to Node ek ugly crash deta hai
   // Isliye pehle hi pakad kar saaf message dikha dete hain

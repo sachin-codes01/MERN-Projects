@@ -16,13 +16,13 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 
 ### Chat
 - Sign in with Google, or create an account with a username, email and password
-- Email ownership is verified through a one-time Google sign-in even for
-  password-based signup and password reset — there is no email/SMS service, so
-  Google is the proof of identity
+- Email ownership is verified with a 6-digit code emailed over SMTP — signup
+  and password reset both require repeating that code back, so nobody can
+  register or take over an address they do not actually receive mail at
 - Existing Google accounts can add a password later ("Create Password" screen)
   and log in either way afterwards — same account, never duplicated
-- "Forgot password" without an active session: confirm your email, verify it
-  with Google, set a new password
+- "Forgot password" without an active session: confirm your email, enter the
+  code sent to it, set a new password
 - One-to-one private chats with any registered user
 - Group chats with an admin, member add/remove, and group rename
 - Photo and short video sharing, uploaded to Cloudinary (5 MB image / 20 MB video limits)
@@ -49,9 +49,13 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - Passwords hashed with bcrypt — never stored or returned in plain text
 - CSRF protection (double-submit cookie) on every state-changing request
 - Rate limiting on all auth endpoints, tuned separately for sensitive
-  actions (login, register) versus lightweight lookups (email checks)
+  actions (login, register), lightweight lookups (email checks) and
+  outbound email (the code-sending route)
 - Google ID tokens verified server-side, including Google's own
   `email_verified` claim — never trusted from the frontend
+- Email codes stored as HMAC hashes, never in plain text, with a 10-minute
+  expiry, 5 wrong attempts before the code is destroyed, and a 60-second
+  per-address resend cooldown
 
 ### Mobile
 - Composer stays above the on-screen keyboard on both iOS and Android, using the
@@ -89,6 +93,8 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 - MongoDB with Mongoose
 - Socket.IO for real-time messaging, typing and presence
 - Google OAuth verification + JWT session tokens stored in httpOnly cookies
+- Nodemailer over plain SMTP for the emailed verification codes (no paid
+  email service — a pooled, kept-warm connection to any SMTP account)
 - bcryptjs for password hashing
 - express-rate-limit on all auth routes
 - CSRF protection via a custom double-submit-cookie middleware
@@ -106,6 +112,7 @@ Vartalapah-ChattingApp/
 │   │   │                     httpClient + one module per resource
 │   │   ├── assets/           Fonts and poster images
 │   │   ├── components/
+│   │   │   ├── auth/         Shared by the signup and password-reset flows
 │   │   │   ├── chat/         Only meaningful inside the chat feature
 │   │   │   ├── home/         Only meaningful on the landing page
 │   │   │   └── ui/           Generic and feature-agnostic
@@ -127,11 +134,11 @@ Vartalapah-ChattingApp/
 └── server/
     ├── config/               MongoDB and Cloudinary setup
     ├── middleware/           JWT auth guard, CSRF, rate limiting, error handler
-    ├── models/               User, Group, Message
+    ├── models/               User, Group, Message, EmailOtp
     ├── routes/               auth, users, messages, groups, upload
     ├── socket/               Socket.IO auth, rooms, typing, presence
-    ├── utils/                Token, password validation, relations,
-    │                         group-room helpers
+    ├── utils/                Token, password validation, one-time codes,
+    │                         SMTP mailer, relations, group-room helpers
     ├── test-api.js           Automated API test suite
     ├── server.js
     └── .env
@@ -155,6 +162,9 @@ language.
 - MongoDB (Local installation or MongoDB Atlas)
 - A Cloudinary account (for media uploads)
 - A Google Cloud project with an OAuth 2.0 Client ID configured
+- An SMTP account for the verification emails — a normal Gmail address with a
+  16-character App Password works and costs nothing. Leave it out during local
+  development and the codes are printed to the server terminal instead
 
 ### 1. Clone the Repository
 
@@ -179,6 +189,11 @@ PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_16_char_app_password
+SMTP_FROM=Vartalapah <your_email@gmail.com>
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
@@ -230,11 +245,24 @@ PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_16_char_app_password
+SMTP_FROM=Vartalapah <your_email@gmail.com>
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 CLIENT_URL=http://localhost:5173
 ```
+
+`SMTP_FROM` must use the same address as `SMTP_USER`, or the mail fails SPF/DKIM
+alignment and lands in spam — the server warns about this on startup. Port `465`
+is deliberate: `587` uses STARTTLS, whose first handshake was measured at 57
+seconds on a Windows machine with antivirus TLS scanning, versus 1.4 seconds on
+`465`. The SMTP block is optional during local development — leave it empty and
+verification codes are printed to the server terminal instead. See
+**[SETUP.md](SETUP.md)** for generating the Gmail App Password.
 
 ### Frontend (`client/.env`)
 
@@ -257,9 +285,9 @@ Runs an automated API test suite covering auth, users, blocking, messages, group
 
 > This suite predates the username/password auth system and does not yet cover
 > `/auth/register`, `/auth/login`, `/auth/set-password`, `/auth/reset-password`,
-> `/auth/check-email` or `/auth/google-check`. Those were verified manually
-> with live requests during development — extending `test-api.js` to cover them
-> is on the future-improvements list.
+> `/auth/check-email`, `/auth/send-otp` or `/auth/verify-otp`. Those were
+> verified manually with live requests during development — extending
+> `test-api.js` to cover them is on the future-improvements list.
 
 ```bash
 cd client
@@ -277,6 +305,7 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - `NODE_ENV=production` must be set on Render so the session cookie is issued with `secure: true` and `sameSite: 'none'`, which is what makes cross-domain login work between Vercel and Render.
 - `CLIENT_URL` on Render must match the deployed Vercel URL exactly, since it drives CORS for both the REST API and the Socket.IO connection.
 - The Google Cloud Console OAuth Client must have the deployed frontend URL added under **Authorized JavaScript origins** for Google login to work in production.
+- The `SMTP_*` variables must be set on Render too — `.env` files are not deployed. Without them the server refuses to send verification codes in production (it does not silently fall back to printing them, which is development-only behaviour), so signup and password reset would both break.
 - MongoDB Atlas must allow `0.0.0.0/0` under Network Access, because Render and Vercel do not use fixed outbound IPs.
 
 > The backend runs on Render's free tier, which sleeps after 15 minutes of inactivity. The first request after a sleep can take up to 50 seconds to wake the service.
@@ -286,7 +315,8 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - MERN Stack Architecture
 - Real-time Messaging with Socket.IO Rooms
 - Hybrid Auth — Google OAuth and Username/Password, Same Account Either Way
-- Google ID Token Verification as an Email-ownership Proof for Signup and Password Reset (no email service)
+- Emailed One-time Codes as Proof of Email Ownership for Signup and Password Reset, over Free SMTP
+- HMAC-hashed Codes with Expiry, Attempt Limits and Per-address Resend Cooldowns
 - Bcrypt Password Hashing, Never Stored or Returned in Plain Text
 - CSRF Protection via Double-submit Cookie
 - Tiered Rate Limiting on Auth Endpoints

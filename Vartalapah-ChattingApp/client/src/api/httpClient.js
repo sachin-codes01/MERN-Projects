@@ -73,7 +73,17 @@ export const request = async (path, { method = 'GET', body } = {}) => {
   // Server ne khali body bheji ho to .json() phat jata hai
   const data = await response.json().catch(() => ({}))
 
-  if (!response.ok) throw new Error(data.message || FALLBACK_ERROR)
+  if (!response.ok) {
+    // Message ke alawa kabhi kabhi server aur bhi kuch bhejta hai -
+    // jaise OTP wale "Please wait 42s" ke saath retryAfter: 42, jisse
+    // frontend asli countdown dikha sake. Error par status aur poora
+    // data chipka dete hain (baaki purana code sirf err.message padhta
+    // hai, uspar koi asar nahi)
+    const error = new Error(data.message || FALLBACK_ERROR)
+    error.status = response.status
+    error.data = data
+    throw error
+  }
 
   return data
 }

@@ -1,12 +1,17 @@
 ﻿const express = require('express')
 const bcrypt = require('bcryptjs')
 const { OAuth2Client } = require('google-auth-library')
-const { User } = require('../models')
+const { User, EmailOtp } = require('../models')
 const { protect } = require('../middleware/protect')
-const { authLimiter, lookupLimiter } = require('../middleware/rateLimit')
+const { authLimiter, lookupLimiter, otpLimiter } = require('../middleware/rateLimit')
 const { issueCsrfCookie, clearCsrfCookie, verifyCsrf } = require('../middleware/csrf')
 const { validatePassword, PASSWORD_REQUIREMENTS_MESSAGE } = require('../utils/validatePassword')
 const { COOKIE_NAME, cookieOptions, cookieOptionsFor, createToken, publicUser } = require('../utils/token')
+const { sendOtpEmail } = require('../utils/mailer')
+const {
+  OTP_TTL_MINUTES, OTP_TTL_MS, OTP_RESEND_COOLDOWN_MS, OTP_RESEND_COOLDOWN_SECONDS, OTP_MAX_ATTEMPTS,
+  generateOtp, hashOtp, matchOtp, createVerificationToken, readVerificationToken,
+} = require('../utils/otp')
 
 // bcrypt jitna zyada "cost", hash utna hi dheere banta hai - jaan
 // boojhkar dheera rakha jata hai taaki koi ek second me lakhon
@@ -37,10 +42,13 @@ const router = express.Router()
 // Google ka client - isse hum Google se aaye token ko verify karte hain
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
-// Google credential (ID token) verify karna do jagah chahiye - normal
-// Google login (/google) aur "forgot password" wala Google-se-pehchaan
-// (/reset-password). Dono me galat/expire/nakli token par wahi ek jaisa
-// safe error dikhna chahiye, isliye ek hi jagah rakha hai
+// Google credential (ID token) verify karna - ab sirf ek hi jagah
+// chahiye: one-click "Continue with Google" login (/google)
+//
+// Pehle signup aur "forgot password" bhi email ki malikiyat isi se
+// saabit karwate the. Ab wo dono email par bheje gaye OTP se hoti hai
+// (/send-otp + /verify-otp) - yaani jiske paas Google account nahi hai
+// wo bhi normal signup kar sakta hai aur password reset kar sakta hai
 const verifyGoogleCredential = async (credential) => {
   try {
     const ticket = await googleClient.verifyIdToken({
@@ -201,38 +209,220 @@ router.post('/check-email', lookupLimiter, async (req, res, next) => {
   }
 })
 
-// ==========================================================
-// POST /api/auth/google-check
-// ForgotPassword.jsx ke STEP 2 me Google se verify hote hi (credential
-// mil chuka) isse pooch leta hai "kya is email ka koi account YAHAN
-// hai?" - isliye ki agar banda galti se apna DOOSRA Google account
-// chun le (jiska is app me account hi nahi hai, ya Step 1 wali email
-// se nahi milta), to use turant pata chal jaye, naya password bharne
-// se pehle - warna reset submit karte waqt hi pata chalta
+// Email par code bhejne ki do hi wajah ho sakti hai. Koi teesri
+// value bheji to seedha reject - warna aage ka saara logic
+// ("account hona chahiye" / "nahi hona chahiye") bekaar ho jata
+const OTP_PURPOSES = ['register', 'reset']
+
+// Mail nikalne ka zyada se zyada itna intezaar karte hain. Iske baad
+// user ko "bhej diya" bolkar chhod dete hain aur mail background me
+// jata rehta hai
 //
-// Ye sirf ek boolean batata hai (exists: true/false) - password ya
-// koi aur private field kabhi nahi
+// Kyun? Gmail ka SMTP handshake kabhi kabhi 10-20 second le leta hai
+// (ISP, TLS, antivirus scan). Utni der screen par sirf "Sending
+// code..." dikhta rehta hai - jabki code to database me pehle hi save
+// ho chuka hota hai aur mail bhi nikal hi jata hai, bas dheere
+//
+// 3 second itna hai ki normal (warm connection wala) send poora ho
+// jaye - yaani asli SMTP error abhi bhi user tak turant pahunchta hai
+const MAIL_WAIT_MS = 3000
+
 // ==========================================================
-router.post('/google-check', lookupLimiter, async (req, res, next) => {
+// POST /api/auth/send-otp
+// Email par 6-digit code bhejta hai. Signup (purpose: 'register')
+// aur "forgot password" (purpose: 'reset') - dono yahi use karte hain
+//
+// Purpose se ye bhi tay hota hai ki account HONA chahiye ya NAHI:
+//   register -> email free honi chahiye (warna wahi account do baar)
+//   reset    -> account hona hi chahiye (nahi hai to reset kis cheez ka)
+//
+// Isse user ko galti ka pata abhi chal jata hai - code type karne aur
+// password bharne ke BAAD nahi
+// ==========================================================
+router.post('/send-otp', otpLimiter, async (req, res, next) => {
   try {
-    const { credential } = req.body
+    const email = normalizeEmail(req.body.email)
+    const purpose = String(req.body.purpose || '')
 
-    if (!credential) {
-      return res.status(400).json({ success: false, message: 'Google verification is required' })
+    if (!OTP_PURPOSES.includes(purpose)) {
+      return res.status(400).json({ success: false, message: 'Invalid verification request' })
     }
 
-    const payload = await verifyGoogleCredential(credential)
-    if (!payload) {
-      return res.status(401).json({ success: false, message: 'Google verification failed, please try again' })
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid email address' })
     }
 
-    if (!payload.email) {
-      return res.status(400).json({ success: false, message: 'No email received from Google account' })
+    const accountExists = await User.exists({ email, isDeleted: { $ne: true } })
+
+    if (purpose === 'register' && accountExists) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists' })
     }
 
-    const exists = await User.exists({ email: payload.email, isDeleted: { $ne: true } })
+    if (purpose === 'reset' && !accountExists) {
+      return res.status(404).json({ success: false, message: 'No account found for this email address' })
+    }
 
-    res.json({ success: true, email: payload.email, exists: !!exists })
+    // ---- RESEND COOLDOWN ----
+    // Rate limiter (otpLimiter) IP se ginta hai. Ye cooldown EMAIL se
+    // ginta hai - warna alag alag IP/proxy se koi bhi kisi ki inbox
+    // seconds me bhar sakta tha
+    const existing = await EmailOtp.findOne({ email, purpose })
+
+    if (existing) {
+      const waitMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - existing.lastSentAt.getTime())
+
+      if (waitMs > 0) {
+        const waitSeconds = Math.ceil(waitMs / 1000)
+        return res.status(429).json({
+          success: false,
+          retryAfter: waitSeconds,
+          message: `Please wait ${waitSeconds}s before requesting another code`,
+        })
+      }
+    }
+
+    const code = generateOtp()
+
+    // upsert: is email+purpose ka purana code (agar hai to) yahi overwrite
+    // ho jata hai - yaani purana turant bekaar. Ek waqt par ek hi code zinda
+    //
+    // attempts wapas 0 - naya code, nayi 5 koshishein
+    await EmailOtp.findOneAndUpdate(
+      { email, purpose },
+      {
+        email,
+        purpose,
+        codeHash: hashOtp(code),
+        expiresAt: new Date(Date.now() + OTP_TTL_MS),
+        attempts: 0,
+        lastSentAt: new Date(),
+      },
+      { upsert: true, setDefaultsOnInsert: true },
+    )
+
+    // Mail bhejna shuru karte hain, lekin iska poora intezaar nahi karte
+    // (upar MAIL_WAIT_MS wala comment dekho)
+    //
+    // Ye promise KABHI reject nahi hota - error andar hi pakad kar
+    // mailFailure me rakh lete hain. Warna race jeetne ke baad koi
+    // reject hoti promise bina handler ke reh jati (unhandled rejection)
+    let mailFailure = null
+
+    const mailTask = sendOtpEmail({ to: email, code, purpose, minutes: OTP_TTL_MINUTES })
+      .catch(async (mailError) => {
+        mailFailure = mailError
+        console.error('OTP mail bhejne me dikkat:', mailError.message)
+
+        // Mail gaya hi nahi to database me code chhodne ka koi fayda
+        // nahi - user ko wo kabhi milega hi nahi, aur wo pada rehkar
+        // agle "Resend" ko 60 second ke cooldown me atka dega
+        await EmailOtp.deleteOne({ email, purpose }).catch(() => {})
+      })
+
+    // Jo pehle ho jaye: ya to mail nikal jaye, ya 3 second poore ho jayein
+    await Promise.race([
+      mailTask,
+      new Promise((resolve) => setTimeout(resolve, MAIL_WAIT_MS)),
+    ])
+
+    // Turant fail hua (galat password, SMTP band) - user ko sach batate hain
+    if (mailFailure) {
+      return res.status(502).json({
+        success: false,
+        message: 'Could not send the verification email. Please try again in a moment.',
+      })
+    }
+
+    res.json({
+      success: true,
+      message: `Verification code sent to ${email}`,
+      expiresInMinutes: OTP_TTL_MINUTES,
+      resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ==========================================================
+// POST /api/auth/verify-otp
+// User ne jo code bhara wo sahi hai ya nahi
+//
+// Sahi nikla to ek chhota "verification token" milta hai (15 min).
+// Uska matlab sirf itna: "is email ki malikiyat abhi abhi saabit ho
+// chuki hai". Wahi token aage /register ya /reset-password ko jata hai
+//
+// Alag request kyun? Kyunki code verify karne aur asli kaam (account
+// banana / password badalna) ke beech me user password type kar raha
+// hota hai. Token hi wo "parchi" hai jo beech ka rasta jodti hai -
+// bilkul wahi kaam jo pehle Google ka credential karta tha
+// ==========================================================
+router.post('/verify-otp', lookupLimiter, async (req, res, next) => {
+  try {
+    const email = normalizeEmail(req.body.email)
+    const purpose = String(req.body.purpose || '')
+    const code = String(req.body.code || '').trim()
+
+    if (!OTP_PURPOSES.includes(purpose)) {
+      return res.status(400).json({ success: false, message: 'Invalid verification request' })
+    }
+
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid email address' })
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+      return res.status(400).json({ success: false, message: 'Enter the 6-digit code from your email' })
+    }
+
+    const record = await EmailOtp.findOne({ email, purpose })
+
+    // TTL index se document apne aap hatta to hai, lekin MongoDB ka wo
+    // background monitor har ~60 second me chalta hai - beech me expire
+    // hua code abhi bhi mil sakta hai. Isliye expiry khud bhi check karte hain
+    const isExpired = record && record.expiresAt.getTime() < Date.now()
+
+    if (!record || isExpired) {
+      if (record) await EmailOtp.deleteOne({ _id: record._id })
+
+      return res.status(400).json({
+        success: false,
+        message: 'This code has expired. Please request a new one.',
+      })
+    }
+
+    if (!matchOtp(code, record.codeHash)) {
+      record.attempts += 1
+      const attemptsLeft = OTP_MAX_ATTEMPTS - record.attempts
+
+      // Limit paar - code hi mita dete hain. 6 digits sirf 10 lakh
+      // combinations hain, bina is limit ke script baithe baithe guess kar leti
+      if (attemptsLeft <= 0) {
+        await EmailOtp.deleteOne({ _id: record._id })
+
+        return res.status(400).json({
+          success: false,
+          message: 'Too many incorrect attempts. Please request a new code.',
+        })
+      }
+
+      await record.save()
+
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect code. ${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} left.`,
+      })
+    }
+
+    // Sahi code - ek hi baar chalta hai. Turant mita dete hain taaki
+    // wahi code dobara use na ho sake
+    await EmailOtp.deleteOne({ _id: record._id })
+
+    res.json({
+      success: true,
+      email,
+      verificationToken: createVerificationToken(email, purpose),
+    })
   } catch (err) {
     next(err)
   }
@@ -240,31 +430,32 @@ router.post('/google-check', lookupLimiter, async (req, res, next) => {
 
 // ==========================================================
 // POST /api/auth/reset-password
-// "Forgot password" - koi email/SMS bhejne wala service iss app me
-// nahi hai, isliye pehchaan Google se hi karwate hain (jaisa Google
-// login karte waqt hota hai). Fresh Google credential ka matlab hai
-// "ye SACH ME wahi banda hai jiske paas is email ka Google account hai" -
-// isse zyada bharosemand koi doosra tarika bina email/SMS ke nahi hai
+// "Forgot password" - pehchaan email par bheje gaye OTP se hoti hai
+// (/send-otp -> /verify-otp -> yahan). Verification token ka matlab
+// hai "is banda ne abhi abhi is email ke inbox tak apni pahunch saabit
+// ki hai" - password bhool jane par yahi sabse seedha saboot hai
 //
 // protect middleware yahan JAAN-BOOJHKAR nahi laga - banda apne purane
 // device/session ke bina bhi (jahan cookie kho gayi ho) password reset
-// kar sake, isiliye Google credential hi pehchaan hai, cookie nahi
+// kar sake, isiliye email verification hi pehchaan hai, cookie nahi
 // ==========================================================
 router.post('/reset-password', authLimiter, async (req, res, next) => {
   try {
-    const { credential, password, confirmPassword } = req.body
+    const { verificationToken, password, confirmPassword } = req.body
 
-    if (!credential) {
-      return res.status(400).json({ success: false, message: 'Google verification is required' })
+    if (!verificationToken) {
+      return res.status(400).json({ success: false, message: 'Email verification is required' })
     }
 
-    const payload = await verifyGoogleCredential(credential)
-    if (!payload) {
-      return res.status(401).json({ success: false, message: 'Google verification failed, please try again' })
-    }
+    // Token expire ho gaya / chhed-chhad hui / signup wala token yahan
+    // bhej diya - teeno me email null hi aata hai
+    const verifiedEmail = readVerificationToken(verificationToken, 'reset')
 
-    if (!payload.email) {
-      return res.status(400).json({ success: false, message: 'No email received from Google account' })
+    if (!verifiedEmail) {
+      return res.status(401).json({
+        success: false,
+        message: 'Your verification has expired. Please verify your email again.',
+      })
     }
 
     if (!password || !confirmPassword) {
@@ -279,13 +470,14 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
       return res.status(400).json({ success: false, message: PASSWORD_REQUIREMENTS_MESSAGE })
     }
 
-    const user = await User.findOne({ email: payload.email, isDeleted: { $ne: true } })
+    const user = await User.findOne({ email: verifiedEmail, isDeleted: { $ne: true } })
 
-    // Is email se koi account hi nahi hai - "sign up" pehle Google se karo
+    // /send-otp pehle hi check kar chuka hai ki account hai - lekin beech
+    // ke 15 minute me account delete bhi ho sakta hai, isliye dobara check
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'No account found for this Google email. Sign in with Google first to create one.',
+        message: 'No account found for this email address. Please create one first.',
       })
     }
 
@@ -308,19 +500,19 @@ router.post('/reset-password', authLimiter, async (req, res, next) => {
 // Naya account - username + email + password se signup.
 //
 // Email ki malikiyat isi tarah pakki karte hain jaise "forgot password"
-// me karte hain (dekho /reset-password upar) - koi email/SMS bhejne
-// wala service nahi hai, isliye Google se ek baar verify karwate hain
-// ki jo email form me likhi hai wahi banda SACH ME chalata hai. Isके
-// bina koi bhi kisi aur ka email daalkar uske naam ka account bana sakta tha
+// me karte hain (dekho /reset-password upar) - form me likhi email par
+// 6-digit code bhejte hain aur wahi code wapas maangte hain. Iske bina
+// koi bhi kisi aur ka email daalkar uske naam ka account bana sakta tha
 //
-// Verify hote hi googleId bhi save kar dete hain - taaki aage se ye
-// account "Continue with Google" se bhi khul sake, sirf password se hi nahi
+// Yahan googleId save NAHI hota (Google is flow me hai hi nahi) - lekin
+// user baad me "Continue with Google" bhi kar sakta hai: /google email
+// se hi account dhundhta hai aur pehli baar me googleId khud jod deta hai
 // ==========================================================
 router.post('/register', authLimiter, async (req, res, next) => {
   try {
     const username = String(req.body.username || '').trim()
     const email = normalizeEmail(req.body.email)
-    const { password, confirmPassword, credential } = req.body
+    const { password, confirmPassword, verificationToken } = req.body
 
     if (!username || !USERNAME_REGEX.test(username)) {
       return res.status(400).json({
@@ -345,28 +537,28 @@ router.post('/register', authLimiter, async (req, res, next) => {
       return res.status(400).json({ success: false, message: PASSWORD_REQUIREMENTS_MESSAGE })
     }
 
-    // ---- EMAIL VERIFY (Google) ----
-    if (!credential) {
-      return res.status(400).json({ success: false, message: 'Please verify your email with Google before creating an account' })
+    // ---- EMAIL VERIFY (OTP) ----
+    if (!verificationToken) {
+      return res.status(400).json({ success: false, message: 'Please verify your email before creating an account' })
     }
 
-    const payload = await verifyGoogleCredential(credential)
-    if (!payload) {
-      return res.status(401).json({ success: false, message: 'Google verification failed, please try again' })
+    const verifiedEmail = readVerificationToken(verificationToken, 'register')
+
+    if (!verifiedEmail) {
+      return res.status(401).json({
+        success: false,
+        message: 'Your verification has expired. Please verify your email again.',
+      })
     }
 
-    const googleEmail = normalizeEmail(payload.email)
-    if (!googleEmail) {
-      return res.status(400).json({ success: false, message: 'No email received from Google account' })
-    }
-
-    // Jo email form me likhi thi wahi Google se verify honi chahiye -
-    // warna koi apni email likhkar kisi AUR ke Google account se verify
-    // karwa sakta tha
-    if (googleEmail !== email) {
+    // Jo email verify hui thi, account bhi USI ka banna chahiye. Token me
+    // email likhi hui hai isliye ye hamesha match karegi - lekin frontend
+    // ne beech me email badal di ho (user ne "Change details" dabaya) to
+    // yahi check use pakadta hai
+    if (verifiedEmail !== email) {
       return res.status(400).json({
         success: false,
-        message: `That Google account is ${googleEmail}, but you entered ${email}. Please verify with the matching Google account.`,
+        message: `You verified ${verifiedEmail}, but the form says ${email}. Please verify the email you want to use.`,
       })
     }
 
@@ -386,8 +578,6 @@ router.post('/register', authLimiter, async (req, res, next) => {
       username,
       email,
       password: hashedPassword,
-      googleId: payload.sub,
-      profileImage: payload.picture || '',
       isOnline: true,
     })
 
