@@ -156,6 +156,11 @@ const MAIL_COPY = {
     heading: 'Reset your password',
     line: 'Use this code to set a new password for your Vartalapah account.',
   },
+  delete: {
+    subject: 'Confirm account deletion - Vartalapah',
+    heading: 'Confirm account deletion',
+    line: 'Use this code to permanently delete your Vartalapah account. If you did not ask for this, ignore this email and your account stays exactly as it is.',
+  },
 }
 
 // Bahut se email clients (Gmail included) <style> tags aur external CSS

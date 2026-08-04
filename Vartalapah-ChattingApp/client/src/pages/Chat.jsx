@@ -13,6 +13,7 @@ import Sidebar from '@/components/chat/Sidebar.jsx'
 import UserProfileDialog from '@/components/chat/UserProfileDialog.jsx'
 import ActionSheet from '@/components/ui/ActionSheet.jsx'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.jsx'
+import DeleteAccountDialog from '@/components/ui/DeleteAccountDialog.jsx'
 
 import { useAuth } from '@/context/AuthContext.jsx'
 import { useSocket } from '@/context/SocketContext.jsx'
@@ -58,7 +59,7 @@ import { canShare } from '@/utils/mediaFile.js'
 const Chat = () => {
   const navigate = useNavigate()
 
-  const { user: me, logout, updateProfile, deleteAccount } = useAuth()
+  const { user: me, logout, updateProfile, sendDeleteOtp, deleteAccount } = useAuth()
   const { socket, onlineUsers } = useSocket()
 
   const toast = useToast()
@@ -198,6 +199,7 @@ const Chat = () => {
   const profile = useProfileActions({
     me,
     updateProfile,
+    sendDeleteOtp,
     deleteAccount,
     askConfirm,
     toast,
@@ -479,6 +481,15 @@ const Chat = () => {
         confirm={confirm}
         onCancel={() => setConfirm(null)}
         onConfirm={runConfirm}
+      />
+
+      {/* Account delete: confirm ke baad email wala code yahan bharta hai */}
+      <DeleteAccountDialog
+        step={profile.deleteStep}
+        email={me.email}
+        onConfirm={profile.confirmDeleteWithCode}
+        onResend={profile.resendDeleteCode}
+        onCancel={profile.cancelDelete}
       />
 
       {/* ---------- TOASTS ---------- */}

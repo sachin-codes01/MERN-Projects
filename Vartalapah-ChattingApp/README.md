@@ -41,13 +41,20 @@ A full-stack real-time chat application built on the MERN stack (MongoDB, Expres
 ### Account
 - Profile page showing account info (name, email, avatar)
 - Light and dark theme toggle, persisted across sessions
-- Account deletion using a soft delete, so the other person's chat history stays intact
+- Account deletion gated behind a 6-digit code emailed to the account's own
+  address, then performed as a soft delete so the other person's chat history
+  stays intact
 - Session persists across page refreshes via an httpOnly cookie
 - "Remember me" on login for a 30-day session instead of the default 7 days
 
 ### Security
 - Passwords hashed with bcrypt — never stored or returned in plain text
-- CSRF protection (double-submit cookie) on every state-changing request
+- CSRF protection (double-submit cookie) on every state-changing request. The
+  token is also served from `GET /api/auth/csrf`, because in deployment the
+  frontend and API sit on different domains and JavaScript cannot read a cookie
+  set by the other one — only the allowed CORS origin can read that response
+- Deleting an account needs an emailed code, not just a valid session — the one
+  action that cannot be undone is not left to a borrowed or forgotten device
 - Rate limiting on all auth endpoints, tuned separately for sensitive
   actions (login, register), lightweight lookups (email checks) and
   outbound email (the code-sending route)
@@ -374,6 +381,7 @@ A manual browser checklist is available in [TESTING.md](TESTING.md).
 - **Theme colours live in two places.** The dark palette is defined in the `@theme` block of `client/src/styles/index.css`. The light palette is applied as inline CSS variables on `<html>` — from `LIGHT_VARS` in `client/src/context/ThemeContext.jsx`, and again in a small pre-paint script in `client/index.html` so light-mode users never see a flash of dark. **Both lists must be kept in sync.** Inline styles are used rather than a `[data-theme]` CSS rule because Tailwind v4 compiles `@theme` inside a cascade layer, which made overriding it from CSS unreliable.
 - **MUI components don't read Tailwind classes.** Shared `sx` values for MUI inputs and dividers live in `client/src/styles/muiStyles.js` and point at the same CSS variables, so they follow the theme too. Avoid hard-coding hex colours in `sx` — import them from `client/src/constants/theme.js` instead. Hard-coded hexes are what previously made input text and placeholders invisible in light mode.
 - **`GET /api/auth/me` returns `200` with `user: null`** when no session cookie is present, since being logged out is a normal state and a `401` shows up as a red console error for every visitor. A cookie that is present but invalid or expired still returns `401`.
+- **The CSRF token has two sources on purpose.** `httpClient.js` reads the `csrf_token` cookie when it can, and falls back to `GET /api/auth/csrf` when it cannot — which is always the case in deployment, where the cookie belongs to the API's domain and the page runs on another. Do not "simplify" this back to a cookie-only read: that is what made every non-GET request fail with `403` on the live site while working perfectly on localhost.
 - **The hero animation is desktop-only and self-measuring.** It reads the rendered width of the app name and the real glyph bounds of the background month number, then derives its lanes from those. Nothing about it is hard-coded to a breakpoint, so changing the heading size or the number does not require touching the animation.
 - **`useToast()` returns a new object every render.** `error`/`info` are `useState` values and `setError`/`setInfo` are their setters, but the `{ error, info, setError, setInfo }` wrapper object itself is a fresh literal each time. Effects/callbacks that need `toast` must destructure `setError`/`setInfo` (stable, guaranteed by React) rather than depending on the whole `toast` object, or `react-hooks/exhaustive-deps` either re-fires them every render or has to be silenced. See `useMessages.js`, `useChatList.js` and `useChatSocket.js` for the pattern.
 - **`client/eslint.config.js` intentionally skips `eslint-plugin-react`** — at time of writing it isn't compatible with the installed ESLint 10, and its rules aren't essential with React 17+'s JSX transform anyway. Only `eslint-plugin-react-hooks` (pinned to the stable v5, not the v7 line with experimental React Compiler rules) and `eslint-plugin-react-refresh` are used.

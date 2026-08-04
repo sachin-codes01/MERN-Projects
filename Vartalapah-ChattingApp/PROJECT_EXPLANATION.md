@@ -331,6 +331,39 @@ unless the header matches the cookie. A different website can make the browser
 *send* the cookie, but it can never *read* its value to build a matching
 header — same-origin policy blocks that.
 
+**The half of that pattern that quietly broke in production.** "JavaScript on
+our own frontend can read it" is true only when the frontend and the API share
+a domain. Deployed, they do not: the cookie belongs to `onrender.com` and the
+page runs on `vercel.app`, so `document.cookie` on the frontend simply does not
+contain it. The header went out empty and the server answered every non-GET
+request with `403 Invalid or missing CSRF token` — sending a message, uploading,
+saving a profile, deleting an account. Locally everything passed, because there
+both halves live on `localhost`.
+
+The repair keeps the same security property and changes only *how the frontend
+learns the value*: `GET /api/auth/csrf` returns the token in the response body.
+CORS is restricted to `CLIENT_URL`, so no other origin is allowed to read that
+response — the token stays exactly as unreadable to an attacker as it was
+inside the cookie. `httpClient.js` reads the cookie when it can (localhost) and
+falls back to that endpoint otherwise, caching the value in memory and
+refetching once if a request ever comes back 403.
+
+The lesson is worth stating plainly: a security pattern copied from a tutorial
+assumed a single-origin deployment. The pattern was right, the assumption was
+not, and the failure only appeared in the environment nobody tests first.
+
+### Why deleting an account also needs an emailed code
+
+`DELETE /api/auth/me` is the only action in the app that cannot be undone. A
+valid session cookie is a weak thing to hang it on — a borrowed laptop, a
+forgotten logout in a college lab, or a stolen cookie is enough. So the route
+requires a 6-digit code that is emailed to the account's own address, using the
+same OTP machinery as signup and password reset (`purpose: 'delete'`).
+
+The code is requested through `POST /api/auth/me/delete-otp`, which deliberately
+ignores any email in the request body and uses `req.user.email`. If it accepted
+an address, anyone could point verification mail at someone else's inbox.
+
 ### How a protected route stays protected
 
 `middleware/protect.js` runs before any protected handler. It reads the cookie,
@@ -558,7 +591,8 @@ so you need to know *who* has read it.
 document, every message they ever sent would point at a missing user and the
 other person's chat history would break. Instead we set `isDeleted: true`, blank
 the profile and scramble the email (so the same Google account can sign up fresh).
-Their messages survive on the other side.
+Their messages survive on the other side. Getting to that point requires an
+emailed 6-digit code, not just a logged-in session — see section 4.5.
 
 **Why does `deletedFor` exist separately from real deletion?** Two different
 features:

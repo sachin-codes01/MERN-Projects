@@ -16,10 +16,12 @@ const emailOtpSchema = new mongoose.Schema({
 
   // register = naya account banate waqt email verify
   // reset    = password bhool jane par pehchaan
+  // delete   = account delete karne se pehle "sach me tum hi ho na?"
   //
-  // Dono alag rakhe hain taaki signup ke liye bheja gaya code password
-  // reset karne me na chal jaye (aur ulta bhi nahi)
-  purpose: { type: String, required: true, enum: ['register', 'reset'] },
+  // Teeno alag rakhe hain taaki ek kaam ka code doosre me na chal jaye -
+  // signup ka code password reset me, ya reset ka code account delete
+  // karne me
+  purpose: { type: String, required: true, enum: ['register', 'reset', 'delete'] },
 
   // Plain code KABHI save nahi hota - password ki tarah hi ise bhi
   // hash karke rakhte hain (utils/otp.js)

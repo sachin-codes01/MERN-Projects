@@ -67,5 +67,9 @@ export const authApi = {
 
   // Soft delete - user "deleted" mark hota hai lekin uske bheje hue
   // messages saamne wale ki chat me bane rehte hain
-  deleteAccount: () => request('/auth/me', { method: 'DELETE' }),
+  // Delete se pehle apni hi email par code jata hai - email bhejne ki
+  // zarurat nahi, backend logged-in user ki email khud uthata hai
+  sendDeleteOtp: () => request('/auth/me/delete-otp', { method: 'POST' }),
+
+  deleteAccount: (code) => request('/auth/me', { method: 'DELETE', body: { code } }),
 }

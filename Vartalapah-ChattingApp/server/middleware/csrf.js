@@ -34,7 +34,36 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 const issueCsrfCookie = (res, cookieOpts = cookieOptions) => {
   const token = crypto.randomBytes(32).toString('hex')
   res.cookie(CSRF_COOKIE_NAME, token, { ...cookieOpts, httpOnly: false })
+  return token
 }
+
+// ==========================================================
+// getOrIssueCsrfToken - cookie ki value WAPAS bhejta hai
+//
+// httpOnly:false rakhne ka poora maqsad tha ki frontend JS cookie
+// khud padh le. Wo localhost par chalta hai (dono ek hi origin par
+// hain), lekin PRODUCTION me nahi:
+//
+//   frontend -> vercel.app     backend -> onrender.com
+//
+// Browser cookie ko backend ke domain ke naam se save karta hai.
+// Request ke saath wo apne aap chali jati hai (sameSite:'none'),
+// lekin vercel.app par chal raha JS use document.cookie me DEKH hi
+// nahi sakta - alag domain ki cookie hai. Isliye header khali jata
+// tha aur server har non-GET request 403 kar deta tha
+// ("Invalid or missing CSRF token")
+//
+// Hal: token ek normal GET response me bhej do. Sirf hamara apna
+// frontend hi ise padh sakta hai, kyunki CORS me allowed origin
+// sirf CLIENT_URL hai - kisi aur website ka JS is response ko padh
+// hi nahi sakta. Yaani token abhi bhi "sirf hamare paas" hai, aur
+// double-submit ka poora bharosa bana rehta hai
+//
+// Cookie pehle se ho to wahi lautate hain (nayi banayenge to purani
+// wali dusre tab ki request tod dega)
+// ==========================================================
+const getOrIssueCsrfToken = (req, res) =>
+  req.cookies[CSRF_COOKIE_NAME] || issueCsrfCookie(res)
 
 const clearCsrfCookie = (res) => {
   res.clearCookie(CSRF_COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
@@ -55,4 +84,7 @@ const verifyCsrf = (req, res, next) => {
   next()
 }
 
-module.exports = { issueCsrfCookie, clearCsrfCookie, verifyCsrf, CSRF_COOKIE_NAME, CSRF_HEADER_NAME }
+module.exports = {
+  issueCsrfCookie, getOrIssueCsrfToken, clearCsrfCookie, verifyCsrf,
+  CSRF_COOKIE_NAME, CSRF_HEADER_NAME,
+}

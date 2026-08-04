@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authApi } from '@/api/authApi.js'
+import { clearCsrfToken } from '@/api/httpClient.js'
 
 // ==========================================================
 // CONTEXT
@@ -90,6 +91,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Backend fail bhi ho jaye to frontend par to logout kar hi dena chahiye
       setUser(null)
+
+      // Purana CSRF token bhool jao - agle login par nayi cookie milegi
+      clearCsrfToken()
     }
   }
 
@@ -103,9 +107,14 @@ export const AuthProvider = ({ children }) => {
   // Account delete karna
   // Backend "soft delete" karta hai - document mitata nahi, sirf chhupa deta hai
   // Isse saamne wale ki purani chat toot ti nahi
-  const deleteAccount = async () => {
-    await authApi.deleteAccount()
+  // Delete karne se pehle email par code jata hai - ye do step hain:
+  // pehle code mangao, phir wahi code bhej kar delete karo
+  const sendDeleteOtp = () => authApi.sendDeleteOtp()
+
+  const deleteAccount = async (code) => {
+    await authApi.deleteAccount(code)
     setUser(null)
+    clearCsrfToken()
   }
 
   // Jo bhi is value me hai, wo poori app me kahin bhi useAuth() se mil jayega
@@ -113,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     user, loading,
     loginWithGoogle, loginWithPassword, register, setPassword,
     checkEmail, sendEmailOtp, verifyEmailOtp, resetPassword,
-    logout, updateProfile, deleteAccount,
+    logout, updateProfile, sendDeleteOtp, deleteAccount,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -4,7 +4,7 @@ const { OAuth2Client } = require('google-auth-library')
 const { User, EmailOtp } = require('../models')
 const { protect } = require('../middleware/protect')
 const { authLimiter, lookupLimiter, otpLimiter } = require('../middleware/rateLimit')
-const { issueCsrfCookie, clearCsrfCookie, verifyCsrf } = require('../middleware/csrf')
+const { issueCsrfCookie, getOrIssueCsrfToken, clearCsrfCookie, verifyCsrf } = require('../middleware/csrf')
 const { validatePassword, PASSWORD_REQUIREMENTS_MESSAGE } = require('../utils/validatePassword')
 const { COOKIE_NAME, cookieOptions, cookieOptionsFor, createToken, publicUser } = require('../utils/token')
 const { sendOtpEmail, isFastTransport } = require('../utils/mailer')
@@ -271,87 +271,177 @@ router.post('/send-otp', otpLimiter, async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'No account found for this email address' })
     }
 
-    // ---- RESEND COOLDOWN ----
-    // Rate limiter (otpLimiter) IP se ginta hai. Ye cooldown EMAIL se
-    // ginta hai - warna alag alag IP/proxy se koi bhi kisi ki inbox
-    // seconds me bhar sakta tha
-    const existing = await EmailOtp.findOne({ email, purpose })
+    const result = await issueOtp({ email, purpose })
 
-    if (existing) {
-      const waitMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - existing.lastSentAt.getTime())
-
-      if (waitMs > 0) {
-        const waitSeconds = Math.ceil(waitMs / 1000)
-        return res.status(429).json({
-          success: false,
-          retryAfter: waitSeconds,
-          message: `Please wait ${waitSeconds}s before requesting another code`,
-        })
-      }
-    }
-
-    const code = generateOtp()
-
-    // upsert: is email+purpose ka purana code (agar hai to) yahi overwrite
-    // ho jata hai - yaani purana turant bekaar. Ek waqt par ek hi code zinda
-    //
-    // attempts wapas 0 - naya code, nayi 5 koshishein
-    await EmailOtp.findOneAndUpdate(
-      { email, purpose },
-      {
-        email,
-        purpose,
-        codeHash: hashOtp(code),
-        expiresAt: new Date(Date.now() + OTP_TTL_MS),
-        attempts: 0,
-        lastSentAt: new Date(),
-      },
-      { upsert: true, setDefaultsOnInsert: true },
-    )
-
-    // Mail bhejna shuru karte hain, lekin iska poora intezaar nahi karte
-    // (upar MAIL_WAIT_MS wala comment dekho)
-    //
-    // Ye promise KABHI reject nahi hota - error andar hi pakad kar
-    // mailFailure me rakh lete hain. Warna race jeetne ke baad koi
-    // reject hoti promise bina handler ke reh jati (unhandled rejection)
-    let mailFailure = null
-
-    const mailTask = sendOtpEmail({ to: email, code, purpose, minutes: OTP_TTL_MINUTES })
-      .catch(async (mailError) => {
-        mailFailure = mailError
-        console.error('OTP mail bhejne me dikkat:', mailError.message)
-
-        // Mail gaya hi nahi to database me code chhodne ka koi fayda
-        // nahi - user ko wo kabhi milega hi nahi, aur wo pada rehkar
-        // agle "Resend" ko 60 second ke cooldown me atka dega
-        await EmailOtp.deleteOne({ email, purpose }).catch(() => {})
-      })
-
-    // Jo pehle ho jaye: ya to mail nikal jaye, ya 3 second poore ho jayein
-    await Promise.race([
-      mailTask,
-      new Promise((resolve) => setTimeout(resolve, MAIL_WAIT_MS)),
-    ])
-
-    // Turant fail hua (galat password, SMTP band) - user ko sach batate hain
-    if (mailFailure) {
-      return res.status(502).json({
-        success: false,
-        message: 'Could not send the verification email. Please try again in a moment.',
-      })
-    }
-
-    res.json({
-      success: true,
-      message: `Verification code sent to ${email}`,
-      expiresInMinutes: OTP_TTL_MINUTES,
-      resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
-    })
+    return res.status(result.status).json(result.body)
   } catch (err) {
     next(err)
   }
 })
+
+// ==========================================================
+// issueOtp - code banao, save karo, mail bhejo
+//
+// Teen jagah se bulaya jata hai: signup, forgot-password, aur account
+// delete. Pehle ye poora logic /send-otp ke andar likha tha - delete
+// wale flow me wahi cheez dobara likhni padti, aur cooldown/mail-fail
+// jaise kone dono jagah alag-alag bigadne lagte
+//
+// Response khud nahi bhejta, sirf { status, body } lauta deta hai -
+// taaki har route apne hisaab se kuch aur bhi jod sake
+// ==========================================================
+const issueOtp = async ({ email, purpose }) => {
+  // ---- RESEND COOLDOWN ----
+  // Rate limiter (otpLimiter) IP se ginta hai. Ye cooldown EMAIL se
+  // ginta hai - warna alag alag IP/proxy se koi bhi kisi ki inbox
+  // seconds me bhar sakta tha
+  const existing = await EmailOtp.findOne({ email, purpose })
+
+  if (existing) {
+    const waitMs = OTP_RESEND_COOLDOWN_MS - (Date.now() - existing.lastSentAt.getTime())
+
+    if (waitMs > 0) {
+      const waitSeconds = Math.ceil(waitMs / 1000)
+      return {
+        status: 429,
+        body: {
+          success: false,
+          retryAfter: waitSeconds,
+          message: `Please wait ${waitSeconds}s before requesting another code`,
+        },
+      }
+    }
+  }
+
+  const code = generateOtp()
+
+  // upsert: is email+purpose ka purana code (agar hai to) yahi overwrite
+  // ho jata hai - yaani purana turant bekaar. Ek waqt par ek hi code zinda
+  //
+  // attempts wapas 0 - naya code, nayi 5 koshishein
+  await EmailOtp.findOneAndUpdate(
+    { email, purpose },
+    {
+      email,
+      purpose,
+      codeHash: hashOtp(code),
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+      attempts: 0,
+      lastSentAt: new Date(),
+    },
+    { upsert: true, setDefaultsOnInsert: true },
+  )
+
+  // Mail bhejna shuru karte hain, lekin iska poora intezaar nahi karte
+  // (upar MAIL_WAIT_MS wala comment dekho)
+  //
+  // Ye promise KABHI reject nahi hota - error andar hi pakad kar
+  // mailFailure me rakh lete hain. Warna race jeetne ke baad koi
+  // reject hoti promise bina handler ke reh jati (unhandled rejection)
+  let mailFailure = null
+
+  const mailTask = sendOtpEmail({ to: email, code, purpose, minutes: OTP_TTL_MINUTES })
+    .catch(async (mailError) => {
+      mailFailure = mailError
+      console.error('OTP mail bhejne me dikkat:', mailError.message)
+
+      // Mail gaya hi nahi to database me code chhodne ka koi fayda
+      // nahi - user ko wo kabhi milega hi nahi, aur wo pada rehkar
+      // agle "Resend" ko 60 second ke cooldown me atka dega
+      await EmailOtp.deleteOne({ email, purpose }).catch(() => {})
+    })
+
+  // Jo pehle ho jaye: ya to mail nikal jaye, ya intezaar poora ho jaye
+  await Promise.race([
+    mailTask,
+    new Promise((resolve) => setTimeout(resolve, MAIL_WAIT_MS)),
+  ])
+
+  // Turant fail hua (galat password, SMTP band) - user ko sach batate hain
+  if (mailFailure) {
+    return {
+      status: 502,
+      body: {
+        success: false,
+        message: 'Could not send the verification email. Please try again in a moment.',
+      },
+    }
+  }
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      message: `Verification code sent to ${email}`,
+      expiresInMinutes: OTP_TTL_MINUTES,
+      resendAfter: OTP_RESEND_COOLDOWN_SECONDS,
+    },
+  }
+}
+
+// ==========================================================
+// consumeOtp - user ka bhara hua code sahi hai ya nahi
+//
+// Sahi nikla to record MIT jata hai (ek code, ek hi baar). Galat par
+// attempts badhta hai aur 5 ke baad code cancel
+//
+// issueOtp ki tarah ye bhi { status, body } lauta ta hai - /verify-otp
+// isse verification token banata hai, aur delete wala route isse
+// seedha account delete karta hai
+// ==========================================================
+const consumeOtp = async ({ email, purpose, code }) => {
+  if (!/^\d{6}$/.test(code)) {
+    return { status: 400, body: { success: false, message: 'Enter the 6-digit code from your email' } }
+  }
+
+  const record = await EmailOtp.findOne({ email, purpose })
+
+  // TTL index se document apne aap hatta to hai, lekin MongoDB ka wo
+  // background monitor har ~60 second me chalta hai - beech me expire
+  // hua code abhi bhi mil sakta hai. Isliye expiry khud bhi check karte hain
+  const isExpired = record && record.expiresAt.getTime() < Date.now()
+
+  if (!record || isExpired) {
+    if (record) await EmailOtp.deleteOne({ _id: record._id })
+
+    return {
+      status: 400,
+      body: { success: false, message: 'This code has expired. Please request a new one.' },
+    }
+  }
+
+  if (!matchOtp(code, record.codeHash)) {
+    record.attempts += 1
+    const attemptsLeft = OTP_MAX_ATTEMPTS - record.attempts
+
+    // Limit paar - code hi mita dete hain. 6 digits sirf 10 lakh
+    // combinations hain, bina is limit ke script baithe baithe guess kar leti
+    if (attemptsLeft <= 0) {
+      await EmailOtp.deleteOne({ _id: record._id })
+
+      return {
+        status: 400,
+        body: { success: false, message: 'Too many incorrect attempts. Please request a new code.' },
+      }
+    }
+
+    await record.save()
+
+    return {
+      status: 400,
+      body: {
+        success: false,
+        message: `Incorrect code. ${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} left.`,
+      },
+    }
+  }
+
+  // Sahi code - ek hi baar chalta hai. Turant mita dete hain taaki
+  // wahi code dobara use na ho sake
+  await EmailOtp.deleteOne({ _id: record._id })
+
+  return { status: 200, body: { success: true } }
+}
 
 // ==========================================================
 // POST /api/auth/verify-otp
@@ -380,52 +470,11 @@ router.post('/verify-otp', lookupLimiter, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Enter a valid email address' })
     }
 
-    if (!/^\d{6}$/.test(code)) {
-      return res.status(400).json({ success: false, message: 'Enter the 6-digit code from your email' })
+    const result = await consumeOtp({ email, purpose, code })
+
+    if (result.status !== 200) {
+      return res.status(result.status).json(result.body)
     }
-
-    const record = await EmailOtp.findOne({ email, purpose })
-
-    // TTL index se document apne aap hatta to hai, lekin MongoDB ka wo
-    // background monitor har ~60 second me chalta hai - beech me expire
-    // hua code abhi bhi mil sakta hai. Isliye expiry khud bhi check karte hain
-    const isExpired = record && record.expiresAt.getTime() < Date.now()
-
-    if (!record || isExpired) {
-      if (record) await EmailOtp.deleteOne({ _id: record._id })
-
-      return res.status(400).json({
-        success: false,
-        message: 'This code has expired. Please request a new one.',
-      })
-    }
-
-    if (!matchOtp(code, record.codeHash)) {
-      record.attempts += 1
-      const attemptsLeft = OTP_MAX_ATTEMPTS - record.attempts
-
-      // Limit paar - code hi mita dete hain. 6 digits sirf 10 lakh
-      // combinations hain, bina is limit ke script baithe baithe guess kar leti
-      if (attemptsLeft <= 0) {
-        await EmailOtp.deleteOne({ _id: record._id })
-
-        return res.status(400).json({
-          success: false,
-          message: 'Too many incorrect attempts. Please request a new code.',
-        })
-      }
-
-      await record.save()
-
-      return res.status(400).json({
-        success: false,
-        message: `Incorrect code. ${attemptsLeft} ${attemptsLeft === 1 ? 'attempt' : 'attempts'} left.`,
-      })
-    }
-
-    // Sahi code - ek hi baar chalta hai. Turant mita dete hain taaki
-    // wahi code dobara use na ho sake
-    await EmailOtp.deleteOne({ _id: record._id })
 
     res.json({
       success: true,
@@ -691,6 +740,24 @@ router.get('/me', skipIfLoggedOut, protect, (req, res) => {
 })
 
 // ==========================================================
+// GET /api/auth/csrf
+// CSRF token wapas bhejta hai (cookie na ho to nayi bana kar)
+//
+// Frontend production me cookie khud nahi padh sakta - frontend aur
+// backend alag domain par hain. Wajah middleware/csrf.js me
+// getOrIssueCsrfToken ke upar poori likhi hai
+//
+// Ye GET hai, isliye verifyCsrf khud ise chhod deta hai (warna token
+// lene ke liye token chahiye hota - murgi aur anda). protect bhi
+// nahi lagaya: logout ke baad ya login se pehle bhi frontend ko
+// token chahiye hota hai, aur ye token akela kisi kaam ka nahi -
+// asli auth to httpOnly wali cookie hi karti hai
+// ==========================================================
+router.get('/csrf', (req, res) => {
+  res.json({ success: true, csrfToken: getOrIssueCsrfToken(req, res) })
+})
+
+// ==========================================================
 // PUT /api/auth/me
 // Apna naam aur profile photo update karna
 // ==========================================================
@@ -720,8 +787,32 @@ router.put('/me', verifyCsrf, protect, async (req, res, next) => {
 })
 
 // ==========================================================
+// POST /api/auth/me/delete-otp
+// Account delete karne se pehle apni hi email par code bhejta hai
+//
+// Email body se NAHI leते - logged-in user ki hi email par jata hai.
+// Isse do faayde: koi doosre ki inbox par code nahi bhijwa sakta, aur
+// email badal kar kisi aur ka account delete karne ka rasta hi nahi
+// bachta
+// ==========================================================
+router.post('/me/delete-otp', verifyCsrf, protect, otpLimiter, async (req, res, next) => {
+  try {
+    const result = await issueOtp({ email: req.user.email, purpose: 'delete' })
+
+    res.status(result.status).json({ ...result.body, email: req.user.email })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ==========================================================
 // DELETE /api/auth/me
 // Apna account delete karna
+//
+// Ab sirf logged-in hona kaafi nahi - email par aaya 6-digit code bhi
+// bhejna padta hai. Wajah: account delete wapas nahi ho sakta. Koi
+// khula hua device paa le (ya session churaa le) to bhi bina inbox tak
+// pahunch ke account nahi mita sakta
 //
 // Hum document MITATE nahi hain, sirf isDeleted: true kar dete hain ("soft delete")
 // Kyun? Kyunki purane messages me sender ki id padi hai. User ko mita denge to
@@ -733,6 +824,13 @@ router.put('/me', verifyCsrf, protect, async (req, res, next) => {
 router.delete('/me', verifyCsrf, protect, async (req, res, next) => {
   try {
     const user = req.user
+
+    const code = String(req.body?.code || '').trim()
+    const check = await consumeOtp({ email: user.email, purpose: 'delete', code })
+
+    if (check.status !== 200) {
+      return res.status(check.status).json(check.body)
+    }
 
     // Email par unique index laga hai, isliye purani email ko "free" karna padega
     user.email = `deleted_${user._id}_${user.email}`

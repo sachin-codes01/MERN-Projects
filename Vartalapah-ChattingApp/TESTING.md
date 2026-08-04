@@ -268,7 +268,12 @@ Phir `http://localhost:5173` kholo (`127.0.0.1` nahi — Google inhe alag maanta
 - [ ] View profile → **Unsend all my messages** → confirm
 - [ ] **Mere saare messages** dono screens se gayab
 - [ ] **Uske messages bache rahein**
-- [ ] My Profile → **Delete my account** → confirm
+- [ ] My Profile → **Delete my account** → confirm → **Send code**
+- [ ] Email par "Confirm account deletion" wala mail aaye (Spam bhi dekho)
+- [ ] **Galat code** bharo → "Incorrect code. 4 attempts left." (dabba band na ho)
+- [ ] **Resend code** button 60 second tak disabled rahe, phir chale
+- [ ] Cancel dabao → account **delete na ho** (dobara login karke check karo)
+- [ ] **Sahi code** bharo → account delete
 - [ ] Home page par pahunch jao
 - [ ] Dusri window me tumhara naam **"Deleted User"** ho jaye
 - [ ] **Uski chat me tumhare purane messages bache rahein**
