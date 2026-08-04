@@ -47,4 +47,40 @@ export default defineConfig({
     // Ab port busy hone par Vite saaf error dega, chupke se port nahi badlega
     strictPort: true,
   },
+
+  build: {
+    rollupOptions: {
+      output: {
+        // ---------- CHUNK SPLITTING ----------
+        // Bina iske saara node_modules (React, MUI, socket.io...) ek hi
+        // JS file me chala jata hai - 700kB+ ka ek bada bundle, aur build
+        // "chunk 500kB se bada hai" wali yellow warning deta hai.
+        //
+        // Alag-alag vendor chunks banane se:
+        //   1. Warning chali jati hai (har chunk chhota hai)
+        //   2. App ka apna code (jo baar-baar badalta hai) MUI/React se
+        //      alag rehta hai - deploy karte waqt browser sirf apna wala
+        //      chunk dobara download karta hai, MUI/React wala cache se
+        //      hi mil jata hai (unke version tab tak nahi badle)
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          if (id.includes('@mui') || id.includes('@emotion')) return 'mui-vendor'
+          if (
+            id.includes('react-router') ||
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            // scheduler react-dom ki apni dependency hai - isse alag chunk
+            // (vendor) me daalne par react-vendor <-> vendor circular ho
+            // jata tha, isliye ise bhi react-vendor me hi rakha
+            id.includes('/scheduler/')
+          ) {
+            return 'react-vendor'
+          }
+
+          return 'vendor'
+        },
+      },
+    },
+  },
 })
