@@ -143,21 +143,32 @@ export default function ProductCard({ product }) {
             conditionally omitted, only their label/disabled state changes.
             Skipping them for out-of-stock cards used to make those cards
             shorter than in-stock ones, breaking the grid row's alignment. */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/* flex-nowrap below `sm`: on a phone the card is only ~164px wide and
+            the "% OFF" pill was wrapping onto its own line under the price.
+            The type below is a size smaller on mobile purely to buy the room
+            that keeps price + pill on one line; from `sm` up there is space
+            to spare, so the original sizes and wrapping behaviour return. */}
+        <div className="mt-1.5 flex flex-nowrap items-center gap-x-1 gap-y-1 sm:flex-wrap sm:gap-x-2">
           {size ? (
             <>
-              <p className="font-mono text-sm font-bold text-mdn-green">
-                {showFrom && <span className="mr-1 text-xs font-medium text-mdn-gray">From</span>}
+              <p className="whitespace-nowrap font-mono text-[11px] font-bold text-mdn-green sm:text-sm">
+                {showFrom && <span className="mr-0.5 text-[10px] font-medium text-mdn-gray sm:mr-1 sm:text-xs">From</span>}
                 ₹{effectivePrice}
                 {discountPrice && (
-                  <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{price}</span>
+                  <span className="ml-0.5 text-[10px] font-medium text-mdn-gray line-through sm:ml-2 sm:text-xs">₹{price}</span>
                 )}
               </p>
               {/* Discount pill, e.g. "24% OFF". getSizePrice already
                   derives the percentage from price vs discountPrice, so
                   this reads real catalogue data rather than a hardcoded
-                  number, and disappears on products with no discount. */}
-              {discountPct > 0 && <span className="badge-save">{discountPct}% OFF</span>}
+                  number, and disappears on products with no discount.
+                  shrink-0 so the pill keeps its shape and the price line
+                  (which is nowrap anyway) is what absorbs any squeeze. */}
+              {discountPct > 0 && (
+                <span className="badge-save shrink-0 whitespace-nowrap px-[3px] text-[9px] tracking-normal sm:px-2.5 sm:text-[10px] sm:tracking-wide">
+                  {discountPct}% OFF
+                </span>
+              )}
             </>
           ) : (
             <span className="text-xs font-medium text-mdn-gray">Price unavailable</span>

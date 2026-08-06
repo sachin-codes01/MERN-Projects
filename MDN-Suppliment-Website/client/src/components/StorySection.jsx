@@ -27,12 +27,14 @@ export default function StorySection() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    // py-14/16 matches every other home section. This was py-20/28
-    // (112px top AND bottom at sm+), 48px more than its neighbours on
-    // each side — and because the band sits between two sections that
-    // each add their own 64px, the seams either side read as large empty
-    // gaps rather than section rhythm.
-    <section id="story" className="relative overflow-hidden border-y border-white/5 bg-mdn-charcoal py-14 sm:py-16">
+    // Matches every other home section. This was py-20/28 (112px top AND
+    // bottom at sm+), far more than its neighbours on each side — and
+    // because the band sits between two sections that each add their own
+    // padding, the seams either side read as large empty gaps rather than
+    // section rhythm. The coloured bands (this, Why Choose MDN, Reviews)
+    // carry one step MORE than the plain sections, since a tinted band
+    // needs a little air off its edges.
+    <section id="story" className="relative overflow-hidden border-y border-white/5 bg-mdn-charcoal py-10 sm:py-12">
       {/* Decorative background — soft glow + faint grid, no photo by design */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[110px]" />
       <div

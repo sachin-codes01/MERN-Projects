@@ -55,7 +55,7 @@ export default function Footer() {
     // the sticky Add to Cart bar is up (see index.css). Without it that
     // reserved strip fell through to the cream page background and read as
     // a gap between the footer and the bar.
-    <footer id="site-footer" className="relative mt-10 w-full overflow-hidden bg-mdn-orange-badge">
+    <footer id="site-footer" className="relative mt-6 w-full overflow-hidden bg-mdn-orange-badge">
       {/* Always-running info strip — deep green, cream type */}
       <div className="overflow-hidden bg-mdn-green py-3">
         <div className="marquee-track gap-10 motion-reduce:animate-none">
@@ -84,7 +84,7 @@ export default function Footer() {
             them uses the width and roughly halves the footer's height on a
             phone. Desktop is untouched at four across, and the items and
             their order are exactly as before. */}
-        <div className="mx-auto grid max-w-shell grid-cols-2 gap-x-6 gap-y-9 px-4 py-14 sm:px-6 lg:grid-cols-4 lg:px-[34px]">
+        <div className="mx-auto grid max-w-shell grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-4 lg:px-[34px]">
           {/* Logo + blurb + socials keep the full width on phone and
               tablet — squeezed into one of two columns the blurb wraps to
               five or six very short lines. Only at lg, where it is one of

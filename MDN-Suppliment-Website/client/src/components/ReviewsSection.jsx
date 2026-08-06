@@ -59,7 +59,7 @@ export default function ReviewsSection() {
   }, [startAutoplay]);
 
   return (
-    <section className="relative overflow-hidden border-y border-white/5 bg-mdn-charcoal py-16">
+    <section className="relative overflow-hidden border-y border-white/5 bg-mdn-charcoal py-10 sm:py-12">
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[100px]" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"

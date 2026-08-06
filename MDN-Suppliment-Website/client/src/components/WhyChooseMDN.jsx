@@ -43,7 +43,7 @@ export default function WhyChooseMDN() {
     // the scrollbar's width and drags the inner wrapper a few px off,
     // leaving this band's content misaligned against every other
     // section's left edge.
-    <section id="why-choose-mdn" className="w-full bg-mdn-sand py-12 sm:py-14 lg:py-16">
+    <section id="why-choose-mdn" className="w-full bg-mdn-sand py-9 sm:py-10 lg:py-12">
       <div className="mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
         {/* Left pitch / right feature grid. The 0.85fr : 1.6fr split (not
             a plain 1:1) matches the reference, where the copy column is

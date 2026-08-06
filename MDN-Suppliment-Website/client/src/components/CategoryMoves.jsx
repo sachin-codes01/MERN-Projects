@@ -1,81 +1,45 @@
 import { useNavigate } from "react-router-dom";
 import SectionHeading from "./SectionHeading";
-import ItemCarousel from "./ItemCarousel";
-// Full collection posters (not the transparent cut-outs the navbar uses)
+// Square product posters (not the transparent cut-outs the navbar uses)
 // — these fill the whole card, so no separate artwork or tint is needed.
-// NOTE: the glutamine file is spelled "colection" (one l) on disk.
-import allProductsImg from "../assets/All Products-collection.png";
-import wheyProteinImg from "../assets/Whey Protein-collection.png";
-import creatineImg from "../assets/creatine-collection.png";
-import preWorkoutImg from "../assets/pre workout-collection.png";
-import bcaaImg from "../assets/bcaa-collection.png";
-import massGainerImg from "../assets/mass gainer-collection.png";
-import fatBurnerImg from "../assets/fat burner-collection.png";
-import glutamineImg from "../assets/glutamine-colection.png";
-import newLaunchesImg from "../assets/New Launches-collection.png";
-import combosImg from "../assets/Combos-collection.png";
+// NOTE: two files are spelled "Protines"/"isolete" on disk.
+import proteinImg from "../assets/Protines.jpeg";
+import creatineImg from "../assets/creatine.jpeg";
+import isolateImg from "../assets/isolete.jpeg";
+import collagenImg from "../assets/Collagen.jpeg";
 // Same outlined icon family as the "Why Choose MDN" feature grid, so the
 // two sections read as one system rather than two icon styles.
-import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import FitnessCenterOutlinedIcon from "@mui/icons-material/FitnessCenterOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
-import VaccinesOutlinedIcon from "@mui/icons-material/VaccinesOutlined";
-import MonitorWeightOutlinedIcon from "@mui/icons-material/MonitorWeightOutlined";
-import LocalFireDepartmentOutlinedIcon from "@mui/icons-material/LocalFireDepartmentOutlined";
 import SpaOutlinedIcon from "@mui/icons-material/SpaOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import RedeemOutlinedIcon from "@mui/icons-material/RedeemOutlined";
 
-// Same 10 items/links as before. Large screens show every card at once
-// in a static grid (no carousel needed); small/medium screens use a
-// swipe-only carousel — no autoplay, no arrow buttons, just finger drag.
-//
-// Every collection now carries its own transparent cut-out, matched to
-// the title by name. `glyph` is kept as the fallback for any collection
-// added later before its artwork exists.
-// `Icon` is the small outlined mark that sits to the LEFT of the title,
-// as in the reference. `glyph` is unrelated and still the fallback ART
-// used in place of the product cut-out when a collection has no image —
-// the two are different slots, so both stay.
+// Four collections only. `Icon` is the small outlined mark that sits to
+// the LEFT of the title; `glyph` is a different slot — the fallback ART
+// drawn in place of the poster if a collection ever has no image.
 const COLLECTIONS = [
-  { title: "All Products", to: "/products", glyph: "grid", image: allProductsImg, Icon: GridViewOutlinedIcon },
-  { title: "Whey Protein", to: "/search?q=whey%20protein", glyph: "muscle", image: wheyProteinImg, Icon: FitnessCenterOutlinedIcon },
+  { title: "Protein", to: "/search?q=whey%20protein", glyph: "muscle", image: proteinImg, Icon: FitnessCenterOutlinedIcon },
   { title: "Creatine", to: "/search?q=creatine", glyph: "atom", image: creatineImg, Icon: ScienceOutlinedIcon },
-  { title: "Pre-Workout", to: "/search?q=pre%20workout", glyph: "bolt", image: preWorkoutImg, Icon: BoltOutlinedIcon },
-  { title: "BCAA", to: "/search?q=bcaa", glyph: "capsule", image: bcaaImg, Icon: VaccinesOutlinedIcon },
-  { title: "Mass Gainer", to: "/search?q=mass%20gainer", glyph: "gainer", image: massGainerImg, Icon: MonitorWeightOutlinedIcon },
-  { title: "Fat Burner", to: "/search?q=fat%20burner", glyph: "flame", image: fatBurnerImg, Icon: LocalFireDepartmentOutlinedIcon },
-  { title: "Glutamine", to: "/search?q=glutamine", glyph: "leaf", image: glutamineImg, Icon: SpaOutlinedIcon },
-  { title: "New Launches", to: "/products/section/new_arrival", glyph: "sparkle", image: newLaunchesImg, Icon: AutoAwesomeOutlinedIcon },
-  { title: "Combos", to: "/products/section/fitness_combo", glyph: "bundle", image: combosImg, Icon: RedeemOutlinedIcon },
+  { title: "Isolate", to: "/search?q=isolate", glyph: "bolt", image: isolateImg, Icon: BoltOutlinedIcon },
+  { title: "Collagen", to: "/search?q=collagen", glyph: "leaf", image: collagenImg, Icon: SpaOutlinedIcon },
 ];
 
 export default function CategoryMoves() {
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto max-w-shell px-4 py-6 sm:px-6 sm:py-12 lg:px-[34px]">
+    // Bottom padding is the top's step plus 5px (24→29, 48→53), so the gap
+    // down to "The Story of MDN" reads a touch more open than the gap above.
+    <section className="mx-auto max-w-shell px-4 pb-[29px] pt-6 sm:px-6 sm:pb-[53px] sm:pt-12 lg:px-[34px]">
       <SectionHeading eyebrow="Explore" title="Shop by" accent="Collection" />
 
-      {/* One scrollable row at every size — same ItemCarousel the home
-          page's Bestsellers uses, so trackpad scrolling, drag and the
-          arrow buttons all behave identically. This replaced a static
-          5-across grid on desktop plus a separate mobile carousel; with
-          ten collections the grid wrapped to two rows, which is not the
-          single row the reference shows. */}
-      <div className="mt-4 sm:mt-10">
-        <ItemCarousel
-          items={COLLECTIONS}
-          autoPlay={false}
-          showDots={false}
-          gapClassName="gap-4"
-          // Sits between 4 and 5 across on desktop: the fifth card is only
-          // part-visible at the right edge, which also hints that the row
-          // scrolls rather than looking like a complete set of four.
-          itemClassName="w-[56%] sm:w-[34%] lg:w-[21%]"
-          renderItem={(c) => <CollectionCard item={c} onClick={() => navigate(c.to)} />}
-        />
+      {/* Static grid, no carousel: with only four cards everything fits.
+          Two per row on phones (so the last two wrap onto a second row),
+          four across from the lg breakpoint up. */}
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:mt-10 sm:gap-5 lg:grid-cols-4">
+        {COLLECTIONS.map((c) => (
+          <CollectionCard key={c.title} item={c} onClick={() => navigate(c.to)} />
+        ))}
       </div>
     </section>
   );
@@ -84,21 +48,18 @@ export default function CategoryMoves() {
 function CollectionCard({ item, onClick }) {
   const Icon = item.Icon;
   return (
-    // aspect-[25/32] rather than a squarer card: the posters are ~0.88
-    // wide-to-tall, and once the 48px label bar is subtracted this leaves
-    // the image area at almost exactly that ratio — so `object-fill`
-    // barely has to stretch anything. (Was 10/13; 25/32 trims ~5px off the
-    // card height at the current width without touching the label bar.)
+    // No aspect ratio on the button itself — the posters are square, so the
+    // image area carries `aspect-square` and the label bar simply adds its
+    // own height below it. Every card is the same width in the grid, so the
+    // labels still line up across the row.
     <button
       onClick={onClick}
-      className="group flex aspect-[25/32] w-full flex-col overflow-hidden rounded-2xl text-left shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg"
+      className="group flex w-full flex-col overflow-hidden rounded-2xl text-left shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg"
     >
-      <span className="relative flex-1 overflow-hidden bg-mdn-sand">
+      <span className="relative aspect-square overflow-hidden bg-mdn-sand">
         {item.image ? (
-          // object-fill, NOT cover/contain: cover crops the poster's edges
-          // (the headline and the MDN logo sit right at the top), contain
-          // letterboxes it and leaves bands of empty card. Fill shows the
-          // WHOLE poster, stretched to the box.
+          // object-cover with square art in a square box is a no-op crop —
+          // it just guards against a non-square file being dropped in later.
           //
           // alt="" — the label below is inside the same button and already
           // names the collection, so alt text would just double-announce.
@@ -108,7 +69,7 @@ function CollectionCard({ item, onClick }) {
             aria-hidden="true"
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-fill transition-transform duration-500 group-hover:scale-[1.04]"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-mdn-green [&>svg]:h-16 [&>svg]:w-16">

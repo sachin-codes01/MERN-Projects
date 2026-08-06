@@ -77,7 +77,7 @@ export default function AssuredBadges() {
     // section's 64px stacked into a 128px void under a single short row
     // of badges. Halving the bottom keeps the badges reading as attached
     // to the content they vouch for.
-    <section className="mx-auto max-w-shell px-4 pb-8 pt-14 sm:px-6 sm:pb-10 sm:pt-16 lg:px-[34px]">
+    <section className="mx-auto max-w-shell px-4 pb-6 pt-10 sm:px-6 sm:pb-8 sm:pt-12 lg:px-[34px]">
       <SectionHeading eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" />
 
       {/* At lg+ the full content shell is wide enough to hold all eight
@@ -99,6 +99,17 @@ export default function AssuredBadges() {
       <div className="mt-10 lg:hidden">
         <Carousel slides={slides} autoPlay interval={4500} showArrows={false} />
       </div>
+
+      {/* Closing rule, so this strip and "Our Bestsellers" below it read as
+          two separate sections rather than one continuous run. It lives
+          INSIDE the section (rather than as a border on the section box) so
+          it lines up with the content column instead of stretching out into
+          the gutters.
+
+          `border-strong` rather than the softer default: on the cream page
+          ground (#fef4e9) the soft token is only a few values away and the
+          hairline all but vanishes, which defeats the point of a divider. */}
+      <div className="mt-8 border-t border-mdn-border-strong sm:mt-10" />
     </section>
   );
 }

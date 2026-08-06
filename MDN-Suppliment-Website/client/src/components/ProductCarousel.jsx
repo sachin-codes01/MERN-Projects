@@ -29,12 +29,25 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
 
   if (loading) {
     return (
-      <section id={sectionId} className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-12 lg:px-[34px]">
+      <section id={sectionId} className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-[34px]">
         <div className="mx-auto h-6 w-48 animate-pulse rounded bg-mdn-charcoal2" />
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="aspect-[3/4] animate-pulse rounded-xl bg-mdn-charcoal2" />
-          ))}
+
+        {/* The placeholder mirrors the LOADED layout: one non-wrapping row
+            using the carousel's own widths, gap and vertical padding,
+            clipped at the section edge like the carousel's viewport is.
+            This was a `grid grid-cols-2 … lg:grid-cols-5` of four blocks,
+            which stacked into TWO rows on a phone — so the section visibly
+            collapsed from two rows to one the moment the products landed.
+            Six blocks, because at lg the row fits five and a sliver. */}
+        <div className="mt-8 overflow-hidden">
+          <div className="flex gap-4 py-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-[3/4] w-[47%] flex-shrink-0 animate-pulse rounded-xl bg-mdn-charcoal2 sm:w-[31%] lg:w-[18.4%]"
+              />
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -43,7 +56,7 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
   if (products.length === 0) return null;
 
   return (
-    <section id={sectionId} className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-12 lg:px-[34px]">
+    <section id={sectionId} className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-[34px]">
       <SectionHeading eyebrow={eyebrow} title={titleMain} accent={titleAccent} />
 
       <div className="mt-8">
