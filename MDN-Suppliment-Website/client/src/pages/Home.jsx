@@ -2,7 +2,7 @@ import Hero from "../components/Hero";
 import CategoryMoves from "../components/CategoryMoves";       // "Shop by Collection" — was "What's Your Move?"
 import StorySection from "../components/StorySection";         // "The Story of MDN" — unchanged
 import TrustStrip from "../components/TrustStrip";              // new sliding trust strip
-import WhyOne from "../components/WhyOne";                      // new "Why One" image section
+import WhyChooseMDN from "../components/WhyChooseMDN";          // "Why Choose MDN" — absorbs the old "Why One" section
 import AssuredBadges from "../components/AssuredBadges";        // new "AS-IT-IS Assured" carousel
 import Bestsellers from "../components/Bestsellers";            // now a drag/dot carousel
 import TargetSection from "../components/TargetSection";        // "What's Your Target?" — now a single-row slider
@@ -17,7 +17,7 @@ export default function Home() {
       <CategoryMoves />
       <StorySection />
       <TrustStrip />
-      <WhyOne />
+      <WhyChooseMDN />
       <AssuredBadges />
       <Bestsellers />
       <TargetSection />

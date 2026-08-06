@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { reviewCountLabel } from "../utils/rating";
 import { Link } from "react-router-dom";
 import Button from "@mui/material/Button";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -115,16 +116,15 @@ export default function ProductReviews({
   const alreadyReviewed = currentUserId
     ? reviews.some((r) => (r.user?._id || r.user) === currentUserId)
     : false;
-  // Shows a random subset (20-24, or all of them if fewer exist) in random
-  // order each time the page loads — recomputed only when the underlying
-  // review list actually changes, not on every unrelated re-render. The
-  // header rating/count above still reflects the FULL real totals.
-  const displayedReviews = useMemo(() => {
-    const shuffled = [...reviews].sort(() => Math.random() - 0.5);
-    const count = Math.min(reviews.length, 20 + Math.floor(Math.random() * 5));
-    return shuffled.slice(0, count);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviews]);
+  // EVERY review, newest first. This used to shuffle the list and keep a
+  // random 20-24 of them, which quietly hid real customer reviews and made
+  // the visible set change on each page load — so the list never agreed
+  // with the "N Reviews" count beside it. Ordering is by date so a newly
+  // submitted review appears at the top immediately.
+  const displayedReviews = useMemo(
+    () => [...reviews].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
+    [reviews]
+  );
 
   // "Show More" reveals 10 at a time instead of dumping the whole random
   // batch at once. Resets back to the initial 10 whenever `reviews`
@@ -146,14 +146,13 @@ export default function ProductReviews({
         <h2 className="text-xl font-bold text-mdn-white sm:text-2xl">
           Customer <span className="text-mdn-green">Reviews</span>
         </h2>
-        {ratingsCount > 0 && (
-          <div className="flex items-center gap-2">
-            <Stars rating={ratingsAverage} />
-            <span className="text-sm text-mdn-gray">
-              {ratingsAverage.toFixed(1)} ({ratingsCount})
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Stars rating={ratingsAverage} />
+          <span className="text-sm text-mdn-gray">
+            {ratingsCount > 0 && `${ratingsAverage.toFixed(1)} `}
+            ({reviewCountLabel(ratingsCount)})
+          </span>
+        </div>
       </div>
 
       {reviews.length === 0 ? (

@@ -163,9 +163,26 @@ const productSchema = new mongoose.Schema(
     posterTop: { type: String }, // PDP bottom promo block — full-width, shorter poster
     posterBottom: { type: String }, // PDP bottom promo block — bigger poster
 
+    // Computed from real customer reviews — recalculated on every new
+    // review (see productController's review endpoint). Never set by hand.
     ratingsAverage: { type: Number, default: 0, min: 0, max: 5 },
     ratingsCount: { type: Number, default: 0 },
     reviews: [reviewSchema],
+
+    // Admin-set DISPLAY rating, editable per product in the admin panel.
+    // `manualStars` is how many stars render filled (1-5); `manualRating`
+    // is the number printed beside them ("4.3"). They are separate fields
+    // because the two are not always the same — a 4.3 conventionally shows
+    // 4 filled stars, and the admin may want to round either way.
+    //
+    // 0 means "not set", in which case the storefront falls back to the
+    // average computed from real reviews. Nothing is ever invented on the
+    // client: if neither exists the rating simply isn't rendered.
+    //
+    // Review COUNT is deliberately NOT mirrored here — it always comes
+    // from `ratingsCount`, so it can only ever reflect real reviews.
+    manualStars: { type: Number, min: 0, max: 5, default: 0 },
+    manualRating: { type: Number, min: 0, max: 5, default: 0 },
 
     tags: [{ type: String }], // for search
     isFeatured: { type: Boolean, default: false },

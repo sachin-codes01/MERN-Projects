@@ -14,11 +14,6 @@ import peanutButterImg from "../assets/Peanut Butter.png";
 import supplementsImg from "../assets/Supplements.png";
 import combosImg from "../assets/Combos.png";
 import accessoriesImg from "../assets/Accessories.png";
-import SplashCursor from "./SplashCursor";
-import ErrorBoundary from "./ErrorBoundary";
-import { hasWebGLSupport } from "../utils/hasWebGLSupport";
-import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useSettings } from "../context/SettingsContext";
 
 const QUICK_LINKS = [
   { label: "Home", to: "/" },
@@ -78,7 +73,7 @@ function ShopCategoryCard({ label, image }) {
             bottom-aligned, like light cast on the surface it stands on. */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[62%] w-[78%] -translate-x-1/2 rounded-full bg-mdn-green/25 blur-[14px] transition-all duration-300 group-hover/card:bg-mdn-green/50 group-hover/card:blur-[20px]"
+          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[62%] w-[78%] -translate-x-1/2 rounded-full bg-mdn-green/12 blur-[16px] transition-all duration-300 group-hover/card:bg-mdn-green/25 group-hover/card:blur-[22px]"
         />
         {image ? (
           // alt="" — the visible label below is inside the same <Link> and
@@ -104,10 +99,10 @@ function ShopCategoryCard({ label, image }) {
             aria-hidden="true"
             loading="lazy"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-contain object-bottom drop-shadow-[0_3px_8px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover/card:scale-110"
+            className="absolute inset-0 h-full w-full object-contain object-bottom drop-shadow-[0_3px_8px_rgba(66,48,30,0.22)] transition-transform duration-300 group-hover/card:scale-110"
           />
         ) : (
-          <PlaceholderBoxIcon className="relative h-1/3 w-1/3 text-mdn-green/60" />
+          <PlaceholderBoxIcon className="relative h-1/3 w-1/3 text-mdn-green/50" />
         )}
       </div>
       {/* Wraps to a second line instead of truncating. `truncate` cut off
@@ -117,7 +112,7 @@ function ShopCategoryCard({ label, image }) {
           first line still starts at the same y, since the square image
           box above it is a fixed height — so wrapping can't stagger the
           row. */}
-      <span className="block w-full text-balance text-center text-[10.5px] font-semibold uppercase leading-tight tracking-wide text-mdn-white/80 transition-colors duration-200 line-clamp-2 group-hover/card:text-mdn-green">
+      <span className="block w-full label text-balance text-center text-[10.5px] leading-tight tracking-[0.1em] text-mdn-ink-body transition-colors duration-200 line-clamp-2 group-hover/card:text-mdn-green">
         {label}
       </span>
     </div>
@@ -136,18 +131,13 @@ export default function Navbar() {
   // letter-avatar badge — this tracks that failure so we can swap in the
   // fallback ourselves, the same way ProductCard already does for thumbnails.
   const [avatarBroken, setAvatarBroken] = useState(false);
-  // The WebGL fluid-cursor background is heavy enough to make small
-  // screens laggy — only mount it from `lg` up, where a mouse cursor
-  // actually drives it and there's headroom to render it smoothly.
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const { splashCursorEnabled } = useSettings();
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const isAdminUser = ["admin", "superadmin"].includes(user?.role);
 
   const linkClass = ({ active } = {}) =>
-    `text-sm font-medium tracking-wide transition-colors duration-200 hover:text-mdn-green ${
-      active ? "text-mdn-green" : "text-mdn-white/90"
+    `label text-[13px] transition-colors duration-200 hover:text-mdn-green ${
+      active ? "text-mdn-green" : "text-mdn-ink-body"
     }`;
 
   // Close the mobile menu on navigation.
@@ -163,27 +153,7 @@ export default function Navbar() {
   }, [user?.avatar]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/5 bg-mdn-black/95 backdrop-blur">
-      {/* Background WebGL Fluid Canvas */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-     {splashCursorEnabled && isDesktop && hasWebGLSupport() && (
-     <ErrorBoundary>
-     <SplashCursor
-  DENSITY_DISSIPATION={4.2}   // Evaporates faster so it dissipates like actual smoke puffs
-  VELOCITY_DISSIPATION={2.2}   // Keeps the physical kinetic motion fluid but localized
-  PRESSURE={0.08}
-  CURL={6.5}                  // High vorticity value creates wispy, spinning smoke rings
-  SPLAT_RADIUS={0.35}         // Expanded radius for softer, hazy mist borders
-  SPLAT_FORCE={5000}          // Balanced drag velocity 
-  COLOR_UPDATE_SPEED={10}
-  SHADING={true}              // Adds realistic depth maps inside the smoke tracks
-  RAINBOW_MODE={false}
-  COLOR="#19ad4b"             // The exact emerald green color code from your image
-/>
-     </ErrorBoundary>
-     )}
-      </div>
-
+    <nav className="sticky top-0 z-50 border-b border-mdn-border bg-mdn-black/95 backdrop-blur">
       {/* Main Bar Top Grid */}
       <div className="relative z-10 mx-auto grid max-w-shell grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-[34px] md:grid-cols-[1fr_auto_1fr]">
         {/* Left — hamburger (mobile) / search (desktop) */}
@@ -191,7 +161,7 @@ export default function Navbar() {
           <button
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Toggle menu"
-            className="rounded-md p-1.5 text-mdn-white transition-colors hover:bg-white/5 md:hidden"
+            className="rounded-md p-1.5 text-mdn-ink transition-colors hover:bg-mdn-sand md:hidden"
           >
             {mobileOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
@@ -215,7 +185,7 @@ export default function Navbar() {
               className="absolute left-1/2 top-1/2 h-14 w-auto -translate-x-1/2 -translate-y-1/2 sm:h-16"
             />
           </span>
-          <span className="mt-1 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.22em] text-mdn-gray sm:text-[10px]">
+          <span className="label mt-1 whitespace-nowrap text-[9px] tracking-[0.22em] text-mdn-ink-muted sm:text-[10px]">
             My Daily Nutrition
           </span>
         </Link>
@@ -243,20 +213,20 @@ export default function Navbar() {
           <Link
             to="/cart"
             onClick={clearNewItem}
-            className="relative flex items-center text-mdn-white/90 transition-colors duration-200 hover:text-mdn-green"
+            className="relative flex items-center text-mdn-ink transition-colors duration-200 hover:text-mdn-green"
             aria-label="Cart"
           >
             <CartIcon />
             {hasNewItem && (
               <span className="absolute -right-1.5 -top-1.5 flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping-slow rounded-full bg-red-500 opacity-90" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping-slow rounded-full bg-mdn-orange-badge opacity-90" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-mdn-orange-badge" />
               </span>
             )}
           </Link>
 
           {token ? (
-            <Link to="/profile" className="hidden items-center gap-2 text-sm text-mdn-white/90 hover:text-mdn-green sm:flex">
+            <Link to="/profile" className="hidden items-center gap-2 text-sm text-mdn-ink hover:text-mdn-green sm:flex">
               {user?.avatar && !avatarBroken ? (
                 <img
                   src={user.avatar}
@@ -265,7 +235,7 @@ export default function Navbar() {
                   className="h-7 w-7 rounded-full object-cover"
                 />
               ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-mdn-green text-xs font-bold text-white">
                   {user?.name?.[0]?.toUpperCase() || "U"}
                 </span>
               )}
@@ -279,11 +249,11 @@ export default function Navbar() {
       </div>
 
       {/* Bottom Desktop Category Strip */}
-      <div className="relative z-10 hidden justify-center border-t border-white/5 md:flex">
+      <div className="relative z-10 hidden justify-center border-t border-mdn-border md:flex">
         <div className="mx-auto flex max-w-shell flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 sm:px-6 lg:px-[34px] py-2.5">
           <Link
             to="/"
-            className="group relative text-sm font-semibold uppercase tracking-wide text-mdn-white/90 transition-colors duration-200 hover:text-mdn-green"
+            className="group relative label text-[13.5px] text-mdn-ink transition-colors duration-200 hover:text-mdn-green"
           >
             Home
             <span className="absolute -bottom-1 left-0 h-[2px] w-full origin-left scale-x-0 bg-mdn-green transition-transform duration-300 ease-out group-hover:scale-x-100" />
@@ -293,7 +263,7 @@ export default function Navbar() {
           <div className="group relative">
             <button
               type="button"
-              className="flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-mdn-white/90 transition-colors duration-200 hover:text-mdn-green"
+              className="flex items-center gap-1 label text-[13.5px] text-mdn-ink transition-colors duration-200 hover:text-mdn-green"
             >
               Shop
               <svg
@@ -318,15 +288,15 @@ export default function Navbar() {
                 `top-28` = the navbar's measured 112px height, so the panel
                 sits flush beneath it. */}
             <div className="invisible fixed left-1/2 top-28 z-50 -translate-x-1/2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
-              <div className="w-[92vw] max-w-4xl rounded-2xl border border-white/10 bg-mdn-charcoal/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-sm">
-                <div className="mb-4 flex items-end justify-between gap-4 border-b border-white/10 pb-3">
+              <div className="w-[92vw] max-w-4xl rounded-2xl border border-mdn-border bg-mdn-charcoal p-5 shadow-lg">
+                <div className="mb-4 flex items-end justify-between gap-4 border-b border-mdn-border pb-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-mdn-green">Shop</p>
-                    <h3 className="mt-0.5 text-lg font-bold text-mdn-white">Browse by Category</h3>
+                    <p className="eyebrow">Shop</p>
+                    <h3 className="display-md mt-0.5">Browse by Category</h3>
                   </div>
                   <Link
                     to="/products"
-                    className="group/all inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border border-mdn-green/40 px-4 py-1.5 text-xs font-semibold text-mdn-green transition-all duration-200 hover:border-mdn-green hover:bg-mdn-green hover:text-black"
+                    className="group/all inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border border-mdn-green/40 px-4 py-1.5 label text-[11px] text-mdn-green transition-all duration-200 hover:border-mdn-green hover:bg-mdn-green hover:text-white"
                   >
                     View All
                     <svg
@@ -373,7 +343,7 @@ export default function Navbar() {
             <Link
               key={l.label}
               to={l.to}
-              className="group relative text-sm font-semibold uppercase tracking-wide text-mdn-white/90 transition-colors duration-200 hover:text-mdn-green"
+              className="group relative label text-[13.5px] text-mdn-ink transition-colors duration-200 hover:text-mdn-green"
             >
               {l.label}
               <span className="absolute -bottom-1 left-0 h-[2px] w-full origin-left scale-x-0 bg-mdn-green transition-transform duration-300 ease-out group-hover:scale-x-100" />
@@ -394,7 +364,7 @@ export default function Navbar() {
           is what showed as the gap with "Explore" peeking through above
           the Hero. */}
       <div
-        className={`relative z-10 grid overflow-hidden border-t border-white/5 bg-mdn-charcoal transition-[grid-template-rows] duration-300 ease-in-out md:hidden ${
+        className={`relative z-10 grid overflow-hidden border-t border-mdn-border bg-mdn-charcoal transition-[grid-template-rows] duration-300 ease-in-out md:hidden ${
           mobileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >
@@ -406,13 +376,13 @@ export default function Navbar() {
               closes the drawer once it navigates. */}
           <SearchSuggest className="mb-3" onNavigate={() => setMobileOpen(false)} />
 
-          <p className="mb-1 mt-1 text-[10px] font-semibold uppercase tracking-widest text-mdn-gray">Explore</p>
+          <p className="eyebrow mb-1 mt-1">Explore</p>
           {QUICK_LINKS.map((l) => (
             <Link
               key={l.label}
               to={l.to}
               onClick={() => setMobileOpen(false)}
-              className="rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5"
+              className="rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand"
             >
               {l.label}
             </Link>
@@ -422,7 +392,7 @@ export default function Navbar() {
             type="button"
             onClick={() => setMobileShopOpen((o) => !o)}
             aria-expanded={mobileShopOpen}
-            className="flex items-center justify-between rounded-md px-2 py-2 text-left text-mdn-white/90 hover:bg-white/5"
+            className="flex items-center justify-between rounded-md px-2 py-2 text-left text-mdn-ink hover:bg-mdn-sand"
           >
             Shop
             <svg
@@ -472,20 +442,20 @@ export default function Navbar() {
             </div>
           </div>
 
-          <p className="mb-1 mt-3 text-[10px] font-semibold uppercase tracking-widest text-mdn-gray">Account</p>
+          <p className="eyebrow mb-1 mt-3">Account</p>
 
           <div className="flex items-center justify-between rounded-md px-2 py-2">
-            <span className="text-sm text-mdn-white/90">Appearance</span>
+            <span className="text-sm text-mdn-ink">Appearance</span>
             <ThemeToggle />
           </div>
 
           {token && (
-            <Link to="/orders" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5">
+            <Link to="/orders" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand">
               Orders
             </Link>
           )}
           {token && isAdminUser && (
-            <Link to="/admin/products" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5">
+            <Link to="/admin/products" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand">
               Admin
             </Link>
           )}
@@ -493,7 +463,7 @@ export default function Navbar() {
             <Link
               to="/profile"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 rounded-md px-2 py-2 text-mdn-white/90 hover:bg-white/5"
+              className="flex items-center gap-2 rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand"
             >
               {user?.avatar && !avatarBroken ? (
                 <img
@@ -503,7 +473,7 @@ export default function Navbar() {
                   className="h-6 w-6 rounded-full object-cover"
                 />
               ) : (
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mdn-green/15 text-xs font-bold text-mdn-green">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mdn-green text-xs font-bold text-white">
                   {user?.name?.[0]?.toUpperCase() || "U"}
                 </span>
               )}
@@ -520,7 +490,7 @@ export default function Navbar() {
 
       {/* Admin Subnav Panel */}
       {token && isAdminUser && isAdminRoute && (
-        <div className="relative z-10 flex gap-4 overflow-x-auto border-t border-white/5 bg-mdn-charcoal px-4 py-2 text-sm sm:px-6">
+        <div className="relative z-10 flex gap-4 overflow-x-auto border-t border-mdn-border bg-mdn-charcoal px-4 py-2 text-sm sm:px-6">
           {[
             ["/admin/products", "Products"],
             ["/admin/orders", "Orders"],
@@ -533,7 +503,7 @@ export default function Navbar() {
               key={to}
               to={to}
               className={`whitespace-nowrap pb-1 transition-colors ${
-                location.pathname === to ? "border-b-2 border-mdn-green text-mdn-green" : "text-mdn-gray hover:text-mdn-white"
+                location.pathname === to ? "border-b-2 border-mdn-green text-mdn-green" : "text-mdn-ink-muted hover:text-mdn-ink"
               }`}
             >
               {label}

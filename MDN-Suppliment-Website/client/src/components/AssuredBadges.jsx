@@ -72,7 +72,12 @@ export default function AssuredBadges() {
   ));
 
   return (
-    <section className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px] sm:py-16">
+    // Bottom padding is deliberately lighter than the top. This is a slim
+    // trust strip, not a full section — its own 64px plus the following
+    // section's 64px stacked into a 128px void under a single short row
+    // of badges. Halving the bottom keeps the badges reading as attached
+    // to the content they vouch for.
+    <section className="mx-auto max-w-shell px-4 pb-8 pt-14 sm:px-6 sm:pb-10 sm:pt-16 lg:px-[34px]">
       <SectionHeading eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" />
 
       {/* At lg+ the full content shell is wide enough to hold all eight

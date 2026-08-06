@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import SectionHeading from "./SectionHeading";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 const TAGS = ["All", "Muscle", "Taste", "Growth", "Recovery", "Fat Loss", "Digestion"];
 
@@ -27,7 +28,15 @@ export default function ReviewsSection() {
   const timerRef = useRef(null);
 
   const filtered = activeTag === "All" ? REVIEWS : REVIEWS.filter((r) => r.tag === activeTag);
-  const slides = chunk(filtered, 3);
+
+  // One testimonial per slide on phones, three on sm+. The chunk size was
+  // fixed at 3, and below `sm` the grid inside each slide collapses to a
+  // single column — so all three cards of a slide simply stacked and were
+  // on screen together, which defeats the point of a carousel. Chunking by
+  // viewport is what makes a small screen actually show one at a time.
+  const isWide = useMediaQuery("(min-width: 640px)");
+  const perSlide = isWide ? 3 : 1;
+  const slides = chunk(filtered, perSlide);
 
   const stopAutoplay = () => clearInterval(timerRef.current);
   const startAutoplay = useCallback(() => {
@@ -42,7 +51,7 @@ export default function ReviewsSection() {
 
   useEffect(() => {
     setIndex(0);
-  }, [activeTag]);
+  }, [activeTag, perSlide]);
 
   useEffect(() => {
     startAutoplay();

@@ -1,7 +1,7 @@
 import { Component } from "react";
 
 /**
- * Generic error boundary. Used to wrap SplashCursor (a WebGL effect) so
+ * Generic error boundary. Used to wrap risky subtrees so
  * that if it throws — e.g. `getContext('webgl')` returning null because
  * WebGL is unavailable, or a context that gets rejected on React
  * StrictMode's intentional double-mount in development — it silently

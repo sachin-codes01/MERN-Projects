@@ -29,9 +29,9 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
 
   if (loading) {
     return (
-      <section id={sectionId} className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px]">
+      <section id={sectionId} className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-12 lg:px-[34px]">
         <div className="mx-auto h-6 w-48 animate-pulse rounded bg-mdn-charcoal2" />
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="aspect-[3/4] animate-pulse rounded-xl bg-mdn-charcoal2" />
           ))}
@@ -43,7 +43,7 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
   if (products.length === 0) return null;
 
   return (
-    <section id={sectionId} className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px] sm:py-16">
+    <section id={sectionId} className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-12 lg:px-[34px]">
       <SectionHeading eyebrow={eyebrow} title={titleMain} accent={titleAccent} />
 
       <div className="mt-8">
@@ -54,7 +54,7 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
           autoPlay={false}
           showDots={false}
           gapClassName="gap-4"
-          itemClassName="w-[47%] sm:w-[31%] lg:w-[23%]"
+          itemClassName="w-[47%] sm:w-[31%] lg:w-[18.4%]"
           renderItem={(p) => <ProductCard product={p} />}
         />
       </div>

@@ -25,7 +25,7 @@ export default function ProductSection({ section }) {
     return (
       <section className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
         <div className="h-6 w-40 animate-pulse rounded bg-mdn-charcoal2" />
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="aspect-[3/4] animate-pulse rounded-xl bg-mdn-charcoal2" />
           ))}
@@ -47,7 +47,7 @@ export default function ProductSection({ section }) {
           Show More →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {products.map((p) => (
           <ProductCard key={p._id} product={p} />
         ))}

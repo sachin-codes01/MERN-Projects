@@ -7,7 +7,6 @@ const SETTINGS_ID = "site_settings";
 const siteSettingsSchema = new mongoose.Schema(
   {
     _id: { type: String, default: SETTINGS_ID },
-    splashCursorEnabled: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

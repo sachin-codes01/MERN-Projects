@@ -14,7 +14,7 @@ export default function FAQ() {
   const [open, setOpen] = useState(-1);
 
   return (
-    <section id="faq" className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-[34px] sm:py-16">
+    <section id="faq" className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-12 lg:px-[34px]">
       {/* Flat editorial list — heading flush top-left, one full-width
           column, a hairline rule under every row, and a +/− on the right.
           No card, no border box, no fill. */}

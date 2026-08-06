@@ -221,8 +221,4 @@ export const api = {
   adminUpdateEnquiryStatus: (token, id, status) =>
     request(`/admin/enquiries/${id}/status`, { method: "PUT", body: { status }, token }),
 
-  // ---------- SETTINGS ----------
-  getSettings: () => request("/settings"),
-  adminUpdateSettings: (token, payload) =>
-    request("/admin/settings", { method: "PUT", body: payload, token }),
 };

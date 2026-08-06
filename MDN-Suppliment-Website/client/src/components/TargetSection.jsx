@@ -22,36 +22,42 @@ const TARGETS = [
     query: "lean muscle",
     desc: "High-protein, low-carb stacks built for definition without the bulk.",
     image: leanMusclesImg,
+    tone: "green",
   },
   {
     title: "Guilt-Free Gains",
     query: "protein food",
     desc: "Clean whole-food nutrition that fits real macros, not marketing.",
     image: guiltFreeGainsImg,
+    tone: "tan",
   },
   {
     title: "Wellness & Immunity",
     query: "wellness",
     desc: "Daily essentials — multivitamins, omega-3s, gut and immune support.",
     image: wellnessImmunityImg,
+    tone: "green",
   },
   {
     title: "Strength & Endurance",
     query: "pre workout",
     desc: "Pre-workouts and creatine to push harder, longer, every session.",
     image: strengthEnduranceImg,
+    tone: "tan",
   },
   {
     title: "Weight Loss",
     query: "fat loss",
     desc: "Fat burners and low-sugar formulas to support a real calorie deficit.",
     image: weightLossImg,
+    tone: "green",
   },
   {
     title: "Bulking Up",
     query: "mass gainer",
     desc: "Calorie-dense mass gainers built for serious, sustained size gains.",
     image: bulkingUpImg,
+    tone: "tan",
   },
 ];
 
@@ -62,7 +68,7 @@ export default function TargetSection() {
   // because the decorative glow/grid behind it must run full bleed — so
   // this element carries the same px steps as every other shell.
   return (
-    <section className="relative overflow-hidden px-4 py-14 sm:px-6 sm:py-16 lg:px-[34px]">
+    <section className="relative overflow-hidden px-4 py-10 sm:px-6 sm:py-12 lg:px-[34px]">
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[100px]" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -89,40 +95,71 @@ export default function TargetSection() {
             items={TARGETS}
             autoPlay
             interval={3200}
-            itemClassName="w-[68%] sm:w-[38%] lg:w-[23%]"
+            itemClassName="w-[80%] sm:w-[46%] lg:w-[24%]"
             renderItem={(t) => (
+              // Solid colour card, alternating green / tan per the
+              // reference — NOT a photo with a dark scrim over it. The
+              // copy sits on the flat ground on the left and the model
+              // photo occupies the right, so the two never overlap and
+              // the text needs no gradient to stay legible.
               <button
                 onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)}
-                className="group relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/5 bg-mdn-charcoal2 transition-all duration-300 hover:-translate-y-1.5 hover:border-mdn-green/40 hover:shadow-green-glow"
+                className={`group relative flex aspect-[16/10] w-full overflow-hidden rounded-2xl text-left shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg ${
+                  t.tone === "tan" ? "bg-mdn-tan" : "bg-mdn-green-light"
+                }`}
               >
-                {/* The artwork is 1086x1448 — exactly the card's
-                    aspect-[3/4] — so `cover` neither crops nor distorts
-                    it here, and it stays correct if a future image is a
-                    slightly different ratio (which `fill` would visibly
-                    stretch). Sits under the gradient below, which is what
-                    keeps the title/description legible over the artwork. */}
+                {/* Model photo, right-hand side. The source art is a
+                    1086x1448 portrait, so `object-cover object-top` keeps
+                    the head in frame and crops from the legs up as the
+                    card gets shorter — `contain` would letterbox it and
+                    expose the card ground down both sides of the figure. */}
                 <img
                   src={t.image}
                   alt=""
                   aria-hidden="true"
                   loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
+                  decoding="async"
+                  className="absolute bottom-0 right-0 h-full w-[44%] object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
                 />
-                {/* Scrim, lightened now that there's real artwork behind
-                    it. Was solid black at the base fading through 70% at
-                    40% height, which greyed out most of the image. Now it
-                    holds 85% only right at the bottom edge and drops to
-                    30% by 30% height, so the text stays legible while the
-                    photo reads clearly above it. */}
-                <div className="absolute inset-0 bg-gradient-to-t from-mdn-black/85 via-mdn-black/30 via-30% to-transparent" />
-                <span className="absolute inset-x-0 bottom-0 p-3 text-left sm:p-4">
-                  <span className="block text-sm font-bold leading-tight text-mdn-white sm:text-base">
-                    {t.title}
+
+                {/* Copy column is capped at 58% so a long title can never
+                    run under the photo.
+
+                    Type is sized off the reference rather than picked by
+                    feel: there the card is 125px tall and its text block
+                    fills 93px of it — title, description and arrow nearly
+                    span the card. At the earlier 15px/11.5px the same
+                    block only filled about half the height, and
+                    `justify-between` turned the remainder into one large
+                    hole in the middle. */}
+                <span className="relative z-10 flex h-full w-[58%] flex-col justify-between p-3.5">
+                  <span className="block">
+                    {/* line-clamp-2 on the TITLE as well as the
+                        description. The copy column is only ~130px wide
+                        at this card size, so "Wellness & Immunity" and
+                        "Strength & Endurance" run to three lines if left
+                        unclamped — which is what tipped the content past
+                        the card's height. Two lines each keeps every card
+                        the same shape whatever the goal is called. */}
+                    <span className="line-clamp-2 block text-[16px] font-extrabold uppercase leading-[1.12] tracking-tight text-white sm:text-[20px]">
+                      {t.title}
+                    </span>
+                    <span className="mt-1.5 line-clamp-4 block text-[12px] leading-snug text-white/85 sm:text-[14px]">
+                      {t.desc}
+                    </span>
                   </span>
-                  <span className="mt-1 block text-xs leading-snug text-mdn-gray line-clamp-2">{t.desc}</span>
-                  <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-mdn-green opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    Shop stack
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+
+
+                  {/* Circular arrow, bottom-left, as in the reference.
+                      It inverts on hover — the ring fills white and the
+                      arrow takes the card's own ground colour. */}
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/70 text-white transition-all duration-300 group-hover:bg-white ${
+                      t.tone === "tan" ? "group-hover:text-mdn-tan" : "group-hover:text-mdn-green-light"
+                    }`}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>

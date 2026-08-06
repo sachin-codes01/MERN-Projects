@@ -8,7 +8,6 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { CartBadgeProvider } from "./context/CartBadgeContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
-import { SettingsProvider } from "./context/SettingsContext.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
@@ -18,8 +17,7 @@ createRoot(document.getElementById("root")).render(
         touches CSS transitions, never Motion's animated `transform`. */}
     <MotionConfig reducedMotion="user">
       <ThemeProvider>
-        <SettingsProvider>
-          <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
             <BrowserRouter>
               <AuthProvider>
                 <ToastProvider>
@@ -29,8 +27,7 @@ createRoot(document.getElementById("root")).render(
                 </ToastProvider>
               </AuthProvider>
             </BrowserRouter>
-          </GoogleOAuthProvider>
-        </SettingsProvider>
+        </GoogleOAuthProvider>
       </ThemeProvider>
     </MotionConfig>
   </StrictMode>

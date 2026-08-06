@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useCartBadge } from "../context/CartBadgeContext";
 import { guestCart } from "../utils/guestCart";
 import MDNLoader from "../components/MDNLoader";
 
@@ -12,7 +13,18 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const { token, cartSyncing } = useAuth();
   const { success, error: toastError } = useToast();
+  const { clearNewItem } = useCartBadge();
   const navigate = useNavigate();
+
+  // The navbar's "new item" dot was only cleared by CLICKING the cart icon.
+  // Adding to cart navigates here directly, so the dot stayed lit while the
+  // customer was already looking at the very cart it was pointing them to.
+  // Reaching this page is what the dot exists to prompt, so arriving by any
+  // route clears it.
+  useEffect(() => {
+    clearNewItem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadCart = () => {
     // Guest lines are still being moved onto the server cart — reading it
@@ -130,7 +142,11 @@ export default function Cart() {
             : null;
           const name = item.product?.name || item.name || "Product";
           const brand = item.product?.brand || item.brand;
-          const image = flavorObj?.image || item.product?.thumbnail || item.image;
+          // Product photo first, flavour swatch only as a last resort. This had
+          // the order reversed, so any product with flavours showed the little
+          // flavour swatch (a scoop of chocolate, a mango) in the cart instead
+          // of the tub the customer actually bought.
+          const image = item.product?.thumbnail || item.image || flavorObj?.image;
           const flavor = flavorObj?.name || item.flavor;
           const weight = size?.weight || item.weight;
           const slug = item.product?.slug || item.slug;
@@ -156,7 +172,7 @@ export default function Cart() {
               </Link>
 
               <div className="min-w-0">
-                {brand && <p className="text-xs font-semibold uppercase tracking-wide text-mdn-green">{brand}</p>}
+                {brand && <p className="text-xs font-semibold uppercase tracking-wide text-mdn-orange">{brand}</p>}
                 <Link
                   to={slug ? `/products/${slug}` : "#"}
                   className="line-clamp-1 text-sm font-medium text-mdn-white transition-colors hover:text-mdn-green"

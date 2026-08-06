@@ -195,9 +195,7 @@ router.get("/settings", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const { splashCursorEnabled } = req.body;
   const settings = await SiteSettings.getSingleton();
-  if (splashCursorEnabled !== undefined) settings.splashCursorEnabled = splashCursorEnabled;
   await settings.save();
   res.json({ success: true, data: settings });
 });

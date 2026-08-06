@@ -1,4 +1,11 @@
-@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+/* Inter — body/UI text and dense data (tables, prices, forms).
+   Jost  — navigation chrome: navbar links, footer headings/links, small
+           uppercase labels. A Futura-derived geometric sans, which is
+           the classic companion to a didone like Didot: its circular
+           bowls and even stroke weight sit quietly under Didot's
+           high-contrast display type instead of competing with it, and
+           unlike Didot it stays crisp at 11-14px. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Jost:wght@400;500;600;700&display=swap");
 
 @import "./styles/admin.css";
 
@@ -7,27 +14,225 @@
 @tailwind utilities;
 
 /* ============================================================
-   Theme tokens
-   Default (no class on <html>) = light / white+silver+green.
-   .dark on <html>               = the original black+green theme.
-   Components keep using bg-mdn-black, text-mdn-white, text-mdn-gray,
-   etc. — those utilities now read these CSS vars, so nothing else
-   needs to change to support both themes.
+   Didot — display face, self-hosted.
+   Four weights/styles map onto TWO families on purpose:
+
+   • "Didot"       — Regular / Bold / Italic, i.e. a normal family you
+                     can set with font-weight and font-style.
+   • "Didot Title" — the separate titling cut, which has its own
+                     tighter spacing and higher stroke contrast. It is
+                     NOT a weight of the family above, so giving it its
+                     own family name is what keeps the browser from
+                     synthesising or swapping between the two.
+
+   Sources are woff2 only (converted from the supplied .otf — 392KB of
+   OTF became 167KB of woff2). font-display: swap so a slow font never
+   blocks first paint; the fallback stack below is a real serif so the
+   reflow when Didot lands is a size shift, not a serif/sans flip.
    ============================================================ */
-:root {
-  --mdn-black: 255 255 255;      /* page background */
-  --mdn-charcoal: 244 246 244;   /* card / section surface */
-  --mdn-charcoal2: 236 239 236;  /* input / secondary surface */
-  --mdn-white: 23 26 24;         /* primary text (dark, for contrast on white) */
-  --mdn-gray: 96 104 100;        /* muted text */
+@font-face {
+  font-family: "Didot";
+  src: url("/fonts/Didot-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Didot";
+  src: url("/fonts/Didot-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Didot";
+  src: url("/fonts/Didot-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Didot Title";
+  src: url("/fonts/Didot-Title.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
+/* ============================================================
+   Design tokens — THE single source of truth.
+
+   Colour values were sampled directly out of the two reference
+   posters (MDN new Home Page.png / MDN new ProductDetail Page.png)
+   rather than eyeballed, which is why they sit lighter and warmer
+   than the approximations in the brief: the reference page background
+   is a near-ivory #FEF9F3, not #F6F0E4.
+
+   Two naming layers live here, deliberately:
+
+   1. `--mdn-*` RGB triplets. These already back the `bg-mdn-black`,
+      `text-mdn-white`, `text-mdn-gray` … utilities used in 52 files.
+      Re-pointing them at the cream palette re-skins every one of those
+      call sites at once instead of touching 250+ usages by hand. The
+      NAMES are now historical (`--mdn-black` is the page background,
+      which is cream) — they are kept because renaming them buys
+      nothing and risks missing a usage. Read them as roles:
+        black     = page background
+        charcoal  = raised card / panel surface
+        charcoal2 = sunken / tinted surface (sand)
+        white     = primary ink
+        gray      = muted ink
+
+   2. Named brand tokens (`--green-*`, `--orange-*`, `--sand-*` …) for
+      everything new. Use these in new code.
+
+   Dark mode is a remap of this same set — see `.dark` below. Because
+   every component reads tokens rather than literal hex, the dark theme
+   costs one block of overrides instead of a second styling pass.
+   ============================================================ */
+:root {
+  /* Every colour token is a SPACE-SEPARATED RGB TRIPLET, not a hex
+     string. That is what lets Tailwind emit `rgb(var(--token) / 0.4)`
+     for opacity modifiers like `bg-mdn-green/40` and `border-mdn-green/20`
+     — both of which this codebase uses in dozens of places. A plain
+     `var(--x)` holding a hex would silently drop the opacity instead.
+     In hand-written CSS below, wrap them yourself: rgb(var(--ink)). */
+
+  /* --- surfaces ---
+     Three distinct steps, because the reference does NOT use one flat
+     cream: scanning the home poster band by band it alternates between
+     near-white sections (#FEF7EF) and warmer tinted bands (#FEF3E8,
+     #FEEFDE, #FCEEDC). A single mid-tone for everything is what makes a
+     cream page read as dull — nothing separates from anything. So the
+     page ground sits DOWN a step, cards sit clearly above it, and
+     tinted bands sit below. The gap between page and card is what makes
+     cards look raised without needing a heavy shadow. */
+  /* Page ground is sampled from the isolate-whey hero banner
+     (mdn-isolate-whey-2400x1200.jpg, #FDECD2) so that full-bleed banner
+     sits flush on the page instead of showing a seam where its own
+     background meets the site's. Every other surface below is
+     re-balanced around it: the ground is now a warm SAND rather than an
+     off-white, so cards have to go lighter and bands/borders deeper to
+     keep the three layers distinct. */
+  --mdn-black: 254 244 233;      /* page ground — banner sand, lightened */
+  --mdn-charcoal: 255 253 250;   /* raised card surface — warm white */
+  --mdn-charcoal2: 250 233 210;  /* sunken / tinted band — deeper sand */
+  --mdn-white: 36 31 26;         /* primary ink — warm near-black */
+  --mdn-gray: 124 114 104;       /* muted ink */
+
+  /* --- greens --- */
+  --green-deep: 42 54 27;        /* #2a361b — hero + footer ground */
+  --green-primary: 51 67 30;     /* #33431e — primary buttons, dark blocks */
+  --green-mid: 74 92 51;         /* #4a5c33 — selected states, hover fills */
+  --green-soft: 234 238 226;     /* #eaeee2 — green-tinted chips on cream */
+  --green-title: 44 58 20;       /* #2c3a14 — Didot product/section titles */
+
+  /* --- oranges --- */
+  --orange-accent: 221 107 20;   /* #dd6b14 — accent WORDS, links, prices */
+  --orange-solid: 204 99 1;      /* #cc6301 — solid CTA fill (Buy Now) */
+  --orange-hover: 180 81 3;      /* #b45103 — CTA hover / pressed */
+  --orange-badge: 211 114 19;    /* #d37213 — Save X% pills, bottom bar */
+  --orange-soft: 251 227 205;    /* #fbe3cd — orange-tinted chip ground */
+
+  /* --- warm neutrals --- */
+  /* Goal-card tan. The "What's Your Target?" cards alternate between
+     --green-mid (#4a5c33, sampled #495832/#4e6038 off the reference) and
+     this warm tan (#cb8c4a, sampled #cf9756/#c8823d). Both are card
+     GROUNDS carrying white text, which is why the tan is this deep —
+     a lighter tan would fail contrast against the copy on it. */
+  --tan: 203 140 74;             /* #cb8c4a — goal card ground */
+  --sand: 250 233 210;           /* #fae9d2 — trust bar, spec boxes, bands */
+  --sand-deep: 250 227 199;      /* #fae3c7 — product gallery backdrop */
+  --blush: 250 218 199;          /* #fadac7 — promo banner ground */
+  /* Borders step down with the ground — deep enough that hairlines still
+     register against the warm page rather than washing out. */
+  --border-soft: 240 226 205;    /* #f0e2cd — hairline borders / dividers */
+  --border-strong: 229 210 183;  /* #e5d2b7 — emphasised borders */
+
+  /* --- ink --- */
+  --ink: 36 31 26;               /* #241f1a — headings */
+  --ink-body: 92 84 75;          /* #5c544b — paragraphs */
+  --ink-muted: 138 128 118;      /* #8a8076 — captions, meta, struck MRP */
+
+  /* --- status --- */
+  --star: 227 154 18;            /* #e39a12 */
+  --stock-low: 192 86 26;        /* #c0561a */
+  --danger: 179 57 42;           /* #b3392a */
+  --caution-bg: 253 243 223;     /* #fdf3df */
+  --caution-border: 236 217 168; /* #ecd9a8 */
+
+  /* --- shape ---
+     radius-sm is the BUTTON radius, measured off the posters: the fill
+     on both the home bestseller bar and the PDP Add to Cart steps in
+     3px -> 2 -> 1 -> 0 over about three rows, which is a ~4px curve at
+     poster scale and ~6px at the real 1536px shell. The buttons in the
+     reference are only barely softened, not pill-like. */
+  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  /* --- elevation: low-opacity, large-blur, warm-tinted.
+         A neutral black shadow reads grey/dirty on cream, so every
+         layer is tinted with the ink hue instead. --- */
+  --shadow-xs: 0 1px 2px rgba(66, 48, 30, 0.05);
+  --shadow-sm: 0 2px 8px -2px rgba(66, 48, 30, 0.08);
+  --shadow: 0 6px 20px -6px rgba(66, 48, 30, 0.12), 0 2px 6px -2px rgba(66, 48, 30, 0.06);
+  --shadow-lg: 0 16px 40px -12px rgba(66, 48, 30, 0.16), 0 4px 12px -4px rgba(66, 48, 30, 0.08);
+
+  /* --- motion: one easing curve and three durations, reused
+         everywhere so the whole site decelerates identically. --- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 380ms;
+}
+
+/* Dark theme — the same roles, remapped onto a deep-forest ground.
+   Accents stay orange (they read correctly on both), greens lighten so
+   they stay visible against a dark page instead of disappearing. */
 .dark {
-  --mdn-black: 11 12 13;
-  --mdn-charcoal: 22 24 26;
-  --mdn-charcoal2: 31 34 36;
-  --mdn-white: 245 247 245;
-  --mdn-gray: 154 160 166;
+  --mdn-black: 22 28 17;
+  --mdn-charcoal: 32 40 25;
+  --mdn-charcoal2: 43 53 33;
+  --mdn-white: 244 238 228;
+  --mdn-gray: 160 166 146;
+
+  --green-deep: 20 26 15;
+  --green-primary: 111 138 76;
+  --green-mid: 133 160 95;
+  --green-soft: 43 53 33;
+  --green-title: 207 224 180;
+
+  --orange-accent: 240 145 63;
+  --orange-solid: 217 112 15;
+  --orange-hover: 235 133 36;
+  --orange-badge: 224 132 48;
+  --orange-soft: 61 44 24;
+
+  --tan: 168 114 58;
+  --sand: 43 53 33;
+  --sand-deep: 35 44 27;
+  --blush: 51 41 31;
+  --border-soft: 58 68 48;
+  --border-strong: 76 88 64;
+
+  --ink: 244 238 228;
+  --ink-body: 205 198 186;
+  --ink-muted: 154 146 133;
+
+  --star: 240 180 41;
+  --stock-low: 232 136 74;
+  --danger: 224 112 95;
+  --caution-bg: 51 46 28;
+  --caution-border: 92 81 50;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.6), 0 4px 12px -4px rgba(0, 0, 0, 0.4);
 }
 
 html {
@@ -44,14 +249,18 @@ html {
      them regardless. */
   scroll-behavior: auto;
   color-scheme: light;
+  /* Set on the ROOT, not just body, so the overscroll/rubber-band area
+     and any gap below a short page are cream rather than the browser's
+     default white. */
+  background-color: rgb(var(--mdn-black));
   /* Full-bleed sections (Hero, Footer's ticker strip) use `w-screen` /
      100vw to break out of the page's centered container. 100vw measures
      the viewport INCLUDING the scrollbar's own width, which is a hair
      wider than the actual visible/scrollable area on desktop browsers —
      that tiny overflow is exactly what let the whole page be dragged
-     left/right, and revealed a sliver of the green ticker strip's
-     background past the right edge. overflow-x clips that invisible
-     overflow instead of turning it into a scrollable/draggable strip.
+     left/right, and revealed a sliver of the ticker strip's background
+     past the right edge. overflow-x clips that invisible overflow
+     instead of turning it into a scrollable/draggable strip.
 
      `clip` rather than `hidden`, with hidden left as the fallback for
      browsers that don't know `clip` (Safari < 16). `hidden` makes the
@@ -64,26 +273,127 @@ html {
      so sticky keeps working. */
   overflow-x: hidden;
   overflow-x: clip;
+
+  /* Stops Chrome's two-finger horizontal swipe from triggering browser
+     back/forward navigation. Calling preventDefault on the wheel event is
+     not enough on its own: the navigation gesture is decided at the
+     compositor before the handler runs, and any sideways delta below the
+     carousel's horizontal-intent threshold is never prevented at all — so
+     scrolling a product row could walk the user off the page entirely.
+     `none` refuses the overscroll chain outright, which is what actually
+     suppresses the gesture. */
+  overscroll-behavior-x: none;
 }
 html.dark {
   color-scheme: dark;
 }
 
 body {
-  @apply bg-mdn-black text-mdn-white font-body antialiased transition-colors duration-300;
+  @apply bg-mdn-black text-mdn-white font-body antialiased;
+  transition: background-color var(--dur-slow) var(--ease), color var(--dur-slow) var(--ease);
   /* See the note on html above — `clip` keeps the horizontal clipping
      without turning body into a scroll container, which is what stops
      position: sticky from working anywhere in the page. */
   overflow-x: hidden;
   overflow-x: clip;
+  /* Mirrored from html — some Chrome versions read the gesture off body. */
+  overscroll-behavior-x: none;
 }
 
+/* ============================================================
+   Type scale — deliberate, not Tailwind defaults.
+
+   Didot is a high-contrast didone: its hairlines disappear at small
+   sizes and it needs NEGATIVE tracking at display sizes to stop the
+   caps drifting apart. So the rules are:
+     • Didot Title  → hero + section headings (>=28px), tight tracking
+     • Didot        → product names, card titles, pull quotes
+     • Inter        → everything under ~20px: body, buttons, labels,
+                      prices, tables, nav. Never Didot.
+
+   `.display-*` classes carry the paired size/leading/tracking so a
+   heading is one class, not four utilities that drift apart between
+   components.
+   ============================================================ */
+/* Headings use Didot. `Didot Title` is the display cut and leads the
+   stack; `Didot` (which carries a REAL 700 bold) backs it up.
+
+   One detail that matters at small sizes: Didot Title ships a single
+   400 weight, so `font-semibold`/`font-bold` on it makes the browser
+   synthesise a fake bold, which smears a hairline serif badly at
+   11-14px. Anything small and bold should therefore use the `.label`
+   class or `font-serif` below — both put plain `Didot` first, so the
+   browser loads the genuine Didot Bold file instead of faking it. */
 h1, h2, h3, h4 {
-  @apply font-display uppercase tracking-wide;
+  font-family: "Didot Title", "Didot", "Didot LT Std", Georgia, "Times New Roman", serif;
+  color: rgb(var(--ink));
+  text-wrap: balance;
+}
+
+/* Small uppercase label — the shared class behind the navbar's link row
+   and the footer's column headings, so the two bars are on one typeface
+   by construction rather than by coincidence.
+
+   Jost, not Didot: this is navigation chrome at 10-14px, where Didot's
+   hairlines go thin and fussy. The generous tracking is what makes
+   geometric caps read as deliberate rather than default. Colour and
+   size are left to the caller — the same label sits on cream in the
+   navbar and on deep green in the footer. */
+.label {
+  font-family: Jost, Inter, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.display-hero {
+  font-family: "Didot Title", "Didot", Georgia, serif;
+  font-size: clamp(2.75rem, 7.5vw, 5.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.display-xl {
+  font-family: "Didot Title", "Didot", Georgia, serif;
+  font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.012em;
+  text-transform: uppercase;
+}
+.display-lg {
+  font-family: "Didot Title", "Didot", Georgia, serif;
+  font-size: clamp(1.5rem, 2.8vw, 2.125rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.display-md {
+  font-family: "Didot", Georgia, serif;
+  font-size: clamp(1.125rem, 1.8vw, 1.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+/* The accent word inside a section heading ("…by COLLECTION",
+   "OUR BESTSELLERS"). Italic + orange, per the reference. */
+.display-accent {
+  font-family: "Didot", Georgia, serif;
+  font-style: italic;
+  color: rgb(var(--orange-accent));
+}
+/* Small caps label above a heading. Inter, never Didot — at 11px
+   Didot's hairlines vanish. */
+.eyebrow {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--ink-muted));
 }
 
 ::selection {
-  @apply bg-mdn-green text-mdn-black;
+  background: rgb(var(--green-primary));
+  color: #fff;
 }
 
 /* Slim scrollbar, matches brand in both themes */
@@ -92,11 +402,11 @@ h1, h2, h3, h4 {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgb(var(--mdn-charcoal));
+  background: rgb(var(--mdn-charcoal2));
 }
 ::-webkit-scrollbar-thumb {
-  background: #22b14c;
-  border-radius: 999px;
+  background: rgb(var(--green-mid));
+  border-radius: var(--radius-pill);
 }
 
 /* Visible keyboard focus everywhere, both themes */
@@ -104,9 +414,11 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #22b14c;
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgb(var(--green-primary));
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -119,48 +431,46 @@ textarea:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   Light-mode overrides for hardcoded white/opacity utilities.
-   Many existing components use border-white/10, bg-white/5, etc.
-   to mean "faint line/surface on a dark background." In light
-   mode those need to become faint dark lines instead.
+   Compatibility overrides for `*-white/N` utilities.
 
-   NOTE: these attribute selectors only match elements that carry
-   the literal utility class (e.g. `border-white/10`) directly in
-   their rendered HTML. Anything applied via @apply inside a custom
-   component class (like the old .card border) compiles straight to
-   CSS and never has that literal class in the DOM — so it's NOT
-   reached by these overrides. Those cases need a theme-variable-
-   driven color instead (see .card below).
+   Roughly forty files still written for the old dark theme use
+   `border-white/10`, `bg-white/5`, `divide-white/10` … as shorthand
+   for "a faint line/surface on a dark background". On the cream page
+   those are invisible, so in LIGHT mode they are re-pointed at the
+   warm border/ink tokens instead. In dark mode they are already
+   correct and are left alone.
+
+   These are storefront-wide safety nets, not the intended styling
+   path: the redesigned Navbar, Footer, home and product sections use
+   `border-mdn-border` / `bg-mdn-sand` tokens directly. Anything still
+   relying on this block is a page that has not been through the
+   redesign yet (cart, checkout, orders, profile, blogs, admin), and it
+   keeps those readable in the meantime.
+
+   NOTE: these attribute selectors only match elements carrying the
+   literal utility class in their rendered HTML. Classes introduced via
+   @apply inside a component class compile straight to CSS and never
+   appear in the DOM, so they are NOT reached here — those use theme
+   variables directly (see .card, .input-field below).
    ------------------------------------------------------------ */
 html:not(.dark) [class*="border-white/"] {
-  border-color: rgba(15, 23, 20, 0.12) !important;
+  border-color: rgb(var(--border-strong)) !important;
 }
 html:not(.dark) [class*="bg-white/"] {
-  background-color: rgba(15, 23, 20, 0.05) !important;
+  background-color: rgb(var(--sand) / 0.6) !important;
 }
 html:not(.dark) [class*="divide-white/"] > * + * {
-  border-color: rgba(15, 23, 20, 0.08) !important;
+  border-color: rgb(var(--border-soft)) !important;
 }
 html:not(.dark) [class*="hover\:bg-white/"]:hover {
-  background-color: rgba(15, 23, 20, 0.06) !important;
+  background-color: rgb(var(--sand)) !important;
 }
 html:not(.dark) [class*="hover\:border-white/"]:hover {
-  border-color: rgba(15, 23, 20, 0.2) !important;
+  border-color: rgb(var(--green-primary) / 0.5) !important;
 }
+/* Overlay scrims that assumed a dark page (`bg-mdn-black/90` etc). */
 html:not(.dark) [class*="bg-mdn-black/9"] {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-}
-
-/* Light-mode override for border-mdn-silver/N utilities (buttons, toggle
-   pill, etc). mdn-silver is a fixed light-gray hex (#C9CDD3), so at low
-   opacity on a near-white page background it was nearly invisible —
-   this darkens it the same way the border-white/N overrides above do,
-   so borders and hover states are actually visible in light mode. */
-html:not(.dark) [class*="border-mdn-silver"] {
-  border-color: rgba(15, 23, 20, 0.28) !important;
-}
-html:not(.dark) [class*="hover\:border-mdn-green"]:hover {
-  border-color: #22b14c !important;
+  background-color: rgb(var(--mdn-black) / 0.94) !important;
 }
 
 @layer components {
@@ -169,80 +479,200 @@ html:not(.dark) [class*="hover\:border-mdn-green"]:hover {
      just enough room underneath the footer's content that the bar never
      covers its last row. Toggled on #site-footer only while the bar is
      actually up. */
+  /* Footer.jsx paints the footer element itself in the copyright bar's
+     colour, so this reserved strip continues that band instead of
+     showing the page background through as a gap. */
   .has-sticky-atc {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 
-  .stat-chip {
-    @apply flex flex-col items-center justify-center rounded-md border border-mdn-green/40
-           bg-mdn-charcoal px-3 py-2 min-w-[64px] transition-colors duration-200;
-  }
-  .stat-chip-value {
-    @apply font-mono font-bold text-mdn-green text-sm sm:text-base leading-none;
-  }
-  .stat-chip-label {
-    @apply text-[10px] sm:text-xs text-mdn-gray mt-1 uppercase tracking-wide;
-  }
-
-  /* NOTE: text-black (not text-mdn-black) on purpose — mdn-black is the
-     theme-flipping page-background token, but this button always needs
-     dark text against its bright green fill in both light and dark mode. */
+  /* ---------- Buttons ----------
+     Three roles, one motion language: 2px lift + shadow deepen on
+     hover, settle back and scale down a hair on press. Durations and
+     easing come from the tokens so every button on the site
+     decelerates on the same curve. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-mdn-green
-           px-5 py-2.5 font-semibold text-black shadow-green-glow
-           transition-all duration-200 hover:bg-mdn-green-light hover:-translate-y-0.5
-           active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
+    background: rgb(var(--green-primary));
+    color: #fdf8f1;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    transition: background-color var(--dur) var(--ease), transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
   }
+  .btn-primary:disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
+    background: rgb(var(--orange-solid));
+    color: #fff;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    transition: background-color var(--dur) var(--ease), transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+  .btn-accent:disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-mdn-silver/30
-           bg-transparent px-5 py-2.5 font-semibold text-mdn-white
-           transition-all duration-200 hover:border-mdn-green hover:text-mdn-green;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
+    background: transparent;
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: var(--radius-sm);
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
   }
 
-  /* .card border set with an explicit CSS custom property (--mdn-white)
-     instead of the border-white/N utility. border-white/N is invisible
-     in light mode here because the attribute-selector override above
-     can't reach classes introduced via @apply (see note above) — using
-     the theme token directly means the border is correct in BOTH themes
-     without depending on that override at all. Bumped from 5% to 12%
-     opacity too, since 5% was faint even in dark mode. */
+  /* ---------- Surfaces ---------- */
   .card {
-    @apply rounded-xl bg-mdn-charcoal shadow-card transition-transform duration-300;
-    border: 1px solid rgb(var(--mdn-white) / 0.12);
+    background: rgb(var(--mdn-charcoal));
+    border: 1px solid rgb(var(--border-soft));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+  /* Same as .card but for cards sitting ON a already-tinted band, where
+     a same-tone card would read as one flat block. */
+  .card-alt {
+    background: rgb(var(--mdn-black));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
   }
 
-  /* Same as .card, but for cards placed ON TOP of a section that is
-     already bg-mdn-charcoal (e.g. ReviewsSection, StorySection stat
-     tiles). Using .card there made the card and its parent section the
-     exact same color, so the border was the ONLY thing separating them
-     — and at 12% opacity, against a faint background grid pattern, that
-     read as "misaligned"/invisible. This uses the next surface step up
-     (bg-mdn-charcoal2) plus a stronger border so cards clearly sit apart
-     from the section behind them, in both themes. */
-  .card-alt {
-    @apply rounded-xl bg-mdn-charcoal2 shadow-card transition-transform duration-300;
-    border: 1px solid rgb(var(--mdn-white) / 0.18);
+  /* Pills / badges */
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--border-strong));
+    color: rgb(var(--ink-body));
+    background: rgb(var(--mdn-charcoal));
+  }
+  .badge-save {
+    @apply inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+    background: rgb(var(--orange-badge));
+    border-radius: var(--radius-pill);
+  }
+
+  /* Bordered cream spec box: label on top, bold value under it. */
+  .spec-box {
+    @apply px-2 py-2.5 text-center;
+    background: rgb(var(--sand));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: var(--radius);
+  }
+  .spec-box-label {
+    @apply block truncate text-[10px] font-semibold uppercase tracking-wider;
+    color: rgb(var(--ink-muted));
+  }
+  .spec-box-value {
+    @apply mt-0.5 block truncate text-base font-bold;
+    color: rgb(var(--green-title));
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-mdn-silver/40 bg-mdn-charcoal2 px-4 py-2.5 text-mdn-white
-           placeholder:text-mdn-gray outline-none transition-colors duration-200
-           focus:border-mdn-green focus:ring-2 focus:ring-mdn-green/25;
+    @apply w-full px-4 py-2.5 outline-none;
+    background: rgb(var(--mdn-charcoal));
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--border-strong));
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-xs);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  }
+  .input-field::placeholder {
+    color: rgb(var(--ink-muted));
+  }
+  .input-field:focus {
+    border-color: rgb(var(--green-primary));
+    box-shadow: 0 0 0 3px rgb(var(--green-primary) / 0.16);
+  }
+
+  /* Section rhythm — one spacing step, used by every home/PDP section,
+     so the gaps between them are identical instead of each section
+     inventing its own py-*. */
+  .section {
+    @apply mx-auto max-w-shell px-4 py-14 sm:px-6 sm:py-16 lg:px-[34px] lg:py-20;
+  }
+  /* Full-bleed band that still aligns its CONTENT to the shell. */
+  .band {
+    @apply relative left-1/2 right-1/2 -mx-[50vw] w-screen;
   }
 }
 
-/* Light-mode-only reinforcement for inputs: mdn-silver/40 alone was too
-   faint against a near-white page background, so give light mode a solid
-   white surface, a visible border, and a subtle shadow for definition. */
-html:not(.dark) .input-field {
-  background-color: #ffffff;
-  border-color: rgba(15, 23, 20, 0.22);
-  box-shadow: 0 1px 2px rgba(15, 23, 20, 0.05);
+/* Hover/active states live outside @layer components so they always win
+   over the base rule regardless of declaration order, and they are
+   gated on a real mouse — touch browsers keep :hover stuck on after a
+   tap (see the `hover` variant plugin in tailwind.config.js for the
+   utility-class equivalent). */
+@media (hover: hover) {
+  .btn-primary:hover {
+    background: rgb(var(--green-mid));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .btn-accent:hover {
+    background: rgb(var(--orange-hover));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .btn-secondary:hover {
+    border-color: rgb(var(--green-primary));
+    color: rgb(var(--green-primary));
+    transform: translateY(-2px);
+  }
+  .card:hover,
+  .card-alt:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
 }
-html:not(.dark) .input-field:focus {
-  border-color: #22b14c;
-  box-shadow: 0 0 0 3px rgba(34, 177, 76, 0.15);
+.btn-primary:active,
+.btn-accent:active,
+.btn-secondary:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--shadow-xs);
 }
-html:not(.dark) .input-field::placeholder {
-  color: rgba(15, 23, 20, 0.45);
+
+/* Image hover zoom — put `.zoom-frame` on a clipped container and
+   `.zoom-img` on the image inside it. Transform-only, so it stays on
+   the compositor at 60fps. */
+.zoom-frame {
+  overflow: hidden;
+}
+.zoom-img {
+  transition: transform var(--dur-slow) var(--ease);
+  will-change: transform;
+}
+@media (hover: hover) {
+  .zoom-frame:hover .zoom-img {
+    transform: scale(1.04);
+  }
+}
+
+/* Skeleton shimmer for loading products/images. Animates background
+   position only. */
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    rgb(var(--mdn-charcoal2)) 30%,
+    rgb(var(--mdn-charcoal)) 50%,
+    rgb(var(--mdn-charcoal2)) 70%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-sweep 1.4s var(--ease) infinite;
+  border-radius: var(--radius);
+}
+@keyframes skeleton-sweep {
+  from { background-position: 180% 0; }
+  to { background-position: -20% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
 }

@@ -8,11 +8,28 @@ import { guestCart } from "../utils/guestCart";
 import Carousel from "../components/Carousel";
 import Accordion from "../components/Accordion";
 import ProductReviews from "../components/ProductReviews";
+import RelatedProducts from "../components/RelatedProducts";
 import StickyAddToCart from "../components/StickyAddToCart";
 import ProductBenefits from "../components/ProductBenefits";
 import ProductFacts, { ProductTagRow } from "../components/ProductFacts";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
+import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import FactoryOutlinedIcon from "@mui/icons-material/FactoryOutlined";
 import { getSizePrice } from "../utils/pricing";
+import { getDisplayRating, reviewCountLabel } from "../utils/rating";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+
+// Site-wide assurances shown under the buy box, straight from the
+// reference. Deliberately NOT per-product: these are the same promise on
+// every item, which is what makes them a trust row rather than a claim.
+const TRUST_ITEMS = [
+  { title: "100% Authentic", sub: "Products", Icon: VerifiedOutlinedIcon },
+  { title: "Lab Tested", sub: "& Certified", Icon: BiotechOutlinedIcon },
+  { title: "No Banned", sub: "Substances", Icon: BlockOutlinedIcon },
+  { title: "GMP Certified", sub: "Facilities", Icon: FactoryOutlinedIcon },
+];
 
 const perServing = (size, effectivePrice) => (size.servings ? Math.round(effectivePrice / size.servings) : null);
 
@@ -33,6 +50,13 @@ export default function ProductDetail() {
   // when autoplay or a swipe moved it rather than a click.
   const galleryRef = useRef(null);
   const [activeImage, setActiveImage] = useState(0);
+  // Desktop keeps the accordion in its original slot, directly above the
+  // nutrition facts. On small screens it moves below the product's own
+  // claims instead. BOTH positions are full-width blocks outside the
+  // two-column grid — the accordion is deliberately never placed inside
+  // the gallery column, because that made the column as tall as the
+  // details column and left the `lg:sticky` gallery with zero travel.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   useEffect(() => {
     api
@@ -76,7 +100,7 @@ export default function ProductDetail() {
           flavorId: selectedFlavorId,
           quantity: 1,
           name: product.name,
-          image: currentFlavor?.image || product.thumbnail,
+          image: product.thumbnail || currentFlavor?.image,
           price: effectivePrice,
           slug: product.slug,
           stock: currentSize.stock,
@@ -137,6 +161,19 @@ export default function ProductDetail() {
     (product.description
       ? `${product.description.slice(0, 160)}${product.description.length > 160 ? "…" : ""}`
       : "");
+
+  const accordionBlock = (
+    <div className="mt-6">
+      <Accordion
+        items={[
+          { title: "Product Details", content: product.description },
+          { title: "How to use?", content: product.directionsOfUse },
+          { title: "Who is this for?", content: product.whoIsThisFor },
+          { title: "Ingredients", content: product.ingredients },
+        ]}
+      />
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
@@ -225,21 +262,37 @@ export default function ProductDetail() {
               ))}
             </div>
           )}
+
         </div>
 
         {/* Details */}
         <div className="min-w-0 animate-fade-up [animation-delay:100ms]">
-          <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">{product.brand}</p>
-          <h1 className="mt-1 break-words text-2xl font-bold text-mdn-white sm:text-3xl">{product.name}</h1>
+          {/* Brand in orange above the title, per the reference. */}
+          <p className="text-xs font-semibold uppercase tracking-widest text-mdn-orange">{product.brand}</p>
+          {/* font-body overrides the Didot default that h1-h4 inherit —
+              the product name is set in normal sans here. */}
+          <h1 className="mt-1 break-words font-body text-2xl font-bold text-mdn-white sm:text-3xl">
+            {product.name}
+          </h1>
 
-          {product.ratingsCount > 0 && (
-            <div className="mt-2 flex items-center gap-2">
-              <Stars rating={product.ratingsAverage} />
-              <span className="text-sm text-mdn-gray">
-                {product.ratingsAverage.toFixed(1)} ({product.ratingsCount} reviews)
-              </span>
-            </div>
-          )}
+          {/* Rating comes from utils/rating.js (admin override, else the
+              real review average). The COUNT beside it is always the real
+              number of reviews — it reads "0 Reviews" on a product nobody
+              has reviewed yet, and rises on its own as reviews come in,
+              because the review endpoint recomputes ratingsCount on every
+              submission. */}
+          {(() => {
+            const { value, stars, count, hasRating } = getDisplayRating(product);
+            if (!hasRating && count === 0) return null;
+            return (
+              <div className="mt-2 flex items-center gap-2">
+                <Stars stars={stars} />
+                <span className="text-sm text-mdn-gray">
+                  {hasRating && `${value.toFixed(1)} `}({reviewCountLabel(count)})
+                </span>
+              </div>
+            );
+          })()}
 
           {teaser && <p className="mt-2 break-words text-sm leading-relaxed text-mdn-gray sm:text-base">{teaser}</p>}
 
@@ -372,7 +425,7 @@ export default function ProductDetail() {
                       <span className="relative block h-16 w-full bg-white">
                         {f.image && <img src={f.image} alt={f.name} className="h-full w-full object-fill" />}
                         {isSelected && (
-                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mdn-green text-black">
+                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mdn-orange text-white">
                             <CheckRoundedIcon sx={{ fontSize: 11 }} />
                           </span>
                         )}
@@ -391,7 +444,7 @@ export default function ProductDetail() {
             ref={atcRef}
             onClick={handleAddToCart}
             disabled={outOfStock || adding}
-            className="btn-primary mt-4 w-full py-2.5 text-base"
+            className="btn-primary mt-6 w-full !py-3"
           >
             {!hasSizes
               ? "Currently Unavailable"
@@ -406,28 +459,36 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* Product info accordion — full width (matches the posters below),
-          not confined to the details column, so it reads as its own
-          section on large screens rather than a cramped half-width block. */}
+      {/* Trust row — the four assurances from the reference, directly
+          under the buy box. `ProductBenefits` below carries the PRODUCT's
+          own claims (per-product, set in admin); these four are the
+          site-wide guarantees, so the two do not repeat each other. */}
+      <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-6 rounded-2xl border border-mdn-border bg-mdn-sand px-4 py-6 sm:px-8 lg:grid-cols-4">
+        {TRUST_ITEMS.map(({ title, sub, Icon }) => (
+          <li key={title} className="flex items-center justify-center gap-3 text-left">
+            <Icon aria-hidden="true" className="shrink-0 text-mdn-green" sx={{ fontSize: 26 }} />
+            <span className="min-w-0">
+              <span className="block text-[13px] font-bold leading-tight text-mdn-ink">{title}</span>
+              <span className="block text-[11px] leading-tight text-mdn-ink-body">{sub}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
       <div className="mt-10">
-        <Accordion
-          items={[
-            { title: "Product Details", content: product.description },
-            { title: "How to use?", content: product.directionsOfUse },
-            { title: "Who is this for?", content: product.whoIsThisFor },
-            { title: "Ingredients", content: product.ingredients },
-          ]}
-        />
+        {isDesktop && accordionBlock}
 
         {/* Nutrition table, shelf-life dates and safety warnings. All of
             it was already stored on the product and captured in the admin
             panel — none of it reached this page before. */}
         <ProductFacts product={product} />
 
-        {/* Per-product claim strip, directly under the accordion it
-            summarises. Renders nothing until benefits are set in the
-            admin panel. */}
+        {/* Per-product claim strip. Renders nothing until benefits are set
+            in the admin panel. */}
         <ProductBenefits benefits={product.benefits} />
+
+        {/* Small screens only — see the note on `isDesktop` above. */}
+        {!isDesktop && accordionBlock}
       </div>
 
       {/* Two stacked promo posters — top is full width at half the
@@ -452,6 +513,9 @@ export default function ProductDetail() {
         </div>
       )}
 
+      {/* Sits directly above the reviews, per request. */}
+      <RelatedProducts product={product} />
+
       <ProductReviews
         reviews={product.reviews || []}
         ratingsAverage={product.ratingsAverage || 0}
@@ -474,11 +538,12 @@ export default function ProductDetail() {
   );
 }
 
-function Stars({ rating }) {
+function Stars({ stars }) {
+  const filled = Math.max(0, Math.min(5, stars));
   return (
-    <div className="flex gap-0.5 text-mdn-green">
+    <div className="flex gap-0.5 text-mdn-star">
       {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill={i < Math.round(rating) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+        <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill={i < filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
           <path d="M12 2l2.9 6.4 7 .7-5.3 4.7 1.6 6.9L12 17.6 5.8 20.7l1.6-6.9L2.1 9.1l7-.7L12 2z" />
         </svg>
       ))}

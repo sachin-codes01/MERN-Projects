@@ -1,6 +1,6 @@
 import isolateCover from "../assets/mdn-isolate-whey-2400x1200.jpg";
 import disciplineCover from "../assets/mdn-discipline-whey-2400x1200.png";
-import shilajitCover from "../assets/mdn-shilajit-2400x1200.jpg";
+import shilajitCover from "../assets/mdn-shilajit-2400x1200.jpeg";
 import maxResultsCover from "../assets/mdn-maximum-results-2400x1200.jpg";
 
 // Static editorial content — no backend model. Edit this array to add,

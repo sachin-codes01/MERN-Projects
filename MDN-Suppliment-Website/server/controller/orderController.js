@@ -141,7 +141,11 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
         name: product.name,
         flavor: flavor?.name || item.flavor || null,
         weight: size.weight,
-        image: flavor?.image || product.thumbnail,
+        // Product photo first — the flavour swatch is a small crop of
+        // an ingredient (a scoop of chocolate, a mango) and reads as the
+        // wrong item in order history. Falls back to it only when a
+        // product has no thumbnail at all.
+        image: product.thumbnail || flavor?.image,
         price,
         quantity: item.quantity,
       });
@@ -209,7 +213,16 @@ exports.verifyPaymentAndPlaceOrder = async (req, res) => {
 
 exports.getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+    // `items.image` is a snapshot taken when the order was placed, and
+    // orders placed before the image-source fix stored the flavour swatch
+    // rather than the product photo. Populating the product lets the
+    // client prefer the LIVE thumbnail, which repairs those old orders
+    // without a data migration — and keeps order history correct if a
+    // product's photo is replaced later. Only three fields are selected,
+    // so this stays cheap.
+    const orders = await Order.find({ user: req.user._id })
+      .populate("items.product", "name thumbnail slug")
+      .sort({ createdAt: -1 });
     res.json({ success: true, data: orders });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

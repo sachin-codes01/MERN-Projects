@@ -8,21 +8,73 @@ export default {
     extend: {
       colors: {
         mdn: {
+          // ---- Legacy role names, new values. ----
+          // These five back `bg-mdn-black`, `text-mdn-white`, etc, which
+          // are used in 52 files. They read the CSS vars in index.css, so
+          // re-pointing those vars re-skins every call site at once — and
+          // gives dark mode for free. The names are historical; see the
+          // token block in index.css for what each role actually means
+          // now (black = page background, and it is cream).
           black: "rgb(var(--mdn-black) / <alpha-value>)",
           charcoal: "rgb(var(--mdn-charcoal) / <alpha-value>)",
           charcoal2: "rgb(var(--mdn-charcoal2) / <alpha-value>)",
-          green: "#22B14C",
-          "green-light": "#4ADE80",
-          "green-dark": "#16803C",
-          silver: "#C9CDD3",
           white: "rgb(var(--mdn-white) / <alpha-value>)",
           gray: "rgb(var(--mdn-gray) / <alpha-value>)",
+
+          // `mdn-green` was the old bright leaf green (#22B14C) and is
+          // still referenced ~250 times. Re-pointing it at the new deep
+          // forest green converts every one of those to the new theme in
+          // place. Where the old design used green as an ACCENT (prices,
+          // discount badges, heading highlights) the correct new colour
+          // is orange, not green — those sites are changed individually
+          // to `mdn-orange`, since a token swap can't tell the two uses
+          // apart.
+          green: "rgb(var(--green-primary) / <alpha-value>)",
+          "green-light": "rgb(var(--green-mid) / <alpha-value>)",
+          "green-dark": "rgb(var(--green-deep) / <alpha-value>)",
+          "green-soft": "rgb(var(--green-soft) / <alpha-value>)",
+          "green-title": "rgb(var(--green-title) / <alpha-value>)",
+
+          // ---- New brand tokens. Prefer these in new code. ----
+          orange: "rgb(var(--orange-accent) / <alpha-value>)",
+          "orange-solid": "rgb(var(--orange-solid) / <alpha-value>)",
+          "orange-hover": "rgb(var(--orange-hover) / <alpha-value>)",
+          "orange-badge": "rgb(var(--orange-badge) / <alpha-value>)",
+          "orange-soft": "rgb(var(--orange-soft) / <alpha-value>)",
+
+          tan: "rgb(var(--tan) / <alpha-value>)",
+          sand: "rgb(var(--sand) / <alpha-value>)",
+          "sand-deep": "rgb(var(--sand-deep) / <alpha-value>)",
+          blush: "rgb(var(--blush) / <alpha-value>)",
+
+          ink: "rgb(var(--ink) / <alpha-value>)",
+          "ink-body": "rgb(var(--ink-body) / <alpha-value>)",
+          "ink-muted": "rgb(var(--ink-muted) / <alpha-value>)",
+
+          border: "rgb(var(--border-soft) / <alpha-value>)",
+          "border-strong": "rgb(var(--border-strong) / <alpha-value>)",
+
+          star: "rgb(var(--star) / <alpha-value>)",
+          "stock-low": "rgb(var(--stock-low) / <alpha-value>)",
+          danger: "rgb(var(--danger) / <alpha-value>)",
+
+          // `mdn-silver` was a fixed light grey used for faint borders on
+          // the old dark theme. Pointed at the warm border token so those
+          // usages stop reading as cold grey on cream.
+          silver: "rgb(var(--border-strong) / <alpha-value>)",
         },
       },
       fontFamily: {
-        display: ["Oswald", "sans-serif"],
-        body: ["Inter", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        // Didot Title is the titling cut — its own family, not a weight
+        // of "Didot" (see the @font-face block in index.css).
+        display: ['"Didot Title"', '"Didot"', "Georgia", "serif"],
+        serif: ['"Didot"', "Georgia", "serif"],
+        body: ["Inter", "system-ui", "sans-serif"],
+        // Navigation chrome ONLY — navbar and footer. Deliberately not
+        // used anywhere else on the site, so page content stays on
+        // Inter/Didot and the two bars read as their own layer.
+        nav: ["Jost", "Inter", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       maxWidth: {
         // The single content width every storefront section aligns to —
@@ -34,9 +86,32 @@ export default {
         // profile, admin forms) deliberately keep their own smaller caps.
         shell: "1536px",
       },
+      borderRadius: {
+        DEFAULT: "var(--radius)",
+        sm: "var(--radius-sm)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-lg)",
+        "2xl": "var(--radius-xl)",
+      },
       boxShadow: {
-        "green-glow": "0 0 0 1px rgba(34,177,76,0.4), 0 8px 24px -8px rgba(34,177,76,0.35)",
-        card: "0 4px 16px -4px rgba(0,0,0,0.25)",
+        xs: "var(--shadow-xs)",
+        sm: "var(--shadow-sm)",
+        DEFAULT: "var(--shadow)",
+        lg: "var(--shadow-lg)",
+        card: "var(--shadow-sm)",
+        // Was a hard green ring + glow for the dark theme. Kept under the
+        // same name (it is referenced in several components) but redrawn
+        // as the warm, layered elevation the new design uses — a harsh
+        // glow would fight the cream ground.
+        "green-glow": "var(--shadow)",
+      },
+      transitionTimingFunction: {
+        DEFAULT: "var(--ease)",
+        brand: "var(--ease)",
+        "brand-out": "var(--ease-out)",
+      },
+      transitionDuration: {
+        DEFAULT: "240ms",
       },
       keyframes: {
         "slide-in": {
@@ -64,10 +139,6 @@ export default {
           "0%": { transform: "scaleX(0)" },
           "100%": { transform: "scaleX(1)" },
         },
-        "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(34,177,76,0.55)" },
-          "50%": { boxShadow: "0 0 0 6px rgba(34,177,76,0)" },
-        },
         "toast-shrink": {
           "0%": { width: "100%" },
           "100%": { width: "0%" },
@@ -80,27 +151,32 @@ export default {
           "0%": { transform: "translateX(0%)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        "cart-bump": {
+          "0%, 100%": { transform: "scale(1)" },
+          "35%": { transform: "scale(1.28)" },
+        },
       },
       animation: {
-        "slide-in": "slide-in 0.5s ease-out",
-        "fade-up": "fade-up 0.5s ease-out both",
+        "slide-in": "slide-in 0.5s var(--ease-out)",
+        "fade-up": "fade-up 0.5s var(--ease-out) both",
         "pop": "pop 0.35s cubic-bezier(.34,1.56,.64,1)",
         "ping-slow": "ping-slow 1.6s cubic-bezier(0,0,0.2,1) infinite",
         "mdn-bounce": "mdn-bounce 1.1s cubic-bezier(.36,0,.66,-0.56) infinite",
         "underline-sweep": "underline-sweep 0.35s cubic-bezier(.34,1.56,.64,1) both",
-        "glow-pulse": "glow-pulse 1.8s ease-out infinite",
         "float": "float 6s ease-in-out infinite",
         "marquee": "marquee 22s linear infinite",
+        "cart-bump": "cart-bump 0.4s var(--ease)",
       },
     },
   },
   plugins: [
     // Touch browsers keep a tapped element's `:hover` state active until
-    // the next tap elsewhere, so every `hover:` utility (card glow/lift,
-    // nav underline, etc.) was sticking around after a tap/click instead
-    // of only showing for an actual mouse hover. Redefining the built-in
-    // `hover` variant to require `(hover: hover)` makes it a true "mouse
-    // hover only" state everywhere it's used, with no per-component changes.
+    // the next tap elsewhere, so every `hover:` utility (card lift, nav
+    // underline, image zoom, etc.) was sticking around after a tap/click
+    // instead of only showing for an actual mouse hover. Redefining the
+    // built-in `hover` variant to require `(hover: hover)` makes it a true
+    // "mouse hover only" state everywhere it's used, with no per-component
+    // changes.
     plugin(({ addVariant }) => {
       addVariant("hover", "@media (hover: hover) { &:hover }");
     }),

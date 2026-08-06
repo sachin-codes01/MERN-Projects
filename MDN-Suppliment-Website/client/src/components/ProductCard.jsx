@@ -6,21 +6,12 @@ import { useCartBadge } from "../context/CartBadgeContext";
 import { useToast } from "../context/ToastContext";
 import { guestCart } from "../utils/guestCart";
 import { getSizePrice } from "../utils/pricing";
+import { getDisplayRating } from "../utils/rating";
 
-// Deterministic per-product rating (4.00–4.89) used only when the product
-// itself doesn't carry a real `rating` field yet. No fabricated review
-// COUNT is shown — just the stars — so nothing here claims a specific
-// number of reviews that doesn't exist in your data.
-function pseudoRating(seed = "") {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) % 1000;
-  return 4 + (hash % 90) / 100;
-}
-
-function Stars({ rating }) {
-  const rounded = Math.round(rating);
+function Stars({ stars }) {
+  const rounded = Math.max(0, Math.min(5, stars));
   return (
-    <div className="flex gap-0.5 text-mdn-green">
+    <div className="flex gap-0.5 text-mdn-star">
       {Array.from({ length: 5 }).map((_, i) => (
         <svg
           key={i}
@@ -52,13 +43,13 @@ export default function ProductCard({ product }) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
-  // Product schema stores ratingsAverage/ratingsCount (there's no `rating`
-  // field) — use the real average once the product has reviews, otherwise
-  // fall back to the deterministic placeholder.
-  const rating =
-    product.ratingsCount > 0 ? product.ratingsAverage : pseudoRating(product.name || product._id || "");
+  // Admin-set display rating if there is one, else the average of real
+  // reviews, else nothing at all — see utils/rating.js. Previously this
+  // synthesised a rating from a hash of the product name, so every product
+  // showed a plausible-looking score that was pure invention.
+  const { value: ratingValue, stars, hasRating } = getDisplayRating(product);
   const showFrom = (product.sizes?.length || 0) > 1;
-  const { price, discountPrice, effectivePrice } = getSizePrice(size, flavor?.priceAdjustment || 0);
+  const { price, discountPrice, effectivePrice, discountPct } = getSizePrice(size, flavor?.priceAdjustment || 0);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -82,7 +73,7 @@ export default function ProductCard({ product }) {
           flavorId: flavor?._id || null,
           quantity: 1,
           name: product.name,
-          image: flavor?.image || product.thumbnail,
+          image: product.thumbnail || flavor?.image,
           price: effectivePrice,
           slug: product.slug,
           stock: size.stock,
@@ -109,15 +100,19 @@ export default function ProductCard({ product }) {
         outOfStock ? "opacity-60" : ""
       }`}
     >
-      {/* Image fills the box completely (object-cover, no inset padding)
-          and is perfectly centered — this is what makes the hover zoom
-          feel clean edge-to-edge instead of zooming a smaller inset photo. */}
+      {/* object-fill, NOT object-cover: cover crops whichever edge doesn't
+          match the square box, which was cutting lids and label text off
+          the taller product shots. Fill shows the WHOLE image and stretches
+          it to the box instead — so nothing is ever hidden, at the cost of
+          some distortion on photos that aren't square. Hover zoom is
+          softened to 1.05 (was 1.10) to keep that stretch from being
+          exaggerated on hover. */}
       <div className="relative aspect-square overflow-hidden bg-mdn-charcoal2">
         <img
           src={product.thumbnail}
           alt={product.name}
           onError={(e) => (e.target.style.display = "none")}
-          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
+          className="h-full w-full object-fill transition-transform duration-500 group-hover:scale-105"
         />
         {outOfStock && (
           <span className="absolute left-2 top-2 rounded-md bg-mdn-black/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-red-400">
@@ -126,38 +121,62 @@ export default function ProductCard({ product }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-3.5">
-        <Stars rating={rating} />
-        <h3 className="mt-1.5 line-clamp-1 text-sm font-semibold text-mdn-white">{product.name}</h3>
-        <p className="text-xs text-mdn-gray">{product.brand}</p>
+      <div className="flex flex-1 flex-col p-3">
+        {/* Name first, then rating — matching the reference card order.
+            `line-clamp-2` (not 1) because at this width most names run to
+            two lines; clamping to one was cutting "MDN Hydroxy Fat Cutter
+            Pro" mid-word. */}
+        {/* font-body overrides the Didot default that h1-h4 inherit —
+            product names read as normal sans here, not display serif. */}
+        <h3 className="line-clamp-2 font-body text-sm font-semibold leading-snug text-mdn-white">
+          {product.name}
+        </h3>
+
+        {hasRating && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <Stars stars={stars} />
+            <span className="text-[11px] font-medium text-mdn-ink-muted">({ratingValue.toFixed(1)})</span>
+          </div>
+        )}
 
         {/* Always renders — price line and button below are never
             conditionally omitted, only their label/disabled state changes.
             Skipping them for out-of-stock cards used to make those cards
             shorter than in-stock ones, breaking the grid row's alignment. */}
-        <p className="mt-1.5 font-mono text-sm font-bold text-mdn-green">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           {size ? (
             <>
-              {showFrom && <span className="mr-1 text-xs font-medium text-mdn-gray">From</span>}
-              ₹{effectivePrice}
-              {discountPrice && <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{price}</span>}
+              <p className="font-mono text-sm font-bold text-mdn-green">
+                {showFrom && <span className="mr-1 text-xs font-medium text-mdn-gray">From</span>}
+                ₹{effectivePrice}
+                {discountPrice && (
+                  <span className="ml-2 text-xs font-medium text-mdn-gray line-through">₹{price}</span>
+                )}
+              </p>
+              {/* Discount pill, e.g. "24% OFF". getSizePrice already
+                  derives the percentage from price vs discountPrice, so
+                  this reads real catalogue data rather than a hardcoded
+                  number, and disappears on products with no discount. */}
+              {discountPct > 0 && <span className="badge-save">{discountPct}% OFF</span>}
             </>
           ) : (
             <span className="text-xs font-medium text-mdn-gray">Price unavailable</span>
           )}
-        </p>
+        </div>
 
         <button
           onClick={handleAddToCart}
           disabled={adding || outOfStock}
-          // Solid neutral button that INVERTS with the theme. It used to be
-          // a fixed #14151a in both modes, which is within a couple of
-          // shades of the dark-mode card surface (--mdn-charcoal #16181a) —
-          // so in dark mode the button was effectively invisible against
-          // the card it sat on. Light mode keeps the original dark button;
-          // dark mode flips to a light fill with dark text for the same
-          // contrast the design intended. Hover still goes green in both.
-          className="mt-3 w-full rounded-lg bg-[#14151a] py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-green hover:text-black dark:bg-mdn-white dark:text-mdn-black dark:hover:bg-mdn-green dark:hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+          // Green at rest, orange on hover/press. Was a fixed near-black
+          // (#14151a) left over from the dark theme, which read as a
+          // neutral UI button rather than the brand's primary action —
+          // the reference sets this as a solid forest-green bar under
+          // every product card. Orange is the interaction state here
+          // specifically because this button is already green: a green
+          // hover on a green fill would give no feedback at all.
+          // `active:` matches hover so a tap on touch (where :hover is
+          // suppressed) still confirms the press.
+          className="mt-3 w-full rounded-sm bg-mdn-green py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-orange-solid active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
         </button>

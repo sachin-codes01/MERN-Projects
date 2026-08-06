@@ -193,14 +193,23 @@ export default function Orders() {
               <ul className="mt-4 divide-y divide-white/5 border-t border-white/5">
                 {order.items.map((item, i) => (
                   <li key={i} className="flex items-center gap-3 py-2">
-                    {/* object-contain on a flat surface instead of
-                        object-cover — was cropping tall/jar-shaped product
-                        thumbnails. */}
+                    {/* object-fill, no inset padding. The thumbnail used to
+                        be `object-contain p-1` in a 40px box: the padding
+                        plus contain's letterboxing left a thick band of the
+                        box's own background all around the photo, which read
+                        as a heavy border and shrank the actual image to a
+                        fraction of the tile. Fill shows the whole photo
+                        edge to edge — same treatment as the product cards. */}
                     <img
-                      src={item.image}
+                      // Live product thumbnail first, falling back to the
+                      // order's stored snapshot only when the product no
+                      // longer exists. Older orders snapshotted the flavour
+                      // swatch, so reading the snapshot first showed a scoop
+                      // of chocolate where the tub should be.
+                      src={item.product?.thumbnail || item.image}
                       alt={item.name}
                       onError={(e) => (e.target.style.display = "none")}
-                      className="h-10 w-10 rounded-md bg-mdn-charcoal2 object-contain p-1"
+                      className="h-14 w-14 shrink-0 rounded-md bg-mdn-charcoal2 object-fill"
                     />
                     <span className="flex-1 text-sm text-mdn-white/90">
                       {item.name} {item.flavor ? `(${item.flavor})` : ""} — {item.weight} × {item.quantity}

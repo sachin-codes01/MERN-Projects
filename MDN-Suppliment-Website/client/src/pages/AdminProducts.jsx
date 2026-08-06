@@ -62,6 +62,11 @@ const emptyForm = {
   whoIsThisFor: "",
   posterTop: "",
   posterBottom: "",
+  // Display rating shown on cards and the product page. Blank = not set,
+  // in which case the storefront falls back to the average computed from
+  // real customer reviews.
+  manualStars: "",
+  manualRating: "",
 };
 
 export default function AdminProducts() {
@@ -408,6 +413,10 @@ export default function AdminProducts() {
       whoIsThisFor: product.whoIsThisFor || "",
       posterTop: product.posterTop || "",
       posterBottom: product.posterBottom || "",
+      // 0 is the schema's "not set" default — surface it as an empty input
+      // rather than a literal 0, so the placeholder explains the fallback.
+      manualStars: product.manualStars ? String(product.manualStars) : "",
+      manualRating: product.manualRating ? String(product.manualRating) : "",
     });
     setEditingId(product._id);
     setError("");
@@ -442,6 +451,11 @@ export default function AdminProducts() {
       .map((b) => ({ text: b.text.trim(), icon: b.icon || undefined })),
     posterTop: form.posterTop,
     posterBottom: form.posterBottom,
+    // Always sent so clearing the box actually clears the override — 0 is
+    // the schema's "not set" value, which hands display back to the real
+    // review average.
+    manualStars: form.manualStars ? Number(form.manualStars) : 0,
+    manualRating: form.manualRating ? Number(form.manualRating) : 0,
     sections: form.sections,
     // Always sent, including when empty — that's what lets unticking every
     // box actually clear a product's tags. Omitting the key would leave
@@ -787,6 +801,49 @@ export default function AdminProducts() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Display rating. Separate from the review average, which is
+              computed from real customer reviews and is never editable
+              here — only how the rating is PRESENTED is set by hand. */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-mdn-white">Display rating</label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <span className="mb-1 block text-xs text-mdn-gray">Star rating (1–5)</span>
+                <select
+                  name="manualStars"
+                  value={form.manualStars}
+                  onChange={handleFormChange}
+                  className="input-field"
+                >
+                  <option value="">Use review average</option>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      {"★".repeat(n)}{"☆".repeat(5 - n)} — {n} star{n > 1 ? "s" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <span className="mb-1 block text-xs text-mdn-gray">Rating value (e.g. 4.3)</span>
+                <input
+                  type="number"
+                  name="manualRating"
+                  value={form.manualRating}
+                  onChange={handleFormChange}
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  placeholder="Use review average"
+                  className="input-field"
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-mdn-gray">
+              Leave both blank to show the average of real customer reviews. The review COUNT shown
+              on the product page is always the real number of reviews and can't be set here.
+            </p>
           </div>
 
           <div>

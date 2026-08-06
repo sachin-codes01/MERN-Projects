@@ -16,7 +16,11 @@ export default function SectionHeading({ eyebrow, title, accent, subtitle, class
           className="font-display text-2xl font-black uppercase tracking-wide text-mdn-white sm:text-4xl"
           lines={[
             <>
-              {title} {accent && <span className="font-serif italic text-mdn-green">{accent}</span>}
+              {/* Accent word is orange, per the reference — "SHOP BY
+                  COLLECTION", "OUR BESTSELLERS", "WHAT'S YOUR TARGET?",
+                  "REAL PEOPLE. REAL STORIES" all set the second half in
+                  the rust accent against the dark first half. */}
+              {title} {accent && <span className="font-serif italic text-mdn-orange">{accent}</span>}
             </>,
           ]}
         />
