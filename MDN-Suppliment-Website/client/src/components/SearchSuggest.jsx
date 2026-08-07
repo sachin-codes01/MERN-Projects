@@ -30,7 +30,14 @@ function Highlight({ text = "", term = "" }) {
 
 export default function SearchSuggest({
   className = "",
-  inputClassName = "input-field w-full !py-2 pl-9 pr-9 text-sm",
+  // No `text-sm` here. iOS Safari ZOOMS THE WHOLE PAGE when a focused
+  // input's font-size is under 16px, and it does not zoom back out on
+  // blur — so tapping search on an iPhone left the site stuck at ~1.14x
+  // with the layout shifted sideways. `.input-field` now pins 16px for
+  // exactly this reason (see index.css); the override is simply dropped.
+  // `!py-2` stays: it is what keeps the navbar row compact, and 16px
+  // text at py-2 still measures 42px tall.
+  inputClassName = "input-field w-full !py-2 pl-9 pr-9",
   placeholder = "Search supplements...",
   onNavigate,
 }) {

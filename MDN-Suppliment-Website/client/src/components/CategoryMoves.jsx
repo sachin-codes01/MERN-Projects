@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import SectionHeading from "./SectionHeading";
+import Reveal from "./motion/Reveal";
 // Square product posters (not the transparent cut-outs the navbar uses)
 // — these fill the whole card, so no separate artwork or tint is needed.
 // NOTE: two files are spelled "Protines"/"isolete" on disk.
@@ -31,14 +32,22 @@ export default function CategoryMoves() {
     // Bottom padding is the top's step plus 5px (24→29, 48→53), so the gap
     // down to "The Story of MDN" reads a touch more open than the gap above.
     <section className="mx-auto max-w-shell px-4 pb-[29px] pt-6 sm:px-6 sm:pb-[53px] sm:pt-12 lg:px-[34px]">
-      <SectionHeading eyebrow="Explore" title="Shop by" accent="Collection" />
+      <SectionHeading index="01" eyebrow="Explore" title="Shop by" accent="Collection" />
 
       {/* Static grid, no carousel: with only four cards everything fits.
           Two per row on phones (so the last two wrap onto a second row),
           four across from the lg breakpoint up. */}
+      {/* Per-card reveal is safe HERE specifically because this is a
+          static grid — every card is laid out in the document and will
+          genuinely intersect the viewport. The same pattern must NOT be
+          used inside the carousels on this page: their off-screen items
+          sit outside an `overflow-hidden` viewport, never intersect, and
+          with `once: true` would stay stuck at opacity 0 permanently. */}
       <div className="mt-4 grid grid-cols-2 gap-4 sm:mt-10 sm:gap-5 lg:grid-cols-4">
-        {COLLECTIONS.map((c) => (
-          <CollectionCard key={c.title} item={c} onClick={() => navigate(c.to)} />
+        {COLLECTIONS.map((c, i) => (
+          <Reveal key={c.title} from="up" delay={i * 0.08} amount={0.3}>
+            <CollectionCard item={c} onClick={() => navigate(c.to)} />
+          </Reveal>
         ))}
       </div>
     </section>
@@ -79,9 +88,21 @@ function CollectionCard({ item, onClick }) {
       </span>
 
       {/* Label bar. Same height on every card, so the row of labels lines
-          up however long the names are. */}
-      <span className="flex items-center justify-center gap-2 bg-mdn-ink px-3 py-3.5">
-        {Icon && <Icon aria-hidden="true" className="shrink-0 text-white/70" sx={{ fontSize: 17 }} />}
+          up however long the names are.
+
+          `bg-mdn-green-dark`, NOT `bg-mdn-ink`. --ink is the INK role: it
+          is near-black in light mode but near-WHITE in dark mode, because
+          its job is to be the readable text colour on whatever the page
+          ground is. Using it as a FILL meant the bar inverted along with
+          the text on it, so in dark mode this was white text on a
+          near-white bar — measured 1.15:1, i.e. completely invisible.
+
+          --green-deep is a true surface token: deep forest in both
+          themes (42,54,27 light / 20,26,15 dark), so white text on it
+          clears AA either way. It is also the colour the footer uses, so
+          the two dark bands on the page now match by construction. */}
+      <span className="flex items-center justify-center gap-2 bg-mdn-green-dark px-3 py-3.5">
+        {Icon && <Icon aria-hidden="true" className="shrink-0 text-white/75" sx={{ fontSize: 17 }} />}
         <span className="truncate text-[13px] font-semibold text-white sm:text-sm">{item.title}</span>
       </span>
     </button>

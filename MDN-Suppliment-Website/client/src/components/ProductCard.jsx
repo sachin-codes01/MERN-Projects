@@ -100,22 +100,33 @@ export default function ProductCard({ product }) {
         outOfStock ? "opacity-60" : ""
       }`}
     >
-      {/* object-fill, NOT object-cover: cover crops whichever edge doesn't
-          match the square box, which was cutting lids and label text off
-          the taller product shots. Fill shows the WHOLE image and stretches
-          it to the box instead — so nothing is ever hidden, at the cost of
-          some distortion on photos that aren't square. Hover zoom is
-          softened to 1.05 (was 1.10) to keep that stretch from being
-          exaggerated on hover. */}
-      <div className="relative aspect-square overflow-hidden bg-mdn-charcoal2">
+      {/* object-fill — the shot is stretched to fill the whole square, by
+          request. `cover` was the alternative and it crops whichever edge
+          doesn't match the box, which cut lids and label text off the
+          taller product shots; `contain` shows the whole shot undistorted
+          but letterboxes it, leaving the card's image area part empty.
+          Fill trades geometric accuracy for a completely filled card: on
+          photos that aren't square the packaging is rendered slightly
+          squashed or stretched, and nothing is ever cropped or padded.
+
+          Hover zoom stays at 1.05 rather than the 1.10 used elsewhere —
+          on an already-stretched image a larger scale exaggerates the
+          distortion noticeably. */}
+      <div className="relative aspect-square overflow-hidden rounded-t-[15px] bg-mdn-charcoal2">
         <img
           src={product.thumbnail}
           alt={product.name}
+          loading="lazy"
+          decoding="async"
           onError={(e) => (e.target.style.display = "none")}
           className="h-full w-full object-fill transition-transform duration-500 group-hover:scale-105"
         />
         {outOfStock && (
-          <span className="absolute left-2 top-2 rounded-md bg-mdn-black/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-red-400">
+          /* `--danger` token, not `text-red-400`. The Tailwind red is a
+             cold, fully-saturated hue that is the only thing on the page
+             not tuned to the warm palette, and it has no dark-mode
+             counterpart. */
+          <span className="absolute left-2.5 top-2.5 rounded-sm bg-mdn-charcoal/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-mdn-danger shadow-xs">
             Out of stock
           </span>
         )}
@@ -151,11 +162,32 @@ export default function ProductCard({ product }) {
         <div className="mt-1.5 flex flex-nowrap items-center gap-x-1 gap-y-1 sm:flex-wrap sm:gap-x-2">
           {size ? (
             <>
-              <p className="whitespace-nowrap font-mono text-[11px] font-bold text-mdn-green sm:text-sm">
-                {showFrom && <span className="mr-0.5 text-[10px] font-medium text-mdn-gray sm:mr-1 sm:text-xs">From</span>}
+              {/* Orange, not green. The token block in index.css is
+                  explicit about this: where the old dark theme used green
+                  as an ACCENT — prices, discount badges, heading
+                  highlights — the correct colour in the new palette is
+                  the rust orange. Green is now the primary ACTION colour
+                  (it is the fill of the button directly below this line),
+                  so pricing it green made the number look like a second
+                  button rather than a figure.
+
+                  `tabular-nums` instead of the mono family: monospace
+                  gives every glyph an equal width including the letters,
+                  which made "From" and the rupee sign sit oddly loose.
+                  Tabular figures line the DIGITS up in a column — which
+                  is all a price actually needs — while keeping Inter's
+                  proportional spacing everywhere else. */}
+              <p className="whitespace-nowrap text-[11px] font-bold tabular-nums text-mdn-orange-ink sm:text-sm">
+                {showFrom && (
+                  <span className="mr-0.5 text-[10px] font-medium text-mdn-ink-muted sm:mr-1 sm:text-xs">
+                    From
+                  </span>
+                )}
                 ₹{effectivePrice}
                 {discountPrice && (
-                  <span className="ml-0.5 text-[10px] font-medium text-mdn-gray line-through sm:ml-2 sm:text-xs">₹{price}</span>
+                  <span className="ml-0.5 text-[10px] font-medium text-mdn-ink-muted line-through sm:ml-2 sm:text-xs">
+                    ₹{price}
+                  </span>
                 )}
               </p>
               {/* Discount pill, e.g. "24% OFF". getSizePrice already
@@ -171,7 +203,7 @@ export default function ProductCard({ product }) {
               )}
             </>
           ) : (
-            <span className="text-xs font-medium text-mdn-gray">Price unavailable</span>
+            <span className="text-xs font-medium text-mdn-ink-muted">Price unavailable</span>
           )}
         </div>
 
@@ -187,11 +219,19 @@ export default function ProductCard({ product }) {
           // hover on a green fill would give no feedback at all.
           // `active:` matches hover so a tap on touch (where :hover is
           // suppressed) still confirms the press.
-          className="mt-3 w-full rounded-sm bg-mdn-green py-2.5 text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:bg-mdn-orange-solid active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60"
+          // `text-mdn-on-primary`, not `text-white`: --green-primary
+          // lightens in dark mode so white on it measured 3.88:1. The
+          // token flips to near-black there. On the orange hover/active
+          // fills white is still correct in light mode and the token
+          // matches, so the hover state needs no separate treatment.
+          // py-3 (was py-2.5) → 44px rather than 36px. This is the
+          // primary commerce action on a phone and it was the shortest
+          // button on the page.
+          className="mt-3 w-full rounded-sm bg-mdn-green py-3 text-xs font-bold uppercase tracking-wide text-mdn-on-primary transition-all duration-200 hover:bg-mdn-orange-solid hover:text-white active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
         </button>
-        {error && <span className="mt-1 text-xs text-red-400">{error}</span>}
+        {error && <span className="mt-1 text-xs text-mdn-danger">{error}</span>}
       </div>
     </Link>
   );

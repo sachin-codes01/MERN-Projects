@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ItemCarousel from "./ItemCarousel";
 import SectionHeading from "./SectionHeading";
+import Reveal from "./motion/Reveal";
 import leanMusclesImg from "../assets/Lean Muscles.png";
 import guiltFreeGainsImg from "../assets/Guilt-Free Gains.png";
 import weightLossImg from "../assets/Weight Loss.png";
@@ -55,6 +56,7 @@ export default function TargetSection() {
 
       <div className="relative mx-auto max-w-shell">
         <SectionHeading
+          index="05"
           eyebrow="Goal-based stacks"
           title="What's Your"
           accent="Target?"
@@ -66,15 +68,27 @@ export default function TargetSection() {
             layouts are swapped with `sm:hidden` / `hidden sm:block` —
             only one is ever visible, and the hidden one's images never
             fetch because `display: none` suppresses lazy loading. */}
+        {/* Per-card stagger is safe on this branch only: it is a real
+            static grid, so every tile intersects the viewport normally.
+            The carousel branch below gets a single block reveal instead
+            — see the note there. */}
         <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:hidden">
-          {TARGETS.map((t) => (
-            <TargetCard key={t.title} item={t} onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)} />
+          {TARGETS.map((t, i) => (
+            <Reveal key={t.title} from="up" delay={i * 0.07} amount={0.3}>
+              <TargetCard item={t} onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)} />
+            </Reveal>
           ))}
         </div>
 
         {/* `sm` and up: unchanged single row, sliding one card at a time —
             auto-advances, pauses on hover, drag/swipe, arrow buttons. */}
-        <div className="mt-10 hidden sm:block">
+        {/* ONE reveal around the whole carousel, not one per card. The
+            carousel's off-screen items live outside its `overflow-hidden`
+            viewport, so they never intersect — with `once: true` a
+            per-card reveal would leave every card past the first screenful
+            stuck at opacity 0 for good, and they would still be invisible
+            after the user swiped to them. */}
+        <Reveal from="up" amount={0.2} className="mt-10 hidden sm:block">
           <ItemCarousel
             items={TARGETS}
             autoPlay
@@ -84,7 +98,7 @@ export default function TargetSection() {
               <TargetCard item={t} onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)} />
             )}
           />
-        </div>
+        </Reveal>
       </div>
     </section>
   );

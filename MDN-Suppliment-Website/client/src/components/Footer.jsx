@@ -42,7 +42,13 @@ const TICKER_ITEMS = [
 // nowhere else on the site, so the chrome reads as its own layer against
 // Didot headings and Inter body copy. Only the colours differ here,
 // because the grounds differ.
-const LINK = "font-nav text-[14px] text-[#b9c2a4] transition-colors duration-200 hover:text-[#fdf8f1]";
+// `inline-block py-1.5` takes each link from a 21px line box to ~34px.
+// A full 44px per row would roughly double the footer's height on a
+// phone, which is the wrong trade for a secondary link list — 34px with
+// generous horizontal room is the usual compromise for dense footer
+// navigation, and it is a 60% larger target than before.
+const LINK =
+  "inline-block py-1.5 font-nav text-[14px] text-[#b9c2a4] transition-colors duration-200 hover:text-[#fdf8f1]";
 const HEADING = "label text-[13px] text-[#fdf8f1]";
 
 export default function Footer() {
@@ -56,8 +62,16 @@ export default function Footer() {
     // reserved strip fell through to the cream page background and read as
     // a gap between the footer and the bar.
     <footer id="site-footer" className="relative mt-6 w-full overflow-hidden bg-mdn-orange-badge">
-      {/* Always-running info strip — deep green, cream type */}
-      <div className="overflow-hidden bg-mdn-green py-3">
+      {/* Always-running info strip — deep green, cream type.
+
+          Fixed hex, not `bg-mdn-green`. The footer is permanently dark
+          chrome: every colour in it is already a literal (#fdf8f1 type,
+          #b9c2a4 links, #5c6a4a rules) precisely so the bar looks the
+          same in both themes. `bg-mdn-green` was the one exception, and
+          because --green-primary LIGHTENS in dark mode the cream type on
+          it dropped to 3.67:1 there. This is the light-mode value of
+          that token, pinned. */}
+      <div className="overflow-hidden bg-[#33431e] py-3">
         <div className="marquee-track gap-10 motion-reduce:animate-none">
           {ticker.map((item, i) => {
             const Icon = item.Icon;
@@ -110,7 +124,9 @@ export default function Footer() {
               {FOOTER_SOCIALS.map((social) => {
                 const Icon = social.Icon;
                 const iconClass =
-                  "flex h-9 w-9 items-center justify-center rounded-full border border-[#5c6a4a] text-[#b9c2a4] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#fdf8f1] hover:bg-[#fdf8f1] hover:text-[#2a361b]";
+                  // `tap-44` grows the hit region to 44x44 without
+                  // changing the 36px ring, which is sized to the row.
+                  "tap-44 flex h-9 w-9 items-center justify-center rounded-full border border-[#5c6a4a] text-[#b9c2a4] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#fdf8f1] hover:bg-[#fdf8f1] hover:text-[#2a361b]";
 
                 // Support channels route through the in-app contact form
                 // (login-gated); profile links stay plain external <a>.
@@ -181,7 +197,11 @@ export default function Footer() {
       </div>
 
       {/* Copyright — its own orange band, as in the reference home page */}
-      <div className="bg-mdn-orange-badge px-4 py-3.5 text-center font-nav text-[12px] tracking-wide text-white sm:px-6">
+      {/* `text-mdn-badge-ink`, not `text-white`: --orange-badge lightens
+          in dark mode, where white on it measured 2.8:1. The token flips
+          to near-black there and stays white in light mode. Same pairing
+          the "Save X%" pills use. */}
+      <div className="bg-mdn-orange-badge px-4 py-3.5 text-center font-nav text-[12px] tracking-wide text-mdn-badge-ink sm:px-6">
         {"©"} {new Date().getFullYear()} MDN {"—"} My Daily Nutrition. All rights reserved.
       </div>
     </footer>

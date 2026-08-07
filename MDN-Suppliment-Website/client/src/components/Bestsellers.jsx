@@ -5,6 +5,7 @@ export default function Bestsellers() {
     <ProductCarousel
       sectionId="best-sellers"
       section="best_seller"
+      index="04"
       eyebrow="Top rated"
       titleMain="Our"
       titleAccent="Bestsellers"

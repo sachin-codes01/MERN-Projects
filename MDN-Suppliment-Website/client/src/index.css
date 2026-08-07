@@ -118,7 +118,11 @@
   --mdn-charcoal: 255 253 250;   /* raised card surface — warm white */
   --mdn-charcoal2: 250 233 210;  /* sunken / tinted band — deeper sand */
   --mdn-white: 36 31 26;         /* primary ink — warm near-black */
-  --mdn-gray: 124 114 104;       /* muted ink */
+  /* The legacy muted-ink token, still used across the pages that have
+     not been through the redesign. It served the same role as
+     --ink-muted but sat at a different value (4.33:1 — under AA), so
+     the two are now aligned rather than drifting apart. */
+  --mdn-gray: 110 100 90;        /* muted ink */
 
   /* --- greens --- */
   --green-deep: 42 54 27;        /* #2a361b — hero + footer ground */
@@ -127,12 +131,46 @@
   --green-soft: 234 238 226;     /* #eaeee2 — green-tinted chips on cream */
   --green-title: 44 58 20;       /* #2c3a14 — Didot product/section titles */
 
-  /* --- oranges --- */
-  --orange-accent: 221 107 20;   /* #dd6b14 — accent WORDS, links, prices */
-  --orange-solid: 204 99 1;      /* #cc6301 — solid CTA fill (Buy Now) */
+  /* --- oranges ---
+     Split into a DISPLAY orange and a TEXT orange, because one value
+     cannot serve both at an accessible contrast on this cream ground.
+
+     Measured against the page (#fef4e9) and the sand bands (#fae9d2),
+     the original single #dd6b14 landed at 3.34:1 — under the 4.5:1 WCAG
+     AA floor for body text, which is what prices and "Save X%" pills
+     are, and marginal even against the 3:1 floor for large display type
+     (2.85:1 on sand). So:
+
+       --orange-accent  large display type only (>=24px): the italic
+                        accent word in section headings, big numerals.
+                        Nudged a shade deeper so it clears 3:1 on the
+                        sand bands too, not just on the page ground.
+       --orange-ink     SMALL text: prices, discount pills, milestone
+                        years, any accent under 24px. Deep enough for
+                        4.5:1 on every surface it appears on.
+
+     Fills were darkened for the same reason — they carry white text, and
+     white on the old #cc6301 / #d37213 measured 3.92:1 and 3.39:1. */
+  --orange-accent: 210 98 15;    /* #d2620f — accent WORDS at display size */
+  --orange-ink: 168 72 10;       /* #a8480a — accent text under 24px */
+  --orange-solid: 190 86 8;      /* #be5608 — solid CTA fill (Buy Now) */
   --orange-hover: 180 81 3;      /* #b45103 — CTA hover / pressed */
-  --orange-badge: 211 114 19;    /* #d37213 — Save X% pills, bottom bar */
+  --orange-badge: 184 83 16;     /* #b85310 — Save X% pills, bottom bar */
   --orange-soft: 251 227 205;    /* #fbe3cd — orange-tinted chip ground */
+
+  /* Ink used ON a saturated brand fill. These exist so a fill and the
+     text on it can invert independently between themes: in dark mode the
+     greens and oranges LIGHTEN (so they stay visible against a dark
+     page), at which point white text on them drops below AA and the
+     correct foreground becomes near-black instead. Hardcoding `#fff` at
+     the call site is what made every filled button fail in dark mode. */
+  --on-primary: 253 248 241;     /* text on --green-primary fills */
+  --badge-ink: 255 255 255;      /* text on --orange-badge fills */
+
+  /* Focus indicator — see the :focus-visible block below for why this
+     is two colours rather than one. */
+  --focus-ring: 210 98 15;       /* outer ring, reads against the page */
+  --focus-halo: 253 248 241;     /* inner ring, reads against dark fills */
 
   /* --- warm neutrals --- */
   /* Goal-card tan. The "What's Your Target?" cards alternate between
@@ -152,7 +190,14 @@
   /* --- ink --- */
   --ink: 36 31 26;               /* #241f1a — headings */
   --ink-body: 92 84 75;          /* #5c544b — paragraphs */
-  --ink-muted: 138 128 118;      /* #8a8076 — captions, meta, struck MRP */
+  /* Was #8a8076, which measured 3.56:1 on the page ground and 3.25:1 on
+     the sand bands — under the 4.5:1 AA floor. It is the most widely
+     used token on the site (eyebrows, folio numerals, captions, star
+     counts, struck-through MRP, footer meta), so that single value was
+     responsible for the majority of the contrast failures in light mode.
+     Deepened to clear 4.5:1 on all three surfaces while staying a clear
+     step lighter than --ink-body. */
+  --ink-muted: 110 100 90;       /* #6e645a — captions, meta, struck MRP */
 
   /* --- status --- */
   --star: 227 154 18;            /* #e39a12 */
@@ -201,16 +246,37 @@
   --mdn-gray: 160 166 146;
 
   --green-deep: 20 26 15;
-  --green-primary: 111 138 76;
+  /* Lightened one step (was 111 138 76). It measured 4.48:1 both as
+     TEXT on the dark page ("Show More", section labels) and as a FILL
+     under the cream trust-strip type — just under AA in both
+     directions. Raising it lifts every one of those at once, and
+     because the foreground on the fill is --on-primary (near-black in
+     dark mode) a lighter fill improves that pairing too. */
+  --green-primary: 124 152 86;
   --green-mid: 133 160 95;
   --green-soft: 43 53 33;
   --green-title: 207 224 180;
 
   --orange-accent: 240 145 63;
+  /* On a dark ground the accent orange is already well clear of 4.5:1
+     (5.4:1 on the sand band), so the text variant does NOT need to go
+     deeper here the way it does on cream — going deeper would in fact
+     make it fail. Same role, opposite direction. */
+  --orange-ink: 240 145 63;
   --orange-solid: 217 112 15;
   --orange-hover: 235 133 36;
   --orange-badge: 224 132 48;
   --orange-soft: 61 44 24;
+
+  /* Inverted against light mode: the fills above are LIGHTER here, so
+     the readable foreground on them is near-black, not white. */
+  --on-primary: 16 20 12;
+  --badge-ink: 26 32 20;
+
+  /* Halo inverts with the page; the ring stays orange, which already
+     clears 3:1 on every dark surface. */
+  --focus-ring: 240 145 63;
+  --focus-halo: 16 20 12;
 
   --tan: 168 114 58;
   --sand: 43 53 33;
@@ -221,7 +287,9 @@
 
   --ink: 244 238 228;
   --ink-body: 205 198 186;
-  --ink-muted: 154 146 133;
+  /* Lightened for the same reason the light-mode value was darkened —
+     it measured 4.18:1 against the dark sand band, just under AA. */
+  --ink-muted: 162 154 141;
 
   --star: 240 180 41;
   --stock-low: 232 136 74;
@@ -391,6 +459,72 @@ h1, h2, h3, h4 {
   color: rgb(var(--ink-muted));
 }
 
+/* ------------------------------------------------------------
+   Didot has ONE titling weight. Guard against synthetic bold.
+
+   `font-display` resolves to "Didot Title", which ships a single 400
+   file. Utilities like `font-bold`/`font-black` on it don't select a
+   heavier cut — there isn't one — so the browser SYNTHESISES bold by
+   smearing the outline, which is the worst thing you can do to a
+   high-contrast didone: it thickens the hairlines and the thick stems
+   by the same amount, destroying exactly the stroke contrast the
+   typeface exists for.
+
+   Rather than police that at every call site, weight is neutralised on
+   the display face itself. Anything that genuinely needs a heavier
+   didone gets `.font-didot-bold` below, which switches to the "Didot"
+   family — that one has a REAL 700 file.
+   ------------------------------------------------------------ */
+.display-hero,
+.display-xl,
+.display-lg,
+.font-display {
+  font-weight: 400;
+  font-synthesis-weight: none;
+}
+.font-didot-bold {
+  font-family: "Didot", Georgia, serif;
+  font-weight: 700;
+  font-synthesis-weight: none;
+}
+
+/* The folio numeral that sits before a section's eyebrow ("02 · OUR
+   JOURNEY"). Set in Didot italic so it reads as an editorial page mark
+   rather than a UI counter, and held at ink-muted so it stays behind
+   the eyebrow in the hierarchy instead of competing with it.
+   Tabular figures so the numerals in a sequence share one width and
+   the eyebrows after them start at a consistent offset. */
+.section-index {
+  font-family: "Didot", Georgia, serif;
+  font-style: italic;
+  font-size: 0.8125rem;
+  line-height: 1;
+  color: rgb(var(--ink-muted));
+  font-variant-numeric: tabular-nums;
+}
+
+/* The hairline that runs out to the right edge of a FLUSH-LEFT section
+   masthead. Only "The Story of MDN" uses this: it is the one section on
+   the page that is a piece of long-form reading rather than a rack of
+   cards, and setting its masthead flush left is what tells you that
+   before you have read a word of it. Everywhere else the heading is
+   centred (see SectionHeading).
+
+   `align-self: center` rather than baseline so it strikes through the
+   eyebrow's optical middle instead of sitting on the baseline, where it
+   would read as an underline. The gradient fade stops the rule from
+   colliding with the right gutter as a hard stop. */
+.section-rule {
+  align-self: center;
+  height: 1px;
+  min-width: 2rem;
+  background: linear-gradient(
+    to right,
+    rgb(var(--border-strong)),
+    rgb(var(--border-strong) / 0)
+  );
+}
+
 ::selection {
   background: rgb(var(--green-primary));
   color: #fff;
@@ -409,16 +543,42 @@ h1, h2, h3, h4 {
   border-radius: var(--radius-pill);
 }
 
-/* Visible keyboard focus everywhere, both themes */
+/* ------------------------------------------------------------
+   Keyboard focus — a TWO-TONE ring, not a single colour.
+
+   The previous rule drew one 2px ring in --green-primary. Measured
+   against the surfaces it actually lands on, that ring scored 9.9:1 on
+   the cream page but **1.2:1 on the footer and 1.0:1 on any green
+   button** — the footer is deep green and the primary buttons are the
+   very colour the ring was drawn in, so for a keyboard user the focus
+   indicator simply vanished across the entire footer and every CTA on
+   the site.
+
+   No single colour clears 3:1 against cream, sand, deep green AND a
+   green fill at once. So the ring is drawn twice:
+
+     • --focus-halo  hugs the element (in the outline's offset gap) and
+                     is the INVERSE of the page — cream in light mode,
+                     near-black in dark. It is what makes the ring
+                     visible when focus lands on a saturated fill.
+     • --focus-ring  the outer orange ring, which is what makes focus
+                     visible against the page itself.
+
+   At least one of the two always contrasts, whatever is underneath.
+
+   `border-radius` is no longer forced here — both outline and
+   box-shadow follow the element's own radius, and hard-coding
+   --radius-sm was squaring off pill-shaped controls while focused.
+   ------------------------------------------------------------ */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid rgb(var(--green-primary));
+  outline: 2px solid rgb(var(--focus-ring));
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px rgb(var(--focus-halo));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -494,7 +654,11 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
     background: rgb(var(--green-primary));
-    color: #fdf8f1;
+    /* Token, not a literal. In dark mode --green-primary lightens to a
+       mid sage so it stays visible against the dark page, and a near-
+       white foreground on it measured 3.67:1. --on-primary flips to
+       near-black there instead. */
+    color: rgb(var(--on-primary));
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-sm);
     transition: background-color var(--dur) var(--ease), transform var(--dur) var(--ease),
@@ -556,8 +720,11 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
     background: rgb(var(--mdn-charcoal));
   }
   .badge-save {
-    @apply inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+    @apply inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide;
     background: rgb(var(--orange-badge));
+    /* See --badge-ink: white here, near-black in dark mode, because the
+       badge fill lightens there. */
+    color: rgb(var(--badge-ink));
     border-radius: var(--radius-pill);
   }
 
@@ -579,6 +746,13 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
 
   .input-field {
     @apply w-full px-4 py-2.5 outline-none;
+    /* 16px floor, deliberately. iOS Safari zooms the viewport when a
+       focused input is under 16px and never zooms back out on blur,
+       which leaves the page stuck mid-scale with the layout offset.
+       This is the one place a hard px value beats a utility — every
+       input on the site inherits the guarantee instead of each call
+       site having to remember it. */
+    font-size: 16px;
     background: rgb(var(--mdn-charcoal));
     color: rgb(var(--ink));
     border: 1px solid rgb(var(--border-strong));
@@ -592,6 +766,60 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
   .input-field:focus {
     border-color: rgb(var(--green-primary));
     box-shadow: 0 0 0 3px rgb(var(--green-primary) / 0.16);
+  }
+
+  /* ---------- Filter chips ----------
+     The review/tag filters were hand-rolled per section with green
+     fills and `border-white/10` left over from the dark theme. One
+     class pair instead, so a filter row looks the same wherever it
+     appears. Selected state is INK, not green: a saturated fill for a
+     passive filter shouts louder than the section's own CTA, and on
+     cream the deep ink reads as "chosen" more clearly than a mid-green
+     that sits close to the page in value. */
+  /* py-2.5 (was py-1.5) puts the chip at 40px tall instead of 30px.
+     Filter rows are a touch-first control and 30px is well under the
+     44px guideline; the extra 10px also stops a row of chips from
+     reading as cramped next to the 40-48px buttons around it. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em];
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--border-strong));
+    background: transparent;
+    color: rgb(var(--ink-body));
+    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+      color var(--dur) var(--ease);
+  }
+  .chip-active {
+    background: rgb(var(--ink));
+    border-color: rgb(var(--ink));
+    color: rgb(var(--mdn-charcoal));
+  }
+
+  /* ---------- Touch target expander ----------
+     Carousel dots are 8px tall by design — a pagination dot that is
+     actually 44px tall stops reading as a dot. This keeps the MARK the
+     size it is and grows only the HIT REGION, via a transparent
+     pseudo-element centred on the control.
+
+     Measured at 375px, the dots were 8x8 and 24x8 against the 44x44
+     minimum, which is roughly a fifth of the required area — on a phone
+     they were effectively unhittable. `::after` costs no layout because
+     it is absolutely positioned, so rows of dots keep their exact
+     spacing.
+
+     Same class is used for any small icon control (cart glyph, close
+     buttons) that must stay visually compact. */
+  .tap-44 {
+    position: relative;
+  }
+  .tap-44::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
   }
 
   /* Section rhythm — one spacing step, used by every home/PDP section,

@@ -37,6 +37,10 @@ export default {
 
           // ---- New brand tokens. Prefer these in new code. ----
           orange: "rgb(var(--orange-accent) / <alpha-value>)",
+          // Accent orange for text UNDER 24px. `mdn-orange` above is the
+          // display-size value and does not reach 4.5:1 on cream at body
+          // sizes — see the orange block in index.css.
+          "orange-ink": "rgb(var(--orange-ink) / <alpha-value>)",
           "orange-solid": "rgb(var(--orange-solid) / <alpha-value>)",
           "orange-hover": "rgb(var(--orange-hover) / <alpha-value>)",
           "orange-badge": "rgb(var(--orange-badge) / <alpha-value>)",
@@ -46,6 +50,11 @@ export default {
           sand: "rgb(var(--sand) / <alpha-value>)",
           "sand-deep": "rgb(var(--sand-deep) / <alpha-value>)",
           blush: "rgb(var(--blush) / <alpha-value>)",
+
+          // Readable foreground for text sitting ON a saturated brand
+          // fill. Inverts between themes — see index.css.
+          "on-primary": "rgb(var(--on-primary) / <alpha-value>)",
+          "badge-ink": "rgb(var(--badge-ink) / <alpha-value>)",
 
           ink: "rgb(var(--ink) / <alpha-value>)",
           "ink-body": "rgb(var(--ink-body) / <alpha-value>)",

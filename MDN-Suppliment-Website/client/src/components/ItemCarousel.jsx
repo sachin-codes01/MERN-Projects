@@ -442,7 +442,7 @@ export default function ItemCarousel({
                 startAutoplay();
               }}
               aria-label={`Go to position ${i + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`tap-44 h-2 rounded-full transition-all duration-300 ${
                 i === index ? "w-6 bg-mdn-green" : "w-2 bg-white/25 hover:bg-white/45"
               }`}
             />

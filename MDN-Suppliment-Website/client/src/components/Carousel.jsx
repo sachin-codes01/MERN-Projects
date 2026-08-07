@@ -326,10 +326,10 @@ const Carousel = forwardRef(function Carousel({
               aria-label={`Go to slide ${i + 1}`}
               className={
                 dotsPosition === "overlay"
-                  ? `h-1 rounded-full transition-all duration-300 ${
+                  ? `tap-44 h-1 rounded-full transition-all duration-300 ${
                       i === realIndex ? "w-4 bg-mdn-green" : "w-1 bg-white/60 hover:bg-white/85"
                     }`
-                  : `h-2 rounded-full transition-all duration-300 ${
+                  : `tap-44 h-2 rounded-full transition-all duration-300 ${
                       i === realIndex ? "w-6 bg-mdn-green" : "w-2 bg-white/25 hover:bg-white/45"
                     }`
               }

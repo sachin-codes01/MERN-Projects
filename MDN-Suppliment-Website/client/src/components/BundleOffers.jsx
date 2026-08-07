@@ -5,6 +5,7 @@ export default function BundleOffers() {
     <ProductCarousel
       sectionId="bundles"
       section="fitness_combo"
+      index="06"
       eyebrow="Save more, train more"
       titleMain="Bundles &"
       titleAccent="Offers"

@@ -51,7 +51,12 @@ export default function WhyChooseMDN() {
             `lg` the two stack and the divider rule is dropped. */}
         <div className="grid gap-10 lg:grid-cols-[0.85fr_1.6fr] lg:gap-14">
           <Reveal from="up" className="lg:pr-4">
-            <p className="label text-[11px] text-mdn-green">Why Choose MDN</p>
+            {/* `.eyebrow`, not a green label. Two reasons: dark-mode
+                --green-primary on the dark sand band measured 3.31:1,
+                and every other section on the page introduces itself
+                with `.eyebrow` — this was the only one using a coloured
+                variant, so it read as a different kind of thing. */}
+            <p className="eyebrow">Why Choose MDN</p>
 
             {/* font-body overrides the Didot default on h2. This heading
                 is a heavy uppercase SANS in the reference — the didone is

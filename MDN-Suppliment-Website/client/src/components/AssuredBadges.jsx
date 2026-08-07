@@ -78,7 +78,7 @@ export default function AssuredBadges() {
     // of badges. Halving the bottom keeps the badges reading as attached
     // to the content they vouch for.
     <section className="mx-auto max-w-shell px-4 pb-6 pt-10 sm:px-6 sm:pb-8 sm:pt-12 lg:px-[34px]">
-      <SectionHeading eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" />
+      <SectionHeading index="03" eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" />
 
       {/* At lg+ the full content shell is wide enough to hold all eight
           badges in one row, so the carousel is dropped there entirely —

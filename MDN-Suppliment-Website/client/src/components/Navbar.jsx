@@ -161,7 +161,10 @@ export default function Navbar() {
           <button
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Toggle menu"
-            className="rounded-md p-1.5 text-mdn-ink transition-colors hover:bg-mdn-sand md:hidden"
+            /* p-2.5 + the 22px glyph gives a 42px box, and `tap-44`
+               tops it up to the 44px minimum. This was p-1.5 → 34x34,
+               under the threshold for the primary mobile nav control. */
+            className="tap-44 -ml-1 rounded-md p-2.5 text-mdn-ink transition-colors hover:bg-mdn-sand md:hidden"
           >
             {mobileOpen ? <CloseIcon /> : <MenuIcon />}
           </button>
@@ -213,7 +216,11 @@ export default function Navbar() {
           <Link
             to="/cart"
             onClick={clearNewItem}
-            className="relative flex items-center text-mdn-ink transition-colors duration-200 hover:text-mdn-green"
+            /* The cart was a bare 20x20 SVG — the smallest tap target on
+               the site and one of the most used. `tap-44` grows the hit
+               region to 44x44 without changing the glyph or the
+               navbar's row height. */
+            className="tap-44 relative flex items-center text-mdn-ink transition-colors duration-200 hover:text-mdn-green"
             aria-label="Cart"
           >
             <CartIcon />
@@ -382,7 +389,7 @@ export default function Navbar() {
               key={l.label}
               to={l.to}
               onClick={() => setMobileOpen(false)}
-              className="rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand"
+              className="rounded-md px-2 py-2.5 text-mdn-ink hover:bg-mdn-sand"
             >
               {l.label}
             </Link>
@@ -392,7 +399,7 @@ export default function Navbar() {
             type="button"
             onClick={() => setMobileShopOpen((o) => !o)}
             aria-expanded={mobileShopOpen}
-            className="flex items-center justify-between rounded-md px-2 py-2 text-left text-mdn-ink hover:bg-mdn-sand"
+            className="flex items-center justify-between rounded-md px-2 py-2.5 text-left text-mdn-ink hover:bg-mdn-sand"
           >
             Shop
             <svg
@@ -450,12 +457,12 @@ export default function Navbar() {
           </div>
 
           {token && (
-            <Link to="/orders" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand">
+            <Link to="/orders" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2.5 text-mdn-ink hover:bg-mdn-sand">
               Orders
             </Link>
           )}
           {token && isAdminUser && (
-            <Link to="/admin/products" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2 text-mdn-ink hover:bg-mdn-sand">
+            <Link to="/admin/products" onClick={() => setMobileOpen(false)} className="rounded-md px-2 py-2.5 text-mdn-ink hover:bg-mdn-sand">
               Admin
             </Link>
           )}

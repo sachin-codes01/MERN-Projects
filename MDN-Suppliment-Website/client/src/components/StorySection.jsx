@@ -23,122 +23,207 @@ const MILESTONES = [
   { year: "Today", text: "37 supplements trusted by customers aged 10 to 80." },
 ];
 
+/**
+ * The founder narrative.
+ *
+ * This section was the last part of the home page still written for the
+ * old dark theme, and it showed: a green blur-blob, a 48px grid mesh and
+ * two floating ring outlines behind the copy. Those are lighting effects
+ * — they work by being brighter than the page. On a near-white ground
+ * there is nothing for them to be brighter than, so the blob rendered as
+ * a faint olive smudge and the mesh as dirt. All three are gone rather
+ * than re-tinted: this is the one section on the page that is pure
+ * reading, and the right background for reading is paper.
+ *
+ * What carries it instead is typographic contrast — the founder's story
+ * set as an article, the milestones as a ruled sidebar, and the numbers
+ * as a hairline-divided ledger.
+ */
 export default function StorySection() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    // Matches every other home section. This was py-20/28 (112px top AND
-    // bottom at sm+), far more than its neighbours on each side — and
-    // because the band sits between two sections that each add their own
-    // padding, the seams either side read as large empty gaps rather than
-    // section rhythm. The coloured bands (this, Why Choose MDN, Reviews)
-    // carry one step MORE than the plain sections, since a tinted band
-    // needs a little air off its edges.
-    <section id="story" className="relative overflow-hidden border-y border-white/5 bg-mdn-charcoal py-10 sm:py-12">
-      {/* Decorative background — soft glow + faint grid, no photo by design */}
-      <div className="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[110px]" />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgb(var(--mdn-white)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--mdn-white)) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
-      <div className="pointer-events-none absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full border border-mdn-green/10" />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-56 w-56 rounded-full border border-mdn-green/10" />
+    /* Warm white, one step ABOVE the page's sand ground. The band either
+       side of it (Shop by Collection above, the trust strip below) sits
+       on the page ground, so lifting this one is what separates the three
+       without needing a border — which is why the old `border-white/5`
+       hairlines are gone too. */
+    <section id="story" className="w-full bg-mdn-charcoal py-10 sm:py-12 lg:py-14">
+      <div className="mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
+        {/* Flush left, deliberately — this is the ONE section on the home
+            page whose heading is not centred (see SectionHeading, which
+            every other section uses). It earns the exception by being the
+            only section that is long-form reading rather than a rack of
+            cards: the article, the timeline and the ledger below all hang
+            off a hard left edge, and a centred masthead over them would
+            float free of the column it introduces. */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span aria-hidden="true" className="section-index shrink-0">02</span>
+          <span className="eyebrow shrink-0">Our Journey</span>
+          <span aria-hidden="true" className="section-rule flex-1" />
+        </div>
 
-      {/* Two-column at lg: the narrative reads down the left, the
-          milestone timeline sits beside it on the right, and the stats
-          band spans the full width underneath. Previously all three
-          stacked inside a single centred max-w-3xl (768px) column, which
-          on a wide screen left ~575px of dead space on each side and made
-          the left-aligned timeline read as a thin strip hugging the
-          middle. The prose keeps its own max-w-xl reading measure so
-          widening the section doesn't stretch lines to an awkward length. */}
-      <div className="relative mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
-          {/* Left — narrative. Enters from the left since it sits in the
-              left column — see the right column below, which mirrors it. */}
-          <Reveal from="left" className="text-center lg:text-left">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-mdn-green">
-              Our Journey
-            </p>
-            <MaskReveal
-              as="h2"
-              className="mt-3 text-3xl font-bold text-mdn-white sm:text-4xl lg:text-5xl"
-              lines={[
-                <>
-                  The Story of <span className="text-mdn-green">MDN</span>
-                </>,
-              ]}
-            />
+        <MaskReveal
+          as="h2"
+          className="display-lg mt-3.5"
+          lines={[
+            <>
+              The Story of <span className="display-accent">MDN</span>
+            </>,
+          ]}
+        />
 
-            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-mdn-gray sm:text-base lg:mx-0">
-              {expanded ? FULL_STORY : SHORT_STORY}
+        {/* 1.1fr : 0.9fr, not 1:1. The left column holds running prose and
+            the right holds five short timeline entries, so an even split
+            would give the narrative too narrow a measure while leaving the
+            sidebar half empty. */}
+        <div className="mt-7 grid gap-8 lg:mt-9 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
+          {/* --- Left: the article --- */}
+          <Reveal from="left">
+            {/* Dropped WORD, not a dropped initial. The paragraph opens
+                on the brand name, so setting the whole of "MDN" large is
+                what an initial cap is actually for here — a single big
+                "M" followed by a normal-size "DN" reads as a typo, since
+                it splits an acronym rather than a word.
+
+                Three letters is a lot of width to float, so the display
+                size is held lower than a one-letter cap would be: the
+                first two lines still wrap beside it instead of one long
+                line clearing it.
+
+                `mt` + tight leading optically seat it on the first line's
+                cap-height. Didot's ascenders overshoot, so aligning the
+                boxes leaves the word sitting visibly high. */}
+            <p className="text-[15px] leading-[1.75] text-mdn-ink-body sm:text-base">
+              {!expanded && (
+                /* NOT aria-hidden. This span holds the paragraph's real
+                   first word — the copy below is sliced so "MDN" is not
+                   set twice — so hiding it would leave a screen reader
+                   announcing "was founded by Deepak Saini" with no
+                   subject. Because it is an ordinary inline span, the
+                   accessible reading order is already correct: "MDN" then
+                   " was founded by…". */
+                <span className="float-left mr-3 mt-[0.1em] font-serif text-[2.6rem] font-normal leading-[0.85] tracking-tight text-mdn-ink sm:text-[3rem]">
+                  MDN
+                </span>
+              )}
+              {/* `slice(3)` drops the literal "MDN" the span above now
+                  carries. The expanded copy opens differently ("MY DAILY
+                  NUTRITION (MDN) was founded…") and is never sliced. */}
+              {expanded ? FULL_STORY : SHORT_STORY.slice(3)}
             </p>
 
             <button
               onClick={() => setExpanded((e) => !e)}
-              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-mdn-green transition-colors hover:text-mdn-green-light"
+              /* Underline-on-rest, not a coloured link: the accent colour
+                 is spoken for by prices and CTAs, and a green text link
+                 here would read as a third action level. */
+              className="tap-44 group mt-5 inline-flex items-center gap-1.5 border-b border-mdn-ink/30 pb-0.5 text-[13px] font-semibold uppercase tracking-[0.1em] text-mdn-ink transition-colors duration-200 hover:border-mdn-orange hover:text-mdn-orange"
             >
-              {expanded ? "Read less" : "Read more"}
+              {expanded ? "Read less" : "Read the full story"}
               <svg
-                width="14"
-                height="14"
+                width="13"
+                height="13"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2.2"
+                aria-hidden="true"
                 className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
               >
                 <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
-            {/* Pull-quote */}
-            <blockquote className="mx-auto mt-10 max-w-xl border-l-2 border-mdn-green/50 pl-5 text-left text-base font-semibold italic leading-relaxed text-mdn-white/90 sm:text-lg lg:mx-0">
-              "Our mission is simple: to deliver trusted, high-quality nutrition that empowers people to achieve their fitness, performance, and wellness goals with confidence."
+            {/* Pull quote, set in the display face. A didone italic at
+                this size is the strongest typographic move available on
+                the page and this is the one line worth spending it on —
+                so it is NOT repeated anywhere else in the section. */}
+            <blockquote className="mt-7 border-l-2 border-mdn-orange/60 pl-5">
+              <p className="font-serif text-[17px] italic leading-[1.45] text-mdn-ink sm:text-lg">
+                Our mission is simple: to deliver trusted, high-quality nutrition that empowers
+                people to achieve their fitness, performance, and wellness goals with confidence.
+              </p>
+              <cite className="label mt-3 block text-[10px] not-italic text-mdn-ink-muted">
+                Deepak Saini · Founder
+              </cite>
             </blockquote>
           </Reveal>
 
-          {/* Right — milestone timeline. Enters from the right, mirroring
-              the left column, instead of reusing the same direction. */}
-          <Reveal from="right" className="text-left">
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-mdn-green lg:text-left">
-              Milestones
-            </p>
-            <div className="relative mt-6 border-l border-mdn-green/25 pl-6 sm:pl-8">
+          {/* --- Right: the timeline --- */}
+          <Reveal from="right">
+            <p className="label text-[10px] text-mdn-ink-muted">Milestones</p>
+
+            {/* The spine is a border on the <ol>, and each marker is
+                pulled back onto it with a negative offset. Markers are
+                hollow ink rings rather than filled green dots: five solid
+                accent dots down a column would out-shout the section
+                heading above them. */}
+            <ol className="relative mt-5 border-l border-mdn-border-strong">
               {MILESTONES.map((m, i) => (
-                <Reveal key={m.year} from="up" delay={i * 0.1} amount={0.4} className="relative pb-8 last:pb-0">
-                  <span className="absolute -left-[29px] top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-mdn-green bg-mdn-charcoal sm:-left-[33px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-mdn-green" />
-                  </span>
-                  <p className="text-xs font-bold uppercase tracking-widest text-mdn-green">{m.year}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-mdn-gray sm:text-base">{m.text}</p>
+                <Reveal
+                  as="li"
+                  key={m.year}
+                  from="up"
+                  delay={i * 0.09}
+                  amount={0.4}
+                  className="relative pb-6 pl-6 last:pb-0 sm:pl-7"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="absolute -left-[5.5px] top-[0.45em] block h-[11px] w-[11px] rounded-full border-2 border-mdn-ink bg-mdn-charcoal"
+                  />
+                  <p className="label text-[10px] text-mdn-orange-ink">{m.year}</p>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-mdn-ink-body sm:text-[15px]">
+                    {m.text}
+                  </p>
                 </Reveal>
               ))}
-            </div>
+            </ol>
           </Reveal>
         </div>
 
-        {/* Stats band — full shell width, so the four cards sit as a
-            proper row rather than four small tiles in a narrow column. */}
-        <div className="mt-14 grid grid-cols-2 gap-4 text-center sm:grid-cols-4 lg:mt-16 lg:gap-6">
+        {/* --- Numbers, as a ledger --- */}
+        {/* Four hairline-divided cells, not four bordered cards. At this
+            size a card is pure packaging: it adds a border, a radius, a
+            fill and a shadow around two lines of text, and four of them
+            in a row reads as a widget bar. Dividing rules carry the same
+            grouping with none of the furniture, which is also what lets
+            the numbers themselves be set large enough to matter. */}
+        {/* Divided by vertical rules only, with no outer border and no
+            per-cell padding block — the cells sit directly under the two
+            columns above rather than being pushed down by a top rule and
+            a tall pad on every side, which is where most of this
+            section's dead space was coming from. */}
+        <div className="mt-9 grid grid-cols-2 gap-y-6 border-t border-mdn-border-strong pt-7 sm:grid-cols-4 sm:gap-y-0 lg:mt-11">
           {STATS.map((s, i) => (
             <Reveal
               key={s.label}
               from="up"
-              delay={i * 0.1}
+              delay={i * 0.08}
               amount={0.4}
-              className="rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 px-3 py-5 transition-transform duration-300 hover:-translate-y-1 lg:py-7"
+              /* Vertical rule between cells, suppressed on the last of
+                 each row. The row length changes at `sm` (two per row
+                 below it, four above), so the odd-index rule is dropped
+                 once the row widens. */
+              /* The left padding is zeroed on whichever cell STARTS a
+                 row, not just on the first cell overall. The row length
+                 changes at `sm` — two per row below it, four above — so
+                 below `sm` that is every odd child (cells 1 and 3), and
+                 above it only the first. Without the odd-child rule the
+                 second row's numbers sat 16px right of the first row's
+                 and the ledger lost its left edge. */
+              className={`px-4 [&:nth-child(odd)]:pl-0 sm:px-6 sm:[&:nth-child(odd)]:pl-6 sm:first:pl-0 ${
+                (i + 1) % 2 === 0 ? "sm:border-r" : "border-r"
+              } ${i === STATS.length - 1 ? "border-r-0 sm:border-r-0" : ""} border-mdn-border-strong`}
             >
-              <p className="font-display text-xl font-bold text-mdn-green sm:text-2xl lg:text-3xl">
+              {/* Didot at 400. No `font-bold` — the display face has one
+                  weight and a bold utility would make the browser fake
+                  it (see the synthetic-bold guard in index.css). */}
+              <p className="font-display text-[2rem] leading-none text-mdn-ink sm:text-[2.5rem]">
                 {s.value}
               </p>
-              <p className="mt-1 text-[11px] uppercase tracking-wide text-mdn-gray sm:text-xs lg:text-sm">
-                {s.label}
-              </p>
+              <p className="label mt-2 text-[10px] leading-tight text-mdn-ink-muted">{s.label}</p>
             </Reveal>
           ))}
         </div>

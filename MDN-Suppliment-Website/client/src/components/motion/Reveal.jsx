@@ -29,6 +29,13 @@ export default function Reveal({
   amount = 0.25,
   as: Component = "div",
   className = "",
+  // Everything else is forwarded to the underlying motion element.
+  // Without this, wrapping an existing element in a Reveal SILENTLY
+  // dropped its handlers — the reviews carousel pauses its autoplay on
+  // onMouseEnter/onMouseLeave, and moving those onto a Reveal would have
+  // thrown them away with no error, leaving a carousel that no longer
+  // pauses under the pointer.
+  ...rest
 }) {
   const MotionComponent = motion[Component] ?? motion.div;
   const variants = VARIANTS[from] ?? VARIANTS.up;
@@ -41,6 +48,7 @@ export default function Reveal({
       viewport={{ once: true, amount }}
       variants={variants}
       transition={{ duration, delay, ease: EASE_OUT_QUINT }}
+      {...rest}
     >
       {children}
     </MotionComponent>

@@ -4,6 +4,7 @@ import { api } from "../api/api";
 import ProductCard from "./ProductCard";
 import ItemCarousel from "./ItemCarousel";
 import SectionHeading from "./SectionHeading";
+import Reveal from "./motion/Reveal";
 
 /**
  * Shared carousel used for both "Bestsellers" (section="best_seller")
@@ -15,7 +16,19 @@ import SectionHeading from "./SectionHeading";
  * cards are always exactly one row, at every screen size, and just show
  * fewer of them at once on narrow screens.
  */
-export default function ProductCarousel({ section, eyebrow, titleMain, titleAccent, moreLink, sectionId }) {
+export default function ProductCarousel({
+  section,
+  eyebrow,
+  titleMain,
+  titleAccent,
+  moreLink,
+  sectionId,
+  // Folio numeral for the masthead. Passed only by the home-page
+  // instances, which form a numbered read-down sequence — "Related
+  // Products" on a PDP is a lone section, so a numeral there would be
+  // counting something the reader can't see.
+  index,
+}) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,9 +70,24 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
 
   return (
     <section id={sectionId} className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-[34px]">
-      <SectionHeading eyebrow={eyebrow} title={titleMain} accent={titleAccent} />
+      <SectionHeading index={index} eyebrow={eyebrow} title={titleMain} accent={titleAccent} />
 
-      <div className="mt-8">
+      {/* ONE reveal around the carousel rather than one per ProductCard.
+          Two reasons, both of which make per-card reveals actively wrong
+          here:
+
+          1. Correctness. The carousel renders up to 16 products in a
+             single non-wrapping flex row inside an `overflow-hidden`
+             viewport. Only the first ~5 are ever on screen; the rest
+             never intersect, so `whileInView` with `once: true` would
+             leave them at opacity 0 — and they would STILL be invisible
+             after the user dragged to them, because the observer fires on
+             viewport intersection, not on carousel position.
+          2. Restraint. Sixteen individually-staggered cards is a lot of
+             movement for a merchandising row the user is going to scan,
+             not read. The row arriving as one object is calmer and
+             matches how the Assured badge row already behaves. */}
+      <Reveal from="up" amount={0.15} className="mt-8">
         <ItemCarousel
           items={products}
           // No autoplay — these only move when the user drags/swipes or
@@ -70,10 +98,10 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
           itemClassName="w-[47%] sm:w-[31%] lg:w-[18.4%]"
           renderItem={(p) => <ProductCard product={p} />}
         />
-      </div>
+      </Reveal>
 
       {moreLink && (
-        <div className="mt-8 text-center">
+        <Reveal from="up" delay={0.1} className="mt-8 text-center">
           <Link
             to={moreLink}
             className="group inline-flex items-center gap-2 rounded-full border border-mdn-green/40 px-6 py-2.5 text-sm font-semibold text-mdn-green transition-all duration-300 hover:border-mdn-green hover:bg-mdn-green hover:text-black hover:shadow-green-glow"
@@ -91,7 +119,7 @@ export default function ProductCarousel({ section, eyebrow, titleMain, titleAcce
               <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </Link>
-        </div>
+        </Reveal>
       )}
     </section>
   );
