@@ -293,8 +293,21 @@ export default function Navbar() {
                 `.group` — the browser counts hovering it as hovering the
                 group regardless of where it's visually positioned.
                 `top-28` = the navbar's measured 112px height, so the panel
-                sits flush beneath it. */}
-            <div className="invisible fixed left-1/2 top-28 z-50 -translate-x-1/2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                sits flush beneath it.
+
+                The delay pair is what makes the panel forgiving to leave.
+                A transition-delay set on the BASE state only applies on the
+                way back to that state, so `delay-500` alone slows the close
+                and would have slowed the open too — `group-hover:delay-0`
+                cancels it in the hover direction. Net effect: opens the
+                instant you arrive, then holds a full 500ms before starting
+                its 200ms fade, so ~0.7s of grace to cross the gap between
+                the Shop button and the panel, or to correct an overshoot,
+                without it vanishing mid-move. Because the panel is still
+                `visible` throughout that window, re-entering it re-triggers
+                the hover and it simply stays open. Tailwind's next steps up
+                are delay-700 and delay-1000 if this still feels quick. */}
+            <div className="invisible fixed left-1/2 top-28 z-50 -translate-x-1/2 opacity-0 transition-all delay-500 duration-200 group-hover:visible group-hover:opacity-100 group-hover:delay-0">
               <div className="w-[92vw] max-w-4xl rounded-2xl border border-mdn-border bg-mdn-charcoal p-5 shadow-lg">
                 <div className="mb-4 flex items-end justify-between gap-4 border-b border-mdn-border pb-3">
                   <div>

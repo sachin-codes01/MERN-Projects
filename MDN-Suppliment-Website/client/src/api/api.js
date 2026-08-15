@@ -1,4 +1,46 @@
+import { readCache, writeCache, clearApiCache } from "../utils/apiCache";
+
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+// How long a cached public GET stays servable. Freshness is traded against
+// round-trips per route, not globally:
+//
+//  - product detail is the shortest by far. It is the page someone reads
+//    immediately before paying, so a stale price or an "in stock" on a
+//    sold-out item is a real problem, not a cosmetic one.
+//  - listings tolerate more. A new arrival showing up a few minutes late
+//    on a category row costs nothing, and these are the heaviest and
+//    most-repeated calls on the site.
+const TTL = {
+  productDetail: 2 * 60 * 1000,
+  productList: 10 * 60 * 1000,
+  default: 5 * 60 * 1000,
+};
+
+const ttlFor = (path) => {
+  // `/products/<slug>` but not `/products` or `/products?...`
+  if (/^\/products\/[^/?]+$/.test(path)) return TTL.productDetail;
+  if (path.startsWith("/products")) return TTL.productList;
+  return TTL.default;
+};
+
+// Only public, unauthenticated reads are cacheable.
+//
+// The `token` check is the important one and it is deliberately on the
+// token rather than on the path: it keeps every personal response — cart,
+// orders, addresses, profile — out of localStorage, where it would sit
+// readable by any script on the origin and outlive a logout on a shared
+// machine. Admin routes are all tokened too, so they are already excluded;
+// the explicit path check just makes that non-accidental.
+//
+// Search suggestions are skipped on volume, not privacy: they fire per
+// keystroke, so caching them would spend the whole storage budget on
+// hundreds of near-duplicate prefixes.
+const isCacheable = (path, method, token) =>
+  method === "GET" &&
+  !token &&
+  !path.startsWith("/admin") &&
+  !path.startsWith("/products/suggest");
 
 // Session expired/invalid on the server (401) while we sent a token —
 // force a clean logout instead of leaving the UI stuck on a broken
@@ -47,6 +89,18 @@ async function refreshAccessToken() {
 }
 
 async function request(path, { method = "GET", body, token, _retried = false } = {}) {
+  const cacheable = isCacheable(path, method, token);
+
+  // Cache-first, not stale-while-revalidate: `request` hands back a single
+  // promise and every call site does one `setState` with it, so there is
+  // no channel to push a late revalidation through without reworking all
+  // of them. Within the TTL this returns without touching the network at
+  // all — which is the entire point on a cold Render instance.
+  if (cacheable) {
+    const hit = readCache(path);
+    if (hit) return hit;
+  }
+
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -73,6 +127,21 @@ async function request(path, { method = "GET", body, token, _retried = false } =
   if (!res.ok || data.success === false) {
     throw new Error(data.message || "Something went wrong");
   }
+
+  // Written only after the error checks above, so a 4xx/5xx body can never
+  // be replayed to the next visitor as if it were a real response.
+  if (cacheable) writeCache(path, data, ttlFor(path));
+
+  // Any successful write invalidates the whole public cache. Not an
+  // optimisation — without it, "mutate, then refetch to show the result"
+  // silently reads back the pre-mutation copy. ProductDetail does exactly
+  // that: it posts a review and immediately re-fetches the product, which
+  // would have returned the cached body with the new review missing.
+  // Blowing away all public entries is coarse, but the alternative is a
+  // route-to-route dependency map, and the cost of being wrong here is a
+  // visitor staring at a change they just made and not seeing it.
+  if (method !== "GET") clearApiCache();
+
   return data;
 }
 
