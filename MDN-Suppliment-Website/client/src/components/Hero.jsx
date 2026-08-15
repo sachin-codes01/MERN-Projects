@@ -1,28 +1,9 @@
-import Carousel from "./Carousel";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
-import bannerDisciplineDesktop from "../assets/mdn-discipline-whey-2400x1200.png";
-import bannerIsolateDesktop from "../assets/mdn-isolate-whey-2400x1200.jpg";
-import bannerMaximumResultsDesktop from "../assets/mdn-maximum-results-2400x1200.jpg";
-import bannerShilajitDesktop from "../assets/mdn-shilajit-2400x1200.jpeg";
-import bannerDisciplineMobile from "../assets/mdn-discipline-whey-900x1125.png";
-import bannerIsolateMobile from "../assets/mdn-isolate-whey-900x1125.png";
-import bannerMaximumResultsMobile from "../assets/mdn-maximum-results-900x1125.png";
-import bannerShilajitMobile from "../assets/mdn-creatine-375×469px.png";
-
-// Each banner ships two crops: a 4:5 "mobile" poster (900x1125) and a wide
-// "desktop" one (2400x1200) — see the `<picture>` below for which shows
-// where. Keeping both lets small screens skip downloading the much
-// heavier desktop image entirely.
-const BANNERS = [
-  { mobile: bannerDisciplineMobile, desktop: bannerDisciplineDesktop },
-  { mobile: bannerIsolateMobile, desktop: bannerIsolateDesktop },
-  { mobile: bannerMaximumResultsMobile, desktop: bannerMaximumResultsDesktop },
-  { mobile: bannerShilajitMobile, desktop: bannerShilajitDesktop },
-];
+import bannerVideo from "../assets/mdn-hero-banner.mp4";
 
 // The five reassurances shown in the panel over the banner's bottom edge.
 // Split into `value` (the number/short claim, set large) and `label` (what
@@ -37,26 +18,6 @@ const TRUST_ITEMS = [
 ];
 
 export default function Hero() {
-  const slides = BANNERS.map((banner, i) => (
-    <picture key={i} className="block h-full w-full">
-      {/* `lg` (1024px+) matches the same breakpoint the slide/box classes
-          below switch on, so the image source and the box shape change
-          together. Below that, the <img> fallback (mobile crop) is used. */}
-      <source media="(min-width: 1025px)" srcSet={banner.desktop} />
-      <img
-        src={banner.mobile}
-        alt={`MDN promotional banner ${i + 1}`}
-        // object-cover on every breakpoint: the exported poster files
-        // don't land on the box's exact aspect ratio pixel-for-pixel, so
-        // object-contain was leaving thin white bars above/below on
-        // mobile. Cover always fills the box completely (tiny edge crop,
-        // never visible letterboxing) instead.
-        className="h-full w-full object-cover"
-        draggable={false}
-      />
-    </picture>
-  ));
-
   return (
     <section className="relative">
       {/* Banner — still full-bleed, but its BOTTOM corners are curved so
@@ -69,23 +30,32 @@ export default function Hero() {
           as a deliberate sweep on a phone looks like a rounding error
           across a 1536px banner. */}
       <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen overflow-hidden rounded-b-[28px] bg-mdn-black sm:rounded-b-[40px] lg:rounded-b-[56px]">
-        <Carousel
-          slides={slides}
+        {/* One video, no carousel. The box is `aspect-video` because the
+            source is 1920x1080 — matching the box to the file means the
+            full frame is visible at every width with nothing cropped,
+            which the old 4:5 mobile box could not have done. There is
+            deliberately no max-height cap: capping it would make the box
+            shorter than 16:9 on wide screens and squash the video.
+            Swap the ratio here if a re-cut banner ships at a new size. */}
+        <video
+          src={bannerVideo}
+          // The four attributes below are what let a video play on its own:
+          // iOS/Android refuse to autoplay anything with sound, and refuse
+          // to play inline without `playsInline` (it goes fullscreen
+          // instead). Dropping `muted` silently breaks autoplay on mobile.
           autoPlay
-          interval={4000}
-          showDots={false}
-          pauseOnHover={false}
-          // Mobile/tablet: a normal banner-shaped box (aspect-ratio-based),
-          // matching how most sites treat hero carousels on smaller screens
-          // — export new mobile/tablet posters at this ratio (e.g. 900 x
-          // 1125 px) so they show in full with no letterboxing.
-          //
-          // Desktop/laptop (lg and up, 1024px+): the aspect ratio is
-          // dropped in favor of a fixed viewport-relative height, so the
-          // poster runs full width AND fills most of the screen's height —
-          // adjust the 85vh below (e.g. to 90vh or 100vh) if you want it
-          // taller or shorter.
-          slideClassName="aspect-[4/5] bg-mdn-charcoal2 lg:aspect-auto lg:h-[84.6vh]"
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-label="MDN promotional banner"
+          // object-fill, not cover/contain, by request: the whole frame
+          // must always be visible. Cover crops the edges off and contain
+          // adds letterbox bars — fill stretches the video to the box
+          // instead, so nothing is ever cut away. With the box set to
+          // aspect-video and the source at 1920x1080 the ratios match, so
+          // in practice there is no stretch to see either.
+          className="aspect-video h-full w-full bg-mdn-charcoal2 object-fill"
         />
       </div>
 
