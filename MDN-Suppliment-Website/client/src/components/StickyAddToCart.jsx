@@ -61,7 +61,7 @@ export default function StickyAddToCart({ atcRef, product, currentSize, currentF
     >
       <div className="mx-auto flex max-w-shell items-center gap-3 px-4 sm:px-6 lg:px-[34px] py-3">
         <img
-          src={product.thumbnail}
+          src={currentFlavor?.images?.[0] || product.thumbnail}
           alt={product.name}
           className="h-11 w-11 shrink-0 rounded-lg bg-mdn-charcoal2 object-contain"
         />

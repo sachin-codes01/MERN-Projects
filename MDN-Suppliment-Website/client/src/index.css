@@ -114,9 +114,23 @@
      re-balanced around it: the ground is now a warm SAND rather than an
      off-white, so cards have to go lighter and bands/borders deeper to
      keep the three layers distinct. */
-  --mdn-black: 254 244 233;      /* page ground — banner sand, lightened */
-  --mdn-charcoal: 255 253 250;   /* raised card surface — warm white */
-  --mdn-charcoal2: 250 233 210;  /* sunken / tinted band — deeper sand */
+  /* Lightened twice now — the cream ground was reading heavier than
+     intended. The three move TOGETHER on purpose: raising only the ground
+     would close the gap to the card above it and flatten the raised-card
+     effect the three steps exist to produce, so the card goes lighter too
+     and the tinted band follows. Nothing here risks contrast: every
+     foreground token was tuned against the ORIGINAL, darker values, and
+     lightening a background only widens its ratio against the dark ink and
+     orange text on it.
+
+     This is the last full step available. The card has now reached pure
+     white, so there is no headroom left above the ground — lightening the
+     cream any further can only be done by closing the page/card gap, at
+     which point cards stop reading as raised and the palette flattens into
+     the single mid-tone this three-step system was built to avoid. */
+  --mdn-black: 255 252 247;      /* page ground — banner sand, lightened */
+  --mdn-charcoal: 255 255 255;   /* raised card surface — warm white */
+  --mdn-charcoal2: 254 246 236;  /* sunken / tinted band — deeper sand */
   --mdn-white: 36 31 26;         /* primary ink — warm near-black */
   /* The legacy muted-ink token, still used across the pages that have
      not been through the redesign. It served the same role as
@@ -179,12 +193,20 @@
      GROUNDS carrying white text, which is why the tan is this deep —
      a lighter tan would fail contrast against the copy on it. */
   --tan: 203 140 74;             /* #cb8c4a — goal card ground */
-  --sand: 250 233 210;           /* #fae9d2 — trust bar, spec boxes, bands */
-  --sand-deep: 250 227 199;      /* #fae3c7 — product gallery backdrop */
+  /* Kept in lockstep with --mdn-charcoal2 above (they are the same value
+     by design — one is the layer token, one the brand name). If these had
+     stayed put while the ground lifted, the bands would have jumped from
+     a subtle tint to a hard stripe across the page. */
+  --sand: 254 246 236;           /* #fef6ec — trust bar, spec boxes, bands */
+  --sand-deep: 253 241 226;      /* #fdf1e2 — product gallery backdrop */
   --blush: 250 218 199;          /* #fadac7 — promo banner ground */
   /* Borders step down with the ground — deep enough that hairlines still
      register against the warm page rather than washing out. */
-  --border-soft: 240 226 205;    /* #f0e2cd — hairline borders / dividers */
+  --border-soft: 247 238 225;    /* #f7eee1 — hairline borders / dividers */
+  /* Deliberately NOT lightened with the rest. It is the token used where a
+     hairline has to survive on the cream ground, and the ground just moved
+     further away from it — leaving it put is what keeps those dividers
+     visible instead of washing them out along with everything else. */
   --border-strong: 229 210 183;  /* #e5d2b7 — emphasised borders */
 
   /* --- ink --- */

@@ -55,7 +55,16 @@ export default function Hero() {
           // instead, so nothing is ever cut away. With the box set to
           // aspect-video and the source at 1920x1080 the ratios match, so
           // in practice there is no stretch to see either.
-          className="aspect-video h-full w-full bg-mdn-charcoal2 object-fill"
+          //
+          // Desktop (lg+) only: a 16:9 box on a wide window is taller than
+          // the screen, so there the box is sized so banner + trust bar
+          // together fit the first screen: 100svh minus the sticky navbar
+          // (~112px at lg: logo row + link row), the trust bar's part below
+          // the banner (~96px tall − 14px overlap = 82px) and a small 4px
+          // gap so the card doesn't sit hard against the screen's edge.
+          // The video switches to object-cover — fill would visibly squash
+          // it at that ratio. Phones/tablets keep the aspect-video box above.
+          className="aspect-video h-full w-full bg-mdn-charcoal2 object-fill lg:aspect-auto lg:h-[calc(100svh-198px)] lg:object-cover"
         />
       </div>
 

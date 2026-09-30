@@ -100,13 +100,13 @@ export default function Profile() {
 
   const validate = () => {
     const errs = {};
-    if (!form.fullName.trim()) errs.fullName = "Naam zaroori hai.";
-    if (!form.phone.trim()) errs.phone = "Phone number zaroori hai.";
+    if (!form.fullName.trim()) errs.fullName = "Name is required.";
+    if (!form.phone.trim()) errs.phone = "Phone number is required.";
     else if (!PHONE_REGEX.test(form.phone.trim())) errs.phone = "Valid 10-digit mobile number daalein.";
-    if (!form.line1.trim()) errs.line1 = "Address zaroori hai.";
-    if (!form.city.trim()) errs.city = "City zaroori hai.";
-    if (!form.state.trim()) errs.state = "State zaroori hai.";
-    if (!form.pincode.trim()) errs.pincode = "Pincode zaroori hai.";
+    if (!form.line1.trim()) errs.line1 = "Address is required.";
+    if (!form.city.trim()) errs.city = "City is required.";
+    if (!form.state.trim()) errs.state = "State is required.";
+    if (!form.pincode.trim()) errs.pincode = "Pincode is required.";
     else if (!PINCODE_REGEX.test(form.pincode.trim())) errs.pincode = "Valid 6-digit pincode daalein.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -115,7 +115,7 @@ export default function Profile() {
   const handleSaveAddress = async (e) => {
     e.preventDefault();
     if (!validate()) {
-      toastError("Form me kuch fields sahi nahi hain, check karein.");
+      toastError("Some fields are invalid — please check the form.");
       return;
     }
 
@@ -285,7 +285,7 @@ export default function Profile() {
         {/* Address list */}
         {addresses.length === 0 && !formOpen ? (
           <p className="mt-3 text-sm text-mdn-gray">
-            Koi saved address nahi hai. "+ Add Address" par click karein.
+            No saved addresses yet. Click "+ Add Address" to add one.
           </p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-2">

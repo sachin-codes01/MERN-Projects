@@ -50,13 +50,22 @@ const orderSchema = new mongoose.Schema(
       total: Number,
     },
 
-    // TODO: Razorpay aane ke baad razorpayOrderId/razorpayPaymentId
-    // yahin fields use hongi, status "pending" -> "paid" verify hone par set hoga.
+    // Filled in by utils/payments.js once Razorpay confirms the payment.
+    // Refund fields are kept in sync with Razorpay — whether the refund was
+    // made by this app (cancellation) or by hand in the Razorpay dashboard
+    // (reported through the refund.* webhooks).
     payment: {
       method: { type: String, enum: ["online"], default: "online" },
-      status: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
+      status: {
+        type: String,
+        enum: ["pending", "paid", "failed", "refunded", "partially_refunded"],
+        default: "pending",
+      },
       razorpayOrderId: String,
       razorpayPaymentId: String,
+      refundId: String, // latest refund
+      refundedAmount: { type: Number, default: 0 }, // rupees, total refunded so far
+      refundedAt: Date, // first refund
     },
 
     orderStatus: {
@@ -84,5 +93,10 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Last line of defence against one payment producing two orders — the
+// CheckoutSession lock should already prevent it. Sparse, so orders
+// without a Razorpay id are unaffected.
+orderSchema.index({ "payment.razorpayOrderId": 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("Order", orderSchema);

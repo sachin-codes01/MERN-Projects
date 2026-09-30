@@ -29,7 +29,58 @@ const emptyFlavor = {
   name: "",
   image: "",
   priceAdjustment: "",
+  // Optional PDP overrides shown when this flavour is picked — blank means
+  // "use the product's own". Highlights are edited as "Label: Value" lines.
+  images: [],
+  shortDescription: "",
+  description: "",
+  ingredients: "",
+  highlightsText: "",
 };
+
+const MAX_FLAVOR_IMAGES = 5;
+
+// "Protein: 27Gms" lines <-> [{ label, value }]. Lines without a colon
+// or with an empty side are dropped as unfinished.
+const parseHighlights = (text) =>
+  text
+    .split("\n")
+    .map((line) => {
+      const at = line.indexOf(":");
+      return at === -1 ? null : { label: line.slice(0, at).trim(), value: line.slice(at + 1).trim() };
+    })
+    .filter((h) => h && h.label && h.value);
+const highlightsToText = (list = []) => list.map((h) => `${h.label}: ${h.value}`).join("\n");
+
+// Stock flavour swatches shipped in client/public/flavours. Picking one
+// stores its site path ("/flavours/x.webp") as the flavour image, so the
+// same six photos are reused across products instead of re-uploaded each
+// time. Add a file to that folder AND a row here to offer a new one.
+const FLAVOR_PRESETS = [
+  // Always first — here, in the product's flavour list and on the PDP.
+  { name: "Unflavoured", image: "/flavours/unflavoured.svg" },
+  { name: "Chocolate", image: "/flavours/chocolate.webp" },
+  { name: "Vanilla", image: "/flavours/vanilla.webp" },
+  { name: "Coffee", image: "/flavours/coffee.webp" },
+  { name: "Mango", image: "/flavours/mango.webp" },
+  { name: "Kesar Pista", image: "/flavours/kesar-pista.webp" },
+  { name: "Rasmalai", image: "/flavours/rasmalai.webp" },
+];
+
+// Case/space-insensitive lookup so typing "kesar pista" or "Kesar-Pista"
+// still finds the photo. `list` is stock + admin-uploaded library flavours.
+// "Unflavored" (US spelling) is folded into "unflavoured" so either
+// spelling matches the same preset.
+const flavorKey = (name) => name.toLowerCase().replace(/[\s-]+/g, "").replace(/^unflavored$/, "unflavoured");
+const isUnflavoured = (name) => flavorKey(name) === "unflavoured";
+
+// Unflavoured always leads the product's flavour list; the rest keep the
+// order the admin added them in.
+const unflavouredFirst = (flavors) => [
+  ...flavors.filter((f) => isUnflavoured(f.name)),
+  ...flavors.filter((f) => !isUnflavoured(f.name)),
+];
+const presetImageFor = (name, list) => list.find((p) => flavorKey(p.name) === flavorKey(name))?.image;
 
 const emptyHighlight = {
   label: "",
@@ -93,9 +144,18 @@ export default function AdminProducts() {
 
   const [editingId, setEditingId] = useState(null);
 
+  // Flavours the admin uploaded to the reusable library (stored in the DB,
+  // since public/ can't be written to once deployed), plus the add form.
+  const [libraryFlavors, setLibraryFlavors] = useState([]);
+  const [newFlavor, setNewFlavor] = useState({ name: "", image: "" });
+  const [newFlavorUploading, setNewFlavorUploading] = useState(false);
+  const [newFlavorSaving, setNewFlavorSaving] = useState(false);
+  const allFlavors = [...FLAVOR_PRESETS, ...libraryFlavors];
+
   const loadData = () => {
     api.adminGetCategories(token).then((d) => setCategories(d.data)).catch(() => {});
     api.adminGetProducts(token).then((d) => setProducts(d.data)).catch(() => {});
+    api.adminGetFlavors(token).then((d) => setLibraryFlavors(d.data)).catch(() => {});
   };
 
   useEffect(() => {
@@ -171,13 +231,126 @@ export default function AdminProducts() {
     const { name, value } = e.target;
     setForm((f) => {
       const flavors = [...f.flavors];
-      flavors[index] = { ...flavors[index], [name]: value };
+      const next = { ...flavors[index], [name]: value };
+      // Typing a stock flavour's name fills its photo — but only into an
+      // empty slot, never over an image the admin uploaded or picked.
+      if (name === "name" && !next.image) next.image = presetImageFor(value, allFlavors) || "";
+      flavors[index] = next;
       return { ...f, flavors };
     });
   };
 
   const addFlavor = () => {
     setForm((f) => ({ ...f, flavors: [...f.flavors, { ...emptyFlavor }] }));
+  };
+
+  // One click adds a whole flavour row (name + stock photo). Skipped if
+  // that flavour is already on the product.
+  const addPresetFlavor = (preset) => {
+    setForm((f) =>
+      f.flavors.some((fl) => flavorKey(fl.name) === flavorKey(preset.name))
+        ? f
+        : {
+            ...f,
+            flavors: unflavouredFirst([...f.flavors, { ...emptyFlavor, name: preset.name, image: preset.image }]),
+          }
+    );
+  };
+
+  /* ---------- Flavour library (upload once, reuse on every product) ---------- */
+  const handleNewFlavorImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setNewFlavorUploading(true);
+      const { url } = await api.uploadImage(token, file);
+      setNewFlavor((n) => ({ ...n, image: url }));
+    } catch (err) {
+      toastError("Image upload failed: " + err.message);
+    } finally {
+      setNewFlavorUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const saveNewFlavor = async () => {
+    const name = newFlavor.name.trim();
+    if (!name || !newFlavor.image) {
+      toastError("Add a flavour name and a photo first.");
+      return;
+    }
+    if (allFlavors.some((p) => flavorKey(p.name) === flavorKey(name))) {
+      toastError(`"${name}" is already in the flavour library.`);
+      return;
+    }
+    try {
+      setNewFlavorSaving(true);
+      const { data } = await api.adminCreateFlavor(token, { name, image: newFlavor.image });
+      setLibraryFlavors((list) => [...list, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewFlavor({ name: "", image: "" });
+      success(`"${name}" added to the flavour library.`);
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setNewFlavorSaving(false);
+    }
+  };
+
+  const deleteLibraryFlavor = async (flavor) => {
+    if (!window.confirm(`Remove "${flavor.name}" from the flavour library? Products already using it keep their photo.`)) return;
+    try {
+      await api.adminDeleteFlavor(token, flavor._id);
+      setLibraryFlavors((list) => list.filter((f) => f._id !== flavor._id));
+    } catch (err) {
+      toastError(err.message);
+    }
+  };
+
+  // Flavour gallery — several files in one pick, appended in order and
+  // capped at MAX_FLAVOR_IMAGES.
+  const handleFlavorGalleryUpload = async (index, e) => {
+    const files = [...e.target.files];
+    e.target.value = "";
+    if (!files.length) return;
+    const room = MAX_FLAVOR_IMAGES - (form.flavors[index]?.images?.length || 0);
+    if (room <= 0) {
+      toastError(`A flavour can have at most ${MAX_FLAVOR_IMAGES} photos.`);
+      return;
+    }
+    try {
+      setUploading(true);
+      const urls = [];
+      for (const file of files.slice(0, room)) {
+        const { url } = await api.uploadImage(token, file);
+        urls.push(url);
+      }
+      setForm((f) => {
+        const flavors = [...f.flavors];
+        flavors[index] = { ...flavors[index], images: [...(flavors[index].images || []), ...urls] };
+        return { ...f, flavors };
+      });
+      if (files.length > room) toastError(`Only ${room} more photo(s) fit — the rest were skipped.`);
+    } catch (err) {
+      toastError("Image upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeFlavorGalleryImage = (index, imgIndex) => {
+    setForm((f) => {
+      const flavors = [...f.flavors];
+      flavors[index] = { ...flavors[index], images: flavors[index].images.filter((_, j) => j !== imgIndex) };
+      return { ...f, flavors };
+    });
+  };
+
+  const setFlavorImage = (index, image) => {
+    setForm((f) => {
+      const flavors = [...f.flavors];
+      flavors[index] = { ...flavors[index], image };
+      return { ...f, flavors };
+    });
   };
 
   const removeFlavor = (index) => {
@@ -374,6 +547,11 @@ export default function AdminProducts() {
       name: f.name || "",
       image: f.image || "",
       priceAdjustment: f.priceAdjustment ?? "",
+      images: f.images || [],
+      shortDescription: f.shortDescription || "",
+      description: f.description || "",
+      ingredients: f.ingredients || "",
+      highlightsText: highlightsToText(f.nutritionHighlights),
     }));
 
     // Older products were saved with a thumbnail uploaded separately from
@@ -473,12 +651,17 @@ export default function AdminProducts() {
     })),
     // Flavors are optional — a row left with no name is just an unused
     // blank row, not a real flavor, so it's dropped rather than saved.
-    flavors: form.flavors
+    flavors: unflavouredFirst(form.flavors)
       .filter((f) => f.name.trim())
       .map((f) => ({
         name: f.name.trim(),
         image: f.image,
         priceAdjustment: f.priceAdjustment ? Number(f.priceAdjustment) : 0,
+        images: (f.images || []).filter(Boolean),
+        shortDescription: f.shortDescription.trim(),
+        description: f.description.trim(),
+        ingredients: f.ingredients.trim(),
+        nutritionHighlights: parseHighlights(f.highlightsText),
       })),
   });
 
@@ -1026,6 +1209,84 @@ export default function AdminProducts() {
               Chocolate = ₹550.
             </p>
 
+            {/* Quick add — each chip adds a ready flavour row (name + photo),
+                no upload needed. Stock chips come from public/flavours;
+                library chips were uploaded below and carry a × to remove. */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {allFlavors.map((p) => {
+                const added = form.flavors.some((fl) => flavorKey(fl.name) === flavorKey(p.name));
+                return (
+                  <span
+                    key={p._id || p.name}
+                    className="flex items-center rounded-full border border-white/10 transition-colors hover:border-mdn-green"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => addPresetFlavor(p)}
+                      disabled={added}
+                      className={`flex items-center gap-2 py-1 pl-1 text-xs font-medium text-mdn-white disabled:cursor-default disabled:opacity-40 ${
+                        p._id ? "pr-1.5" : "pr-3"
+                      }`}
+                    >
+                      <img src={p.image} alt="" className="h-6 w-6 rounded-full object-cover" />
+                      {added ? `${p.name} ✓` : `+ ${p.name}`}
+                    </button>
+                    {p._id && (
+                      <button
+                        type="button"
+                        onClick={() => deleteLibraryFlavor(p)}
+                        aria-label={`Remove ${p.name} from flavour library`}
+                        title="Remove from library"
+                        className="pr-2.5 text-sm leading-none text-mdn-gray transition-colors hover:text-red-400"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* Add a new flavour to the library — uploaded once, then it
+                shows up as a chip above on every product. */}
+            <div className="mt-3 rounded-lg border border-dashed border-white/15 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-mdn-gray">
+                Add a new flavour to the library
+              </p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  placeholder="Flavour name (e.g. Strawberry)"
+                  value={newFlavor.name}
+                  onChange={(e) => setNewFlavor((n) => ({ ...n, name: e.target.value }))}
+                  onKeyDown={(e) => {
+                    // Enter here would otherwise submit the whole product form.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveNewFlavor();
+                    }
+                  }}
+                  className="input-field w-full sm:w-56"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleNewFlavorImage}
+                  className="input-field w-full sm:w-auto"
+                />
+                {newFlavor.image && (
+                  <img src={newFlavor.image} alt="New flavour preview" className="h-10 w-10 shrink-0 rounded-lg border border-white/10 object-cover" />
+                )}
+                <button
+                  type="button"
+                  onClick={saveNewFlavor}
+                  disabled={newFlavorUploading || newFlavorSaving}
+                  className="btn-secondary shrink-0 !px-4 !py-1.5 text-sm disabled:opacity-50"
+                >
+                  {newFlavorUploading ? "Uploading…" : newFlavorSaving ? "Saving…" : "Save to Library"}
+                </button>
+              </div>
+            </div>
+
             <div className="mt-3 space-y-4">
               {form.flavors.map((f, i) => (
                 <div key={i} className="rounded-lg border border-white/10 p-4">
@@ -1066,7 +1327,25 @@ export default function AdminProducts() {
                   </div>
 
                   <div className="mt-4">
-                    <label className="mb-1 block text-xs text-mdn-gray">Flavor swatch photo</label>
+                    <label className="mb-1 block text-xs text-mdn-gray">
+                      Flavor swatch photo — pick a stock one, or upload your own
+                    </label>
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {allFlavors.map((p) => (
+                        <button
+                          key={p._id || p.name}
+                          type="button"
+                          onClick={() => setFlavorImage(i, p.image)}
+                          title={p.name}
+                          aria-label={`Use ${p.name} photo`}
+                          className={`h-10 w-10 overflow-hidden rounded-lg border-2 transition-colors ${
+                            f.image === p.image ? "border-mdn-green" : "border-transparent hover:border-white/30"
+                          }`}
+                        >
+                          <img src={p.image} alt="" className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
                     <div className="flex items-center gap-3">
                       <input
                         type="file"
@@ -1079,6 +1358,90 @@ export default function AdminProducts() {
                       )}
                     </div>
                   </div>
+
+                  {/* Per-flavour product-page overrides. Collapsed by
+                      default since most flavours only differ in name and
+                      swatch; opens itself when something is already set. */}
+                  <details
+                    className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-3"
+                    open={
+                      f.images?.length > 0 ||
+                      !!(f.shortDescription || f.description || f.ingredients || f.highlightsText)
+                    }
+                  >
+                    <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-mdn-green">
+                      Flavour-specific product page details (optional)
+                    </summary>
+                    <p className="mt-2 text-xs text-mdn-gray/70">
+                      When a customer picks this flavour, anything filled here replaces the product's own photos /
+                      text on the product page. Leave a field empty to keep showing the product's version.
+                    </p>
+
+                    <div className="mt-3">
+                      <label className="mb-1 block text-xs text-mdn-gray">
+                        Photos for this flavour ({f.images?.length || 0}/{MAX_FLAVOR_IMAGES}) — 1st one is the main photo
+                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(f.images || []).map((src, j) => (
+                          <span key={src + j} className="relative">
+                            <img src={src} alt={`${f.name || "Flavour"} photo ${j + 1}`} className="h-16 w-16 rounded-lg border border-white/10 object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeFlavorGalleryImage(i, j)}
+                              aria-label={`Remove photo ${j + 1}`}
+                              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs leading-none text-white"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        {(f.images?.length || 0) < MAX_FLAVOR_IMAGES && (
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => handleFlavorGalleryUpload(i, e)}
+                            className="input-field w-full sm:w-auto"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <input
+                      name="shortDescription"
+                      placeholder="Short description (the line under the product name)"
+                      value={f.shortDescription}
+                      onChange={(e) => handleFlavorChange(i, e)}
+                      className="input-field mt-3 w-full"
+                    />
+                    <textarea
+                      name="description"
+                      rows={3}
+                      placeholder="Product Details (full description)"
+                      value={f.description}
+                      onChange={(e) => handleFlavorChange(i, e)}
+                      className="input-field mt-3 w-full"
+                    />
+                    <textarea
+                      name="ingredients"
+                      rows={2}
+                      placeholder="Ingredients"
+                      value={f.ingredients}
+                      onChange={(e) => handleFlavorChange(i, e)}
+                      className="input-field mt-3 w-full"
+                    />
+                    <label className="mb-1 mt-3 block text-xs text-mdn-gray">
+                      Nutrition highlight cards — one per line as <span className="font-mono">Label: Value</span>
+                    </label>
+                    <textarea
+                      name="highlightsText"
+                      rows={3}
+                      placeholder={"Kcal: 120\nProtein: 25Gms\nCarbs: 2.1G"}
+                      value={f.highlightsText}
+                      onChange={(e) => handleFlavorChange(i, e)}
+                      className="input-field w-full font-mono text-xs"
+                    />
+                  </details>
                 </div>
               ))}
             </div>

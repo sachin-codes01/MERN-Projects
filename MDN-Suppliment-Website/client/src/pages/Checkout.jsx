@@ -40,10 +40,10 @@ export default function Checkout() {
         if (def) {
           setSelectedAddressId(def._id);
           applyAddressToForm(def);
-          setSaveAddress(false); // existing address hai — dobara save nahi karna
+          setSaveAddress(false); // existing address — don't save it again
         } else {
           setForm((f) => ({ ...f, fullName: user?.name || "", email: user?.email || "" }));
-          setSaveAddress(true); // koi saved address nahi hai, isliye naya address save hoga
+          setSaveAddress(true); // no saved address yet, so the new one will be saved
         }
       })
       .catch((err) => setError(err.message))
@@ -80,7 +80,7 @@ export default function Checkout() {
 
     const addr = addresses.find((a) => a._id === id);
     applyAddressToForm(addr);
-    setSaveAddress(false); // already saved address hai, re-save nahi chahiye
+    setSaveAddress(false); // address is already saved — no need to re-save
   };
 
   const handleChange = (e) => {
@@ -91,15 +91,15 @@ export default function Checkout() {
 
   const validate = () => {
     const errs = {};
-    if (!form.fullName.trim()) errs.fullName = "Naam zaroori hai.";
-    if (!form.email.trim()) errs.email = "Email zaroori hai.";
+    if (!form.fullName.trim()) errs.fullName = "Name is required.";
+    if (!form.email.trim()) errs.email = "Email is required.";
     else if (!EMAIL_REGEX.test(form.email.trim())) errs.email = "Valid email daalein.";
-    if (!form.phone.trim()) errs.phone = "Phone number zaroori hai.";
+    if (!form.phone.trim()) errs.phone = "Phone number is required.";
     else if (!PHONE_REGEX.test(form.phone.trim())) errs.phone = "Valid 10-digit mobile number daalein.";
-    if (!form.line1.trim()) errs.line1 = "Address zaroori hai.";
-    if (!form.city.trim()) errs.city = "City zaroori hai.";
-    if (!form.state.trim()) errs.state = "State zaroori hai.";
-    if (!form.pincode.trim()) errs.pincode = "Pincode zaroori hai.";
+    if (!form.line1.trim()) errs.line1 = "Address is required.";
+    if (!form.city.trim()) errs.city = "City is required.";
+    if (!form.state.trim()) errs.state = "State is required.";
+    if (!form.pincode.trim()) errs.pincode = "Pincode is required.";
     else if (!PINCODE_REGEX.test(form.pincode.trim())) errs.pincode = "Valid 6-digit pincode daalein.";
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -129,12 +129,12 @@ export default function Checkout() {
     e.preventDefault();
     setError("");
     if (!validate()) {
-      toastError("Form me kuch fields sahi nahi hain, check karein.");
+      toastError("Some fields are invalid — please check the form.");
       return;
     }
 
     if (!window.Razorpay) {
-      toastError("Payment system load nahi hua. Page refresh karke dobara try karein.");
+      toastError("The payment system failed to load. Please refresh the page and try again.");
       return;
     }
 
@@ -145,7 +145,13 @@ export default function Checkout() {
 
     setPlacing(true);
     try {
-      const rpOrderRes = await api.createRazorpayOrder(token);
+      const rpOrderRes = await api.createRazorpayOrder(token, {
+        shippingAddress,
+        saveAddress: saveAddress
+          ? { label: addresses.find((a) => a._id === selectedAddressId)?.label || "Home" }
+          : null,
+        addressId: selectedAddressId || null,
+      });
       const rpOrder = rpOrderRes.data;
 
       const options = {
@@ -164,20 +170,28 @@ export default function Checkout() {
 
         handler: async function (response) {
           try {
+            // Address and items were already fixed when the payment was
+            // created — only the payment proof is sent now.
             const data = await api.verifyPayment(token, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              shippingAddress,
-              saveAddress: saveAddress
-                ? { label: addresses.find((a) => a._id === selectedAddressId)?.label || "Home" }
-                : null,
-              addressId: selectedAddressId || null,
             });
+            if (data.refunded) {
+              // Paid, but an item sold out meanwhile — the server already
+              // refunded in full and recorded a cancelled order.
+              toastError(data.message || "An item sold out, so your payment has been refunded in full.");
+              navigate("/orders");
+              return;
+            }
             navigate("/orders", { state: { justPlaced: data.data.orderNumber } });
           } catch (err) {
-            setError(err.message);
-            toastError(err.message);
+            // The money may already be taken at this point. The server's
+            // webhook still places the order, so point the customer there
+            // instead of implying the payment was lost.
+            const msg = `${err.message} If money was deducted, your order will appear in Your Orders within a few minutes.`;
+            setError(msg);
+            toastError(msg);
           } finally {
             setPlacing(false);
           }
@@ -186,7 +200,7 @@ export default function Checkout() {
         modal: {
           ondismiss: function () {
             setPlacing(false);
-            toastError("Payment cancel kar diya gaya.");
+            toastError("Payment was cancelled.");
           },
         },
       };
@@ -195,7 +209,7 @@ export default function Checkout() {
 
       rzp.on("payment.failed", function (response) {
         setPlacing(false);
-        toastError("Payment fail ho gaya: " + response.error.description);
+        toastError("Payment failed: " + response.error.description);
       });
 
       rzp.open();
@@ -216,7 +230,7 @@ export default function Checkout() {
   if (!cart || cart.items.length === 0) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center px-4 text-center">
-        <p className="text-mdn-gray">Aapka cart khali hai.</p>
+        <p className="text-mdn-gray">Your cart is empty.</p>
       </div>
     );
   }
@@ -249,8 +263,8 @@ export default function Checkout() {
 
           <p className="text-xs text-mdn-gray/70">
             {selectedAddressId
-              ? "Selected address ke details neeche hain — chahein to yahin edit kar sakte hain."
-              : "Naya address bharein — chahein to profile me save bhi kar sakte hain."}
+              ? "The selected address is shown below — you can edit it here if needed."
+              : "Enter a new address — you can also save it to your profile."}
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -292,7 +306,7 @@ export default function Checkout() {
 
           <label className="flex items-center gap-2.5 text-sm text-mdn-gray">
             <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 shrink-0 accent-mdn-green" />
-            <span>{selectedAddressId ? "Changes ko profile me update karein" : "Ye address profile me save karein"}</span>
+            <span>{selectedAddressId ? "Update these changes in my profile" : "Save this address to my profile"}</span>
           </label>
         </section>
 

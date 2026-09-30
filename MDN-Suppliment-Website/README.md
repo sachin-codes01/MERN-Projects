@@ -186,6 +186,11 @@ CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+# Secret you type when creating the webhook in Razorpay Dashboard →
+# Settings → Webhooks (URL: https://<your-api>/api/orders/razorpay-webhook,
+# events: payment.captured, payment.authorized, order.paid,
+#         refund.created, refund.processed, refund.failed)
+RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret
 ```
 
 ### Frontend (`client/.env`)

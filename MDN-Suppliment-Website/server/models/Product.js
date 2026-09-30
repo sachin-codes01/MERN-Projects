@@ -32,6 +32,19 @@ const flavorSchema = new mongoose.Schema(
     // customer-facing price (e.g. size price 500 + 50 for Chocolate =
     // 550). Set once per flavor here — not re-entered per size.
     priceAdjustment: { type: Number, default: 0 },
+
+    // Optional per-flavour overrides for the PDP. When the customer picks
+    // this flavour, any field set here replaces the product-level one;
+    // anything left empty falls back to the product's own value, so a
+    // flavour only needs the fields that actually differ.
+    images: [{ type: String }], // flavour-specific gallery (1st = main photo)
+    shortDescription: { type: String },
+    description: { type: String },
+    ingredients: { type: String },
+    nutritionHighlights: {
+      type: [{ label: { type: String, required: true }, value: { type: String, required: true }, _id: false }],
+      default: [],
+    },
   },
   { _id: true }
 );

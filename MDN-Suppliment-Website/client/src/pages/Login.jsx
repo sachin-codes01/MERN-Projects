@@ -28,10 +28,10 @@ export default function Login() {
         </h2>
         {redirectTo === "/checkout" && (
           <p className="mt-2 rounded-md border border-mdn-green/30 bg-mdn-green/10 px-3 py-2 text-xs text-mdn-green">
-            Checkout continue karne ke liye pehle login karein.
+            Please log in first to continue to checkout.
           </p>
         )}
-        <p className="mt-3 text-sm text-mdn-gray">Continue karne ke liye Google account use karein.</p>
+        <p className="mt-3 text-sm text-mdn-gray">Use your Google account to continue.</p>
         <div className="mt-6 flex justify-center">
           <GoogleLogin
             onSuccess={handleSuccess}

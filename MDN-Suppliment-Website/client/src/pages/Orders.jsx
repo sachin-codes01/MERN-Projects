@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MDNLoader from "../components/MDNLoader";
 import CancelOrderModal from "../components/CancelOrderModal";
+import { downloadReceipt } from "../utils/downloadReceipt";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 
 const STATUS_STEPS = ["placed", "confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
 const NON_CANCELLABLE = ["shipped", "out_for_delivery", "delivered", "cancelled", "returned"];
@@ -44,6 +46,18 @@ function StatusTimeline({ order }) {
   );
 }
 
+// Badge label + headline for a refunded order, or null if nothing was
+// refunded. Older orders refunded before `refundedAmount` existed fall back
+// to the order total.
+function refundInfo(order) {
+  const status = order.payment?.status;
+  if (status !== "refunded" && status !== "partially_refunded") return null;
+  const amount = order.payment.refundedAmount || (status === "refunded" ? order.pricing.total : 0);
+  return status === "refunded"
+    ? { label: "Refunded", title: `Refund of ₹${amount} issued` }
+    : { label: "Partially refunded", title: `Partial refund of ₹${amount} issued (of ₹${order.pricing.total} paid)` };
+}
+
 function getTerminalStatusDate(order) {
   const entry = order.statusHistory
     ?.slice()
@@ -57,7 +71,8 @@ export default function Orders() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
-  const [cancelModalOrder, setCancelModalOrder] = useState(null); // naya state — modal ke liye
+  const [cancelModalOrder, setCancelModalOrder] = useState(null); // order whose cancel modal is open
+  const [receiptId, setReceiptId] = useState(null); // which order's PDF is being built
   const { token } = useAuth();
   const { success, error: toastError } = useToast();
   const location = useLocation();
@@ -88,7 +103,7 @@ export default function Orders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justPlaced]);
 
-  // window.prompt hata diya — ab modal khulta hai
+  // window.prompt replaced — a modal opens instead
   const openCancelModal = (order) => setCancelModalOrder(order);
   const closeCancelModal = () => setCancelModalOrder(null);
 
@@ -96,14 +111,26 @@ export default function Orders() {
     const orderId = cancelModalOrder._id;
     setCancellingId(orderId);
     try {
-      await api.cancelOrder(token, orderId, reason);
-      success("Order cancelled successfully.");
+      const res = await api.cancelOrder(token, orderId, reason);
+      // Server says whether a refund was started for a paid order.
+      success(res.message || "Order cancelled successfully.");
       closeCancelModal();
       loadOrders();
     } catch (err) {
       toastError(err.message);
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleDownloadReceipt = async (order) => {
+    setReceiptId(order._id);
+    try {
+      await downloadReceipt(order);
+    } catch (err) {
+      toastError("Could not generate the receipt. Please try again.");
+    } finally {
+      setReceiptId(null);
     }
   };
 
@@ -158,10 +185,30 @@ export default function Orders() {
                     placed {new Date(order.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <span className="rounded-full border border-mdn-green/30 bg-mdn-green/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-mdn-green">
-                  {order.orderStatus.replace(/_/g, " ")}
-                </span>
+                {/* A refund outranks the delivery status in the badge —
+                    it's the thing the customer most needs to see. */}
+                {refundInfo(order) ? (
+                  <span className="rounded-full border border-sky-400/40 bg-sky-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-300">
+                    {refundInfo(order).label}
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-mdn-green/30 bg-mdn-green/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-mdn-green">
+                    {order.orderStatus.replace(/_/g, " ")}
+                  </span>
+                )}
               </div>
+
+              {refundInfo(order) && (
+                <div className="mt-3 rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2.5 text-xs text-sky-200">
+                  <p className="font-semibold text-sky-100">{refundInfo(order).title}</p>
+                  <p className="mt-0.5">
+                    It has been sent back to your original payment method
+                    {order.payment.refundedAt ? ` on ${new Date(order.payment.refundedAt).toLocaleDateString()}` : ""} and
+                    usually reaches your account within 5–7 working days.
+                    {order.payment.refundId && <> Refund ID: <span className="font-mono">{order.payment.refundId}</span></>}
+                  </p>
+                </div>
+              )}
 
               <StatusTimeline order={order} />
 
@@ -250,15 +297,28 @@ export default function Orders() {
                 <p className="text-right text-[11px] text-mdn-gray/70">All taxes included</p>
               </div>
 
-              {!NON_CANCELLABLE.includes(order.orderStatus) && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                {!NON_CANCELLABLE.includes(order.orderStatus) ? (
+                  <button
+                    disabled={cancellingId === order._id}
+                    onClick={() => openCancelModal(order)}
+                    className="text-xs font-semibold text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
+                  >
+                    Cancel Order
+                  </button>
+                ) : (
+                  <span />
+                )}
                 <button
-                  disabled={cancellingId === order._id}
-                  onClick={() => openCancelModal(order)}
-                  className="mt-3 text-xs font-semibold text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
+                  type="button"
+                  onClick={() => handleDownloadReceipt(order)}
+                  disabled={receiptId === order._id}
+                  className="flex items-center gap-1.5 rounded-lg border border-mdn-green/40 px-3 py-1.5 text-xs font-semibold text-mdn-green transition-colors hover:bg-mdn-green/10 disabled:opacity-50"
                 >
-                  Cancel Order
+                  <ReceiptLongOutlinedIcon sx={{ fontSize: 16 }} />
+                  {receiptId === order._id ? "Preparing…" : "Download Receipt"}
                 </button>
-              )}
+              </div>
             </div>
           );
         })}

@@ -145,7 +145,7 @@ async function request(path, { method = "GET", body, token, _retried = false } =
   return data;
 }
 
-// File upload ke liye alag helper — FormData bhejta hai, JSON nahi.
+// Separate helper for file uploads — sends FormData, not JSON.
 async function uploadFile(path, file, token, _retried = false) {
   const formData = new FormData();
   formData.append("image", file);
@@ -209,8 +209,11 @@ export const api = {
     request("/cart/coupon", { method: "DELETE", token }),
 
   // ---------- ORDERS (Razorpay payment ke saath) ----------
-  createRazorpayOrder: (token) =>
-    request("/orders/create-razorpay-order", { method: "POST", token }),
+  // payload: { shippingAddress, saveAddress, addressId } — sent BEFORE
+  // payment so the server can place the order even if the browser never
+  // returns from Razorpay (the webhook uses this snapshot).
+  createRazorpayOrder: (token, payload) =>
+    request("/orders/create-razorpay-order", { method: "POST", body: payload, token }),
   verifyPayment: (token, payload) =>
     request("/orders/verify-payment", { method: "POST", body: payload, token }),
   getMyOrders: (token) => request("/orders", { token }),
@@ -238,6 +241,13 @@ export const api = {
     request(`/admin/categories/${id}`, { method: "PUT", body: payload, token }),
   adminDeleteCategory: (token, id) =>
     request(`/admin/categories/${id}`, { method: "DELETE", token }),
+
+  // ---------- ADMIN: FLAVOUR LIBRARY ----------
+  adminGetFlavors: (token) => request("/admin/flavors", { token }),
+  adminCreateFlavor: (token, payload) =>
+    request("/admin/flavors", { method: "POST", body: payload, token }),
+  adminDeleteFlavor: (token, id) =>
+    request(`/admin/flavors/${id}`, { method: "DELETE", token }),
 
   // ---------- ADMIN: PRODUCTS ----------
   adminGetProducts: (token) => request("/admin/products", { token }),

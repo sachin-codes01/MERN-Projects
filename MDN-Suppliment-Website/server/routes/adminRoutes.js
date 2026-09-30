@@ -10,6 +10,8 @@ const Coupon = require("../models/Coupon");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const SiteSettings = require("../models/SiteSettings");
+const FlavorPreset = require("../models/FlavorPreset");
+const { refundOrder } = require("../utils/payments");
 
 router.use(isAuth, isAdmin); // every route below is admin-only
 
@@ -56,6 +58,36 @@ router.put("/categories/:id", async (req, res) => {
 router.delete("/categories/:id", async (req, res) => {
   await Category.findByIdAndUpdate(req.params.id, { isActive: false });
   res.json({ success: true, message: "Category deactivated" });
+});
+
+/* ---------- FLAVOUR PRESETS (reusable flavour swatches) ---------- */
+router.get("/flavors", async (req, res) => {
+  const flavors = await FlavorPreset.find().sort({ name: 1 });
+  res.json({ success: true, data: flavors });
+});
+
+router.post("/flavors", async (req, res) => {
+  try {
+    const { name, image } = req.body;
+    if (!name?.trim() || !image) {
+      return res.status(400).json({ success: false, message: "Flavour name and image are required" });
+    }
+    // Case-insensitive duplicate check — "mango" and "Mango" are the same flavour.
+    const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const exists = await FlavorPreset.findOne({ name: new RegExp(`^${escaped}$`, "i") });
+    if (exists) return res.status(409).json({ success: false, message: "That flavour is already in the library" });
+
+    const flavor = await FlavorPreset.create({ name: name.trim(), image });
+    res.status(201).json({ success: true, data: flavor });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.delete("/flavors/:id", async (req, res) => {
+  const flavor = await FlavorPreset.findByIdAndDelete(req.params.id);
+  if (!flavor) return res.status(404).json({ success: false, message: "Flavour not found" });
+  res.json({ success: true, message: "Flavour removed from library" });
 });
 
 /* ---------- COUPONS ---------- */
@@ -131,9 +163,23 @@ router.get("/orders/:id", async (req, res) => {
 
 router.put("/orders/:id/status", async (req, res) => {
   try {
-    const { status, note, trackingNumber, courierPartner, estimatedDelivery, deliveredAt } = req.body;
+    const { status, trackingNumber, courierPartner, estimatedDelivery, deliveredAt } = req.body;
+    let { note } = req.body;
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    // Cancelling a paid order from the admin panel refunds the customer.
+    // Done before the status changes so a failed refund leaves the order
+    // untouched. (Returns are refunded manually once the goods are back.)
+    if (status === "cancelled" && order.orderStatus !== "cancelled") {
+      try {
+        if (!order.cancelReason) order.cancelReason = note || "Cancelled by store";
+        const refund = await refundOrder(order, order.cancelReason);
+        if (refund) note = `${note ? note + ". " : ""}Refund ${refund.id} issued.`;
+      } catch (err) {
+        return res.status(502).json({ success: false, message: `Refund failed, order not cancelled: ${err.message}` });
+      }
+    }
 
     order.orderStatus = status;
     if (trackingNumber) order.trackingNumber = trackingNumber;

@@ -13,7 +13,17 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const enquiryRoutes = require("./routes/enquiryRoutes");
 
 const app = express();
-app.use(express.json({ limit: "15mb" }));
+app.use(
+  express.json({
+    limit: "15mb",
+    // Razorpay signs the webhook's exact bytes, so the raw body has to be
+    // kept for that one route — re-serialising the parsed JSON would not
+    // reproduce them and every signature check would fail.
+    verify: (req, _res, buf) => {
+      if (req.originalUrl.startsWith("/api/orders/razorpay-webhook")) req.rawBody = buf.toString("utf8");
+    },
+  })
+);
 
 // Vite bumps to the next free port (5174, 5175, ...) whenever 5173 is
 // already taken, so pinning CORS to just :5173 silently breaks the site

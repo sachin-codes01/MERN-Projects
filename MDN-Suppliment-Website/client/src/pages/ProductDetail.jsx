@@ -31,7 +31,13 @@ const TRUST_ITEMS = [
   { title: "GMP Certified", sub: "Facilities", Icon: FactoryOutlinedIcon },
 ];
 
-const perServing = (size, effectivePrice) => (size.servings ? Math.round(effectivePrice / size.servings) : null);
+const isUnflavoured = (name = "") => /^un-?flavou?red$/i.test(name.replace(/\s+/g, ""));
+const unflavouredFirst = (list) => [
+  ...list.filter((f) => isUnflavoured(f.name)),
+  ...list.filter((f) => !isUnflavoured(f.name)),
+];
+
+const perServing =(size, effectivePrice) => (size.servings ? Math.round(effectivePrice / size.servings) : null);
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -64,13 +70,15 @@ export default function ProductDetail() {
       .then((data) => {
         setProduct(data.data);
         setSelectedSizeId(data.data.sizes?.[0]?._id || null);
-        setSelectedFlavorId(data.data.flavors?.[0]?._id || null);
+        setSelectedFlavorId(unflavouredFirst(data.data.flavors || [])[0]?._id || null);
       })
       .catch((err) => setError(err.message));
   }, [slug]);
 
   const sizes = product?.sizes || [];
-  const flavors = product?.flavors || [];
+  // Unflavoured, when the product has it, always leads the picker (and is
+  // the default pick) — even on products saved before that rule existed.
+  const flavors = unflavouredFirst(product?.flavors || []);
   const hasSizes = sizes.length > 0;
 
   const currentSize = sizes.find((s) => s._id === selectedSizeId);
@@ -100,7 +108,7 @@ export default function ProductDetail() {
           flavorId: selectedFlavorId,
           quantity: 1,
           name: product.name,
-          image: product.thumbnail || currentFlavor?.image,
+          image: currentFlavor?.images?.[0] || product.thumbnail || currentFlavor?.image,
           price: effectivePrice,
           slug: product.slug,
           stock: currentSize.stock,
@@ -155,21 +163,34 @@ export default function ProductDetail() {
     );
   }
 
-  const galleryImages = product.images?.length ? product.images : [product.thumbnail];
+  // The selected flavour can override photos and copy (set per flavour in
+  // the admin panel). Each field falls back to the product's own value
+  // when the flavour leaves it empty, so flavours only carry what differs.
+  const view = {
+    images: currentFlavor?.images?.length ? currentFlavor.images : product.images,
+    shortDescription: currentFlavor?.shortDescription || product.shortDescription,
+    description: currentFlavor?.description || product.description,
+    ingredients: currentFlavor?.ingredients || product.ingredients,
+    nutritionHighlights: currentFlavor?.nutritionHighlights?.length
+      ? currentFlavor.nutritionHighlights
+      : product.nutritionHighlights,
+  };
+
+  const galleryImages = view.images?.length ? view.images : [product.thumbnail];
   const teaser =
-    product.shortDescription ||
-    (product.description
-      ? `${product.description.slice(0, 160)}${product.description.length > 160 ? "…" : ""}`
+    view.shortDescription ||
+    (view.description
+      ? `${view.description.slice(0, 160)}${view.description.length > 160 ? "…" : ""}`
       : "");
 
   const accordionBlock = (
     <div className="mt-6">
       <Accordion
         items={[
-          { title: "Product Details", content: product.description },
+          { title: "Product Details", content: view.description },
           { title: "How to use?", content: product.directionsOfUse },
           { title: "Who is this for?", content: product.whoIsThisFor },
-          { title: "Ingredients", content: product.ingredients },
+          { title: "Ingredients", content: view.ingredients },
         ]}
       />
     </div>
@@ -203,6 +224,9 @@ export default function ProductDetail() {
         <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[120px] lg:mx-auto lg:max-w-[561px] lg:self-start">
           <div className="overflow-hidden rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 shadow-green-glow">
             <Carousel
+              // Remount on flavour change so the gallery restarts at the
+              // new flavour's first photo instead of a stale slide index.
+              key={selectedFlavorId || "default"}
               ref={galleryRef}
               slides={galleryImages.map((src, i) => (
                 <img
@@ -308,9 +332,9 @@ export default function ProductDetail() {
               than a fixed column count because the number of stats varies
               per product — 5 for a whey, fewer for an accessory — and a
               fixed grid would leave gaps or squeeze them. */}
-          {product.nutritionHighlights?.length > 0 && (
+          {view.nutritionHighlights?.length > 0 && (
             <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(76px,1fr))] gap-2">
-              {product.nutritionHighlights.map((h) => (
+              {view.nutritionHighlights.map((h) => (
                 <div
                   key={h.label}
                   className="rounded-lg border border-white/10 bg-mdn-charcoal2 px-2 py-2.5 text-center"
@@ -414,7 +438,10 @@ export default function ProductDetail() {
                     <button
                       key={f._id}
                       type="button"
-                      onClick={() => setSelectedFlavorId(f._id)}
+                      onClick={() => {
+                        setSelectedFlavorId(f._id);
+                        setActiveImage(0);
+                      }}
                       className={`w-20 shrink-0 overflow-hidden rounded-xl border-2 text-center transition-all duration-200 ${
                         isSelected ? "border-mdn-green shadow-green-glow" : "border-white/10 hover:border-mdn-green/50"
                       }`}

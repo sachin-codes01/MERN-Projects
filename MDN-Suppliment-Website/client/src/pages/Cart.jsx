@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { useCartBadge } from "../context/CartBadgeContext";
 import { guestCart } from "../utils/guestCart";
 import MDNLoader from "../components/MDNLoader";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 export default function Cart() {
   const [cart, setCart] = useState(null);
@@ -146,7 +147,8 @@ export default function Cart() {
           // the order reversed, so any product with flavours showed the little
           // flavour swatch (a scoop of chocolate, a mango) in the cart instead
           // of the tub the customer actually bought.
-          const image = item.product?.thumbnail || item.image || flavorObj?.image;
+          // A flavour with its own photos shows its main photo instead.
+          const image = flavorObj?.images?.[0] || item.product?.thumbnail || item.image || flavorObj?.image;
           const flavor = flavorObj?.name || item.flavor;
           const weight = size?.weight || item.weight;
           const slug = item.product?.slug || item.slug;
@@ -193,15 +195,28 @@ export default function Cart() {
                 the image+text block instead. */}
             <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4 sm:justify-end sm:gap-6 sm:border-t-0 sm:pt-0">
               <div className="flex shrink-0 items-center rounded-lg border border-white/10 bg-mdn-charcoal2">
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
-                  disabled={item.quantity <= 1}
-                  aria-label="Decrease quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  −
-                </button>
+                {/* At quantity 1 the minus slot becomes a bin that removes
+                    the line — it replaces the separate Remove button, so
+                    stepping down past 1 is how an item leaves the cart. */}
+                {item.quantity <= 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(item._id)}
+                    aria-label="Remove item"
+                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-red-400 transition-colors hover:bg-white/5 hover:text-red-300"
+                  >
+                    <DeleteOutlineRoundedIcon sx={{ fontSize: 18 }} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
+                    aria-label="Decrease quantity"
+                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5"
+                  >
+                    −
+                  </button>
+                )}
                 <span className="w-8 shrink-0 text-center text-sm font-semibold text-mdn-white">
                   {item.quantity}
                 </span>
@@ -218,12 +233,6 @@ export default function Cart() {
               <p className="shrink-0 text-right font-mono text-base font-bold text-mdn-green">
                 ₹{item.priceAtAddition * item.quantity}
               </p>
-              <button
-                onClick={() => handleRemove(item._id)}
-                className="shrink-0 text-xs font-semibold text-red-400 transition-colors hover:text-red-300"
-              >
-                Remove
-              </button>
             </div>
           </div>
           );
