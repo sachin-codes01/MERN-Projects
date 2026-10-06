@@ -37,9 +37,9 @@ const unflavouredFirst = (list) => [
   ...list.filter((f) => !isUnflavoured(f.name)),
 ];
 
-const perServing =(size, effectivePrice) => (size.servings ? Math.round(effectivePrice / size.servings) : null);
+const perServing = (size, effectivePrice) => (size.servings ? Math.round(effectivePrice / size.servings) : null);
 
-export default function ProductDetail() {
+const ProductDetail = () => {
   const { slug } = useParams();
   const [product, setProduct] = useState(null);
   const [selectedSizeId, setSelectedSizeId] = useState(null);
@@ -144,7 +144,7 @@ export default function ProductDetail() {
   if (error && !product) {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <p className="text-lg font-semibold text-mdn-white">This product is currently not available.</p>
+        <p className="font-heading text-lg font-semibold text-mdn-ink">This product is currently not available.</p>
         <p className="mt-2 text-sm text-mdn-gray">We will add this soon.</p>
       </div>
     );
@@ -176,6 +176,8 @@ export default function ProductDetail() {
       : product.nutritionHighlights,
   };
 
+  const selectedPrice = currentSize ? getSizePrice(currentSize, currentFlavor?.priceAdjustment || 0) : null;
+
   const galleryImages = view.images?.length ? view.images : [product.thumbnail];
   const teaser =
     view.shortDescription ||
@@ -197,8 +199,8 @@ export default function ProductDetail() {
   );
 
   return (
-    <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
-      <div className="grid min-w-0 gap-10 lg:grid-cols-2">
+    <div className="mx-auto max-w-shell px-4 pb-8 pt-4 sm:px-6 sm:pt-6 lg:px-[34px]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-12">
         {/* Gallery — a plain, always-square image, capped so it never
             grows past a sane size on wide desktop columns.
 
@@ -221,8 +223,11 @@ export default function ProductDetail() {
             the taller (details) column, so the gallery unpins exactly when
             Add to Cart reaches its lower edge, and re-pins on the way back
             up. No scroll listener involved. */}
-        <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[120px] lg:mx-auto lg:max-w-[561px] lg:self-start">
-          <div className="overflow-hidden rounded-xl border border-mdn-green/20 bg-mdn-charcoal2 shadow-green-glow">
+        <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[calc(var(--nav-h,79px)+16px)] lg:self-start">
+          {/* Koi box/frame nahi. Desktop pe badi image ka size/jagah fixed (column ke
+              right me, 88px left offset), thumbnails uske theek neeche. */}
+          {/* Phone/tablet pe image screen ki poori width aur navbar se chipki (page padding ke bahar) */}
+          <div className="-mx-4 -mt-4 overflow-hidden sm:-mx-6 sm:-mt-6 lg:mx-0 lg:ml-[88px] lg:mt-0">
             <Carousel
               // Remount on flavour change so the gallery restarts at the
               // new flavour's first photo instead of a stale slide index.
@@ -239,7 +244,8 @@ export default function ProductDetail() {
                   // whichever edge doesn't fit — cutting off lids, labels
                   // and text. Contain fits the whole image inside the
                   // square instead, so nothing is ever cut.
-                  className="h-full w-full object-contain"
+                  // object-fill: poori photo frame me stretch hoti hai — kuch crop nahi
+                  className="h-full w-full object-fill"
                 />
               ))}
               // Auto-advances on its own, and `pauseOnHover` (the
@@ -252,15 +258,14 @@ export default function ProductDetail() {
               dotsPosition="overlay"
               showArrows
               onIndexChange={setActiveImage}
-              slideClassName="aspect-square"
+              slideClassName="aspect-[4/5] sm:aspect-square lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
             />
           </div>
 
-          {/* Thumbnail strip — 5 per row, wrapping to further rows when a
-              product has more shots. Clicking one drives the big carousel
-              above via its imperative `goTo`. */}
+          {/* Thumbnails — har screen pe badi image ke neeche ek row.
+              Click karne pe bada carousel us photo pe jata hai (`goTo`). */}
           {galleryImages.length > 1 && (
-            <div className="mt-3 grid grid-cols-5 gap-2">
+            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto lg:ml-[88px]">
               {galleryImages.map((src, i) => (
                 <button
                   key={i}
@@ -268,10 +273,8 @@ export default function ProductDetail() {
                   onClick={() => galleryRef.current?.goTo(i)}
                   aria-label={`Show photo ${i + 1}`}
                   aria-current={i === activeImage}
-                  className={`overflow-hidden rounded-lg border-2 bg-mdn-charcoal2 transition-all duration-200 ${
-                    i === activeImage
-                      ? "border-mdn-green shadow-green-glow"
-                      : "border-white/10 hover:border-mdn-green/50"
+                  className={`w-[18%] max-w-[84px] flex-shrink-0 overflow-hidden rounded-lg border-2 bg-mdn-sand transition-colors duration-200 ${
+                    i === activeImage ? "border-mdn-green" : "border-mdn-border hover:border-mdn-green/50"
                   }`}
                 >
                   <img
@@ -289,60 +292,43 @@ export default function ProductDetail() {
 
         </div>
 
-        {/* Details */}
+        {/* Details — reference PDP order: rating, title, stats, price, flavour, size, CTA */}
         <div className="min-w-0 animate-fade-up [animation-delay:100ms]">
-          {/* Brand in orange above the title, per the reference. */}
-          <p className="text-xs font-semibold uppercase tracking-widest text-mdn-orange">{product.brand}</p>
-          {/* font-body overrides the Didot default that h1-h4 inherit —
-              the product name is set in normal sans here. */}
-          <h1 className="mt-1 break-words font-body text-2xl font-bold text-mdn-white sm:text-3xl">
+          <div className="flex items-center justify-between gap-3">
+            {(() => {
+              const { value, stars, count, hasRating } = getDisplayRating(product);
+              if (!hasRating && count === 0) return <span />;
+              return (
+                <div className="flex items-center gap-2">
+                  <Stars stars={stars} />
+                  <span className="text-xs text-mdn-ink-muted sm:text-sm">
+                    {hasRating && `${value.toFixed(1)} `}({reviewCountLabel(count)})
+                  </span>
+                </div>
+              );
+            })()}
+            {product.brand && (
+              <p className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-mdn-orange-ink sm:text-[11px]">
+                {product.brand}
+              </p>
+            )}
+          </div>
+
+          <h1 className="mt-2 break-words font-heading text-[24px] font-bold leading-tight tracking-tight text-mdn-ink sm:text-[32px] lg:text-[36px]">
             {product.name}
           </h1>
 
-          {/* Rating comes from utils/rating.js (admin override, else the
-              real review average). The COUNT beside it is always the real
-              number of reviews — it reads "0 Reviews" on a product nobody
-              has reviewed yet, and rises on its own as reviews come in,
-              because the review endpoint recomputes ratingsCount on every
-              submission. */}
-          {(() => {
-            const { value, stars, count, hasRating } = getDisplayRating(product);
-            if (!hasRating && count === 0) return null;
-            return (
-              <div className="mt-2 flex items-center gap-2">
-                <Stars stars={stars} />
-                <span className="text-sm text-mdn-gray">
-                  {hasRating && `${value.toFixed(1)} `}({reviewCountLabel(count)})
-                </span>
-              </div>
-            );
-          })()}
+          {teaser && <p className="mt-2 break-words text-[15px] leading-relaxed text-mdn-ink-body sm:text-base">{teaser}</p>}
 
-          {teaser && <p className="mt-2 break-words text-sm leading-relaxed text-mdn-gray sm:text-base">{teaser}</p>}
-
-          {/* Dietary/goal suitability — sits above price because "is this
-              vegan / gluten-free" is a filter a buyer applies before they
-              look at anything else. Data already existed on the product;
-              it just wasn't rendered anywhere. */}
           <ProductTagRow product={product} />
 
-          {/* Nutrition highlights — per-product stat cards set in the
-              admin panel (Product.nutritionHighlights). Values carry their
-              own units, so they print exactly as entered. auto-fit rather
-              than a fixed column count because the number of stats varies
-              per product — 5 for a whey, fewer for an accessory — and a
-              fixed grid would leave gaps or squeeze them. */}
+          {/* Nutrition stats — reference jaisa ek hi bordered strip, beech me dividers */}
           {view.nutritionHighlights?.length > 0 && (
-            <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(76px,1fr))] gap-2">
+            <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] divide-x divide-mdn-border overflow-hidden rounded-xl border border-mdn-border bg-mdn-charcoal">
               {view.nutritionHighlights.map((h) => (
-                <div
-                  key={h.label}
-                  className="rounded-lg border border-white/10 bg-mdn-charcoal2 px-2 py-2.5 text-center"
-                >
-                  <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-mdn-gray">
-                    {h.label}
-                  </p>
-                  <p className="mt-0.5 truncate font-mono text-sm font-bold text-mdn-green sm:text-base">
+                <div key={h.label} className="px-1.5 py-2.5 text-center">
+                  <p className="truncate text-[11px] font-medium text-mdn-ink-muted sm:text-xs">{h.label}</p>
+                  <p className="mt-0.5 truncate font-heading text-[15px] font-bold text-mdn-green-title sm:text-[17px]">
                     {h.value}
                   </p>
                 </div>
@@ -350,14 +336,68 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* Size picker — independent of flavor: every size is always
-              shown here. Its price already reflects whichever flavor is
-              currently selected below (base size price +/- that flavor's
-              adjustment), so switching flavor updates these prices live. */}
+          {/* Price block — selected size + flavour ka final price */}
+          {selectedPrice && (
+            <div className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-mdn-border pb-5">
+              <span className="font-heading text-[30px] font-bold leading-none tracking-tight text-mdn-ink sm:text-[36px]">
+                ₹{selectedPrice.effectivePrice}
+              </span>
+              {selectedPrice.discountPrice && (
+                <span className="text-[15px] text-mdn-ink-muted">
+                  MRP <span className="line-through">₹{selectedPrice.price}</span>
+                </span>
+              )}
+              {selectedPrice.discountPct > 0 && <span className="badge-save">Save {selectedPrice.discountPct}%</span>}
+              <span className="w-full text-xs text-mdn-ink-muted">Inclusive of all taxes</span>
+            </div>
+          )}
+
+          {/* Flavour picker — size se independent, sirf price shift karta hai */}
+          {flavors.length >= 1 && (
+            <div className="mt-5">
+              <p className="font-heading text-[15px] font-semibold text-mdn-ink sm:text-base">
+                Choose Flavour
+                {currentFlavor && <span className="ml-1.5 font-normal text-mdn-ink-muted">{currentFlavor.name}</span>}
+              </p>
+              <div className="mt-2.5 grid grid-cols-4 gap-2 sm:grid-cols-5">
+                {flavors.map((f) => {
+                  const isSelected = selectedFlavorId === f._id;
+                  return (
+                    <button
+                      key={f._id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedFlavorId(f._id);
+                        setActiveImage(0);
+                      }}
+                      aria-pressed={isSelected}
+                      className={`press overflow-hidden rounded-lg border-2 bg-mdn-charcoal text-center transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow ${
+                        isSelected ? "border-mdn-green" : "border-mdn-border hover:border-mdn-green/50"
+                      }`}
+                    >
+                      <span className="relative block aspect-square w-full bg-white">
+                        {f.image && <img src={f.image} alt={f.name} className="h-full w-full object-fill" />}
+                        {isSelected && (
+                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mdn-green text-mdn-on-primary">
+                            <CheckRoundedIcon sx={{ fontSize: 11 }} />
+                          </span>
+                        )}
+                      </span>
+                      <span className="block px-1 py-1.5 line-clamp-1 text-[12px] font-medium leading-tight text-mdn-ink sm:text-[13px]">
+                        {f.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Size picker — har size ka price selected flavour ke hisaab se */}
           {hasSizes && (
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-mdn-white">Choose Size</label>
-              <div className="mt-2 space-y-1.5 sm:space-y-2">
+            <div className="mt-5">
+              <p className="font-heading text-[15px] font-semibold text-mdn-ink sm:text-base">Choose Size</p>
+              <div className="mt-2.5 space-y-2.5">
                 {sizes.map((s) => {
                   const { price, discountPrice, effectivePrice, discountPct: pct } = getSizePrice(
                     s,
@@ -371,95 +411,47 @@ export default function ProductDetail() {
                       type="button"
                       disabled={s.stock <= 0}
                       onClick={() => setSelectedSizeId(s._id)}
-                      className={`relative flex w-full items-center justify-between gap-3 rounded-xl border-2 px-2.5 pb-3.5 pt-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:gap-4 sm:px-3 sm:pb-4 sm:pt-3 ${
-                        isSelected ? "border-mdn-green bg-mdn-green/5" : "border-white/10 hover:border-mdn-green/40"
+                      aria-pressed={isSelected}
+                      className={`press relative flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-3.5 text-left transition-[border-color,background-color,box-shadow] duration-200 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 ${
+                        isSelected
+                          ? "border-mdn-green bg-mdn-green-soft/60 ring-1 ring-mdn-green"
+                          : "border-mdn-border bg-mdn-charcoal hover:border-mdn-green/40"
                       }`}
                     >
-                      {pct > 0 && (
-                        <span className="absolute -top-2 right-3 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                          Save {pct}%
-                        </span>
-                      )}
-                      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                      {pct > 0 && <span className="badge-save absolute -top-2 right-3">Save {pct}%</span>}
+                      <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                         <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 sm:h-5 sm:w-5 ${
-                            isSelected ? "border-mdn-green" : "border-mdn-silver/40"
+                          className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
+                            isSelected ? "border-mdn-green" : "border-mdn-border-strong"
                           }`}
                         >
-                          {isSelected && <span className="h-2 w-2 rounded-full bg-mdn-green sm:h-2.5 sm:w-2.5" />}
+                          {isSelected && <span className="h-2 w-2 rounded-full bg-mdn-green" />}
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-mdn-white sm:text-base">{s.weight}</p>
-                          {s.supplyLabel && <p className="truncate text-xs text-mdn-gray">{s.supplyLabel}</p>}
+                          <p className="truncate font-heading text-[15px] font-semibold text-mdn-ink sm:text-base">{s.weight}</p>
+                          {s.supplyLabel && <p className="truncate text-xs text-mdn-ink-muted">{s.supplyLabel}</p>}
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <p className="font-mono text-sm font-bold text-mdn-green sm:text-base">
+                        <p className="font-heading text-[15px] font-bold tabular-nums text-mdn-ink sm:text-base">
                           ₹{effectivePrice}
                           {discountPrice && (
-                            <span className="ml-1.5 text-xs font-medium text-mdn-gray line-through">₹{price}</span>
+                            <span className="ml-1.5 text-xs font-normal text-mdn-ink-muted line-through">₹{price}</span>
                           )}
                         </p>
                         {s.servings && (
-                          <p className="text-[11px] text-mdn-gray">
-                            ({s.servings} servings; ₹{perServ}/serving)
+                          <p className="text-xs text-mdn-ink-muted">
+                            {s.servings} servings · ₹{perServ}/serving
                           </p>
                         )}
-                        {/* Per-card, not a shared line elsewhere on the page —
-                            so it's unambiguous exactly which size it's
-                            talking about. */}
                         {s.stock <= 0 ? (
-                          <p className="text-[11px] font-semibold text-red-400">Out of stock</p>
+                          <p className="text-[11px] font-semibold text-mdn-danger">Out of stock</p>
                         ) : (
                           s.stock <= 10 && (
-                            <p className="text-[11px] font-semibold text-orange-400">Only {s.stock} left</p>
+                            <p className="text-[11px] font-semibold text-mdn-stock-low">Only {s.stock} left</p>
                           )
                         )}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Flavor picker — fully independent of size: choosing a flavor
-              never changes which sizes are available, it only shifts the
-              price of whichever size is currently selected. */}
-          {flavors.length >= 1 && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-mdn-white">
-                Choose Flavor{currentFlavor ? ` — ${currentFlavor.name}` : ""}
-              </label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {flavors.map((f) => {
-                  const isSelected = selectedFlavorId === f._id;
-                  return (
-                    <button
-                      key={f._id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedFlavorId(f._id);
-                        setActiveImage(0);
-                      }}
-                      className={`w-20 shrink-0 overflow-hidden rounded-xl border-2 text-center transition-all duration-200 ${
-                        isSelected ? "border-mdn-green shadow-green-glow" : "border-white/10 hover:border-mdn-green/50"
-                      }`}
-                    >
-                      {/* No padding here — the image runs edge-to-edge to
-                          the card border, `overflow-hidden` on the button
-                          itself clips it to the rounded corners. */}
-                      <span className="relative block h-16 w-full bg-white">
-                        {f.image && <img src={f.image} alt={f.name} className="h-full w-full object-fill" />}
-                        {isSelected && (
-                          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-mdn-orange text-white">
-                            <CheckRoundedIcon sx={{ fontSize: 11 }} />
-                          </span>
-                        )}
-                      </span>
-                      <span className="block bg-white px-1 py-1 line-clamp-1 text-xs font-bold text-black">
-                        {f.name}
-                      </span>
                     </button>
                   );
                 })}
@@ -471,7 +463,7 @@ export default function ProductDetail() {
             ref={atcRef}
             onClick={handleAddToCart}
             disabled={outOfStock || adding}
-            className="btn-primary mt-6 w-full !py-3"
+            className="btn-primary mt-6 min-h-[54px] w-full !py-3.5 text-base"
           >
             {!hasSizes
               ? "Currently Unavailable"
@@ -479,10 +471,10 @@ export default function ProductDetail() {
               ? "Out of Stock"
               : adding
               ? "Adding..."
-              : "Add to Cart"}
+              : `Add to Cart | ₹${selectedPrice.effectivePrice}`}
           </button>
 
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-3 text-sm text-mdn-danger">{error}</p>}
         </div>
       </div>
 
@@ -490,19 +482,21 @@ export default function ProductDetail() {
           under the buy box. `ProductBenefits` below carries the PRODUCT's
           own claims (per-product, set in admin); these four are the
           site-wide guarantees, so the two do not repeat each other. */}
-      <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-6 rounded-2xl border border-mdn-border bg-mdn-sand px-4 py-6 sm:px-8 lg:grid-cols-4">
+      <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-5 rounded-2xl border border-mdn-border bg-mdn-sand px-4 py-5 sm:mt-10 sm:px-8 sm:py-6 lg:grid-cols-4">
         {TRUST_ITEMS.map(({ title, sub, Icon }) => (
-          <li key={title} className="flex items-center justify-center gap-3 text-left">
-            <Icon aria-hidden="true" className="shrink-0 text-mdn-green" sx={{ fontSize: 26 }} />
+          <li key={title} className="flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-center sm:text-left">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mdn-charcoal text-mdn-green shadow-xs">
+              <Icon aria-hidden="true" sx={{ fontSize: 21 }} />
+            </span>
             <span className="min-w-0">
-              <span className="block text-[13px] font-bold leading-tight text-mdn-ink">{title}</span>
-              <span className="block text-[11px] leading-tight text-mdn-ink-body">{sub}</span>
+              <span className="block font-heading text-sm font-semibold leading-tight text-mdn-ink sm:text-[15px]">{title}</span>
+              <span className="block text-xs leading-tight text-mdn-ink-body">{sub}</span>
             </span>
           </li>
         ))}
       </ul>
 
-      <div className="mt-10">
+      <div className="mt-8 sm:mt-10">
         {isDesktop && accordionBlock}
 
         {/* Nutrition table, shelf-life dates and safety warnings. All of
@@ -520,19 +514,20 @@ export default function ProductDetail() {
 
       {/* Two stacked promo posters — top is full width at half the
           bottom poster's height at every breakpoint (h-40/h-80,
-          sm:h-52/h-[26rem], lg:h-64/h-[32rem]). */}
+          sm:h-52/h-[26rem], lg:h-64/h-[32rem]). Image box me stretch hoti
+          hai (object-fill) — poora poster dikhta hai, crop nahi. */}
       {(product.posterTop || product.posterBottom) && (
-        <div className="mt-16">
-          <div className="h-40 overflow-hidden rounded-xl border border-white/10 bg-mdn-charcoal2 sm:h-52 lg:h-64">
+        <div className="mt-10 sm:mt-14">
+          <div className="h-40 overflow-hidden rounded-xl border border-mdn-border bg-mdn-charcoal2 sm:h-52 lg:h-64">
             {product.posterTop ? (
-              <img src={product.posterTop} alt="" className="h-full w-full object-cover" />
+              <img src={product.posterTop} alt="" className="h-full w-full object-fill" />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-mdn-gray">Poster space</div>
             )}
           </div>
-          <div className="mt-4 h-80 overflow-hidden rounded-xl border border-white/10 bg-mdn-charcoal2 sm:h-[26rem] lg:h-[32rem]">
+          <div className="mt-4 h-80 overflow-hidden rounded-xl border border-mdn-border bg-mdn-charcoal2 sm:h-[26rem] lg:h-[32rem]">
             {product.posterBottom ? (
-              <img src={product.posterBottom} alt="" className="h-full w-full object-cover" />
+              <img src={product.posterBottom} alt="" className="h-full w-full object-fill" />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-mdn-gray">Poster space</div>
             )}
@@ -563,9 +558,9 @@ export default function ProductDetail() {
       />
     </div>
   );
-}
+};
 
-function Stars({ stars }) {
+const Stars = ({ stars }) => {
   const filled = Math.max(0, Math.min(5, stars));
   return (
     <div className="flex gap-0.5 text-mdn-star">
@@ -576,4 +571,6 @@ function Stars({ stars }) {
       ))}
     </div>
   );
-}
+};
+
+export default ProductDetail;

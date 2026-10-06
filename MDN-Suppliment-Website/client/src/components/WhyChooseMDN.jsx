@@ -27,7 +27,7 @@ const FEATURES = [
 // second section — "Lab Tested" and "No Banned Substances" below carry
 // those claims. The footer link was renamed to match, so the anchor is
 // `why-choose-mdn` rather than the old `why-one`.
-export default function WhyChooseMDN() {
+const WhyChooseMDN = () => {
   return (
     // Full-bleed tinted BAND, not a rounded card. In the reference this
     // section runs edge to edge with no corner radius and no gutter —
@@ -43,38 +43,41 @@ export default function WhyChooseMDN() {
     // the scrollbar's width and drags the inner wrapper a few px off,
     // leaving this band's content misaligned against every other
     // section's left edge.
-    <section id="why-choose-mdn" className="w-full bg-mdn-sand py-9 sm:py-10 lg:py-12">
-      <div className="mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
+    <section id="why-choose-mdn" className="band-soft ambient w-full">
+      <div className="section">
         {/* Left pitch / right feature grid. The 0.85fr : 1.6fr split (not
             a plain 1:1) matches the reference, where the copy column is
             noticeably narrower than the six-item grid beside it. Below
             `lg` the two stack and the divider rule is dropped. */}
-        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.6fr] lg:gap-14">
+        <div className="grid gap-6 lg:grid-cols-[0.85fr_1.6fr] lg:items-center lg:gap-14">
           <Reveal from="up" className="lg:pr-4">
             {/* `.eyebrow`, not a green label. Two reasons: dark-mode
                 --green-primary on the dark sand band measured 3.31:1,
                 and every other section on the page introduces itself
                 with `.eyebrow` — this was the only one using a coloured
                 variant, so it read as a different kind of thing. */}
-            <p className="eyebrow">Why Choose MDN</p>
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true" className="h-px w-5 bg-mdn-orange-ink" />
+              <p className="eyebrow">Why Choose MDN</p>
+            </div>
 
             {/* font-body overrides the Didot default on h2. This heading
                 is a heavy uppercase SANS in the reference — the didone is
                 reserved for the centred section titles elsewhere on the
                 page, and mixing the two here would flatten that
                 distinction. */}
-            <h2 className="mt-3 font-body text-[26px] font-extrabold uppercase leading-[1.12] tracking-[-0.01em] text-mdn-ink sm:text-[32px]">
+            <h2 className="display-xl mt-1.5">
               Powered by science.
               <br />
-              Backed by <span className="text-mdn-orange">results.</span>
+              Backed by <span className="display-accent">results.</span>
             </h2>
 
-            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-mdn-ink-body">
+            <p className="mt-3 max-w-[42ch] text-[15px] leading-relaxed text-mdn-ink-body sm:text-base">
               At MDN, we believe in clean nutrition, premium ingredients and real results. Fuel your
               body with the best.
             </p>
 
-            <Link to="/products" className="btn-primary group mt-7 !px-5 !py-2.5 text-[11px]">
+            <Link to="/products" className="btn-primary group mt-5 !px-5 !py-2.5">
               Know More
               <svg
                 width="14"
@@ -94,18 +97,24 @@ export default function WhyChooseMDN() {
           {/* Hairline rule between the two halves, desktop only. Drawn as a
               left border on this column rather than a separate grid track,
               so it always spans the taller of the two columns. */}
-          <ul className="grid gap-x-10 gap-y-7 sm:grid-cols-2 lg:border-l lg:border-mdn-border-strong lg:pl-14">
+          <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
             {FEATURES.map(({ title, desc, Icon }, i) => (
-              <Reveal as="li" key={title} from="up" delay={i * 0.06} className="flex items-start gap-3.5">
+              <Reveal
+                as="li"
+                key={title}
+                from="up"
+                delay={i * 0.06}
+                className="lift group flex flex-col gap-3 rounded-xl border border-mdn-border bg-mdn-charcoal p-4 shadow-xs sm:flex-row sm:items-start sm:gap-3.5 sm:p-5"
+              >
                 <span
                   aria-hidden="true"
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-mdn-blush text-mdn-green"
+                  className="lift-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-mdn-green-soft text-mdn-green transition-colors duration-300 group-hover:bg-mdn-green group-hover:text-mdn-on-primary"
                 >
-                  <Icon sx={{ fontSize: 21 }} />
+                  <Icon sx={{ fontSize: 22 }} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[15px] font-bold leading-snug text-mdn-ink">{title}</p>
-                  <p className="mt-0.5 text-[13px] leading-snug text-mdn-ink-body">{desc}</p>
+                  <p className="font-heading text-[15px] font-semibold leading-snug text-mdn-ink sm:text-base">{title}</p>
+                  <p className="mt-1 text-[13px] leading-snug text-mdn-ink-muted sm:text-sm">{desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -114,4 +123,6 @@ export default function WhyChooseMDN() {
       </div>
     </section>
   );
-}
+};
+
+export default WhyChooseMDN;

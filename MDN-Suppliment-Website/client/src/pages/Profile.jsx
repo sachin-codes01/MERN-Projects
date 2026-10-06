@@ -165,7 +165,7 @@ export default function Profile() {
   };
 
   const fieldClass = (name) =>
-    `input-field ${fieldErrors[name] ? "!border-red-500/60 focus:!border-red-500 focus:!ring-red-500/25" : ""}`;
+    `input-field ${fieldErrors[name] ? "!border-mdn-danger/60 focus:!border-mdn-danger focus:!ring-mdn-danger/25" : ""}`;
 
   if (loading) {
     return <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6"><MDNLoader label="Loading profile" /></div>;
@@ -173,7 +173,7 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-mdn-white">My Profile</h2>
+      <h2 className="display-xl">My Profile</h2>
 
       {/* User info card */}
       <div className="card mt-6 flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:text-left">
@@ -203,7 +203,7 @@ export default function Profile() {
       {/* Appearance */}
       <div className="card mt-6 flex items-center justify-between p-5">
         <div>
-          <p className="text-sm font-bold uppercase tracking-wide text-mdn-white">Appearance</p>
+          <p className="font-heading text-base font-semibold text-mdn-ink">Appearance</p>
           <p className="mt-1 text-sm text-mdn-gray">
             {isDark ? "Dark mode — black & green." : "Light mode — white, silver & green."}
           </p>
@@ -214,7 +214,7 @@ export default function Profile() {
       {/* Saved addresses */}
       <div className="mt-8">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Saved Addresses</h3>
+          <h3 className="font-heading text-base font-semibold text-mdn-ink">Saved Addresses</h3>
           {!formOpen && (
             <button onClick={openAddForm} className="btn-primary !px-4 !py-1.5 text-xs">
               + Add Address
@@ -222,12 +222,12 @@ export default function Profile() {
           )}
         </div>
 
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-2 text-sm text-mdn-danger">{error}</p>}
 
         {/* Add / Edit form */}
         {formOpen && (
           <form onSubmit={handleSaveAddress} noValidate className="card mt-4 space-y-4 p-4 sm:p-5">
-            <h4 className="text-sm font-bold uppercase tracking-wide text-mdn-white">
+            <h4 className="font-heading text-base font-semibold text-mdn-ink">
               {editingId ? "Edit Address" : "New Address"}
             </h4>
 
@@ -241,33 +241,33 @@ export default function Profile() {
               />
               <div>
                 <input name="fullName" placeholder="Full name" value={form.fullName} onChange={handleChange} className={fieldClass("fullName")} />
-                {fieldErrors.fullName && <p className="mt-1 text-xs text-red-400">{fieldErrors.fullName}</p>}
+                {fieldErrors.fullName && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.fullName}</p>}
               </div>
             </div>
 
             <div>
               <input name="phone" placeholder="Phone number" value={form.phone} onChange={handleChange} className={fieldClass("phone")} />
-              {fieldErrors.phone && <p className="mt-1 text-xs text-red-400">{fieldErrors.phone}</p>}
+              {fieldErrors.phone && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.phone}</p>}
             </div>
 
             <div>
               <input name="line1" placeholder="Address" value={form.line1} onChange={handleChange} className={`${fieldClass("line1")} w-full`} />
-              {fieldErrors.line1 && <p className="mt-1 text-xs text-red-400">{fieldErrors.line1}</p>}
+              {fieldErrors.line1 && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.line1}</p>}
             </div>
             <input name="line2" placeholder="Address line 2 (optional)" value={form.line2} onChange={handleChange} className="input-field w-full" />
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <input name="city" placeholder="City" value={form.city} onChange={handleChange} className={fieldClass("city")} />
-                {fieldErrors.city && <p className="mt-1 text-xs text-red-400">{fieldErrors.city}</p>}
+                {fieldErrors.city && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.city}</p>}
               </div>
               <div>
                 <input name="state" placeholder="State" value={form.state} onChange={handleChange} className={fieldClass("state")} />
-                {fieldErrors.state && <p className="mt-1 text-xs text-red-400">{fieldErrors.state}</p>}
+                {fieldErrors.state && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.state}</p>}
               </div>
               <div>
                 <input name="pincode" placeholder="Pincode" value={form.pincode} onChange={handleChange} className={fieldClass("pincode")} />
-                {fieldErrors.pincode && <p className="mt-1 text-xs text-red-400">{fieldErrors.pincode}</p>}
+                {fieldErrors.pincode && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.pincode}</p>}
               </div>
             </div>
 
@@ -329,7 +329,7 @@ export default function Profile() {
                   <button
                     onClick={() => handleDelete(addr._id)}
                     disabled={deletingId === addr._id}
-                    className="text-xs font-semibold text-red-400 hover:underline disabled:opacity-50"
+                    className="text-xs font-semibold text-mdn-danger hover:underline disabled:opacity-50"
                   >
                     {deletingId === addr._id ? "Removing..." : "Delete"}
                   </button>
@@ -340,7 +340,7 @@ export default function Profile() {
         )}
       </div>
 
-      <button onClick={handleLogout} className="btn-secondary mt-8 !px-6 text-red-400 hover:!border-red-500/50">
+      <button onClick={handleLogout} className="btn-secondary mt-8 !px-6 text-mdn-danger hover:!border-mdn-danger/50">
         Logout
       </button>
     </div>

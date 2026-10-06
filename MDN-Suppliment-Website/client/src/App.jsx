@@ -69,107 +69,110 @@ export default function App() {
           }
         >
           <Suspense fallback={<MDNLoader label="Loading" className="py-24" />}>
-            <Routes>
-              {/* Public — browsable without login */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/products/section/:section" element={<SectionProducts />} />
-              <Route path="/products/:slug" element={<ProductDetail />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/support" element={<CustomerSupportPage />} />
-              <Route path="/blogs" element={<Blogs />} />
-              <Route path="/blogs/:slug" element={<BlogDetail />} />
+            {/* Har route change pe halka fade + rise (key se remount) */}
+            <div key={location.pathname} className="page-enter">
+              <Routes>
+                {/* Public — browsable without login */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/products/section/:section" element={<SectionProducts />} />
+                <Route path="/products/:slug" element={<ProductDetail />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/support" element={<CustomerSupportPage />} />
+                <Route path="/blogs" element={<Blogs />} />
+                <Route path="/blogs/:slug" element={<BlogDetail />} />
 
-              {/* Requires login — contacting support is gated so every
-                  enquiry is tied to a real account and the email field can
-                  be trusted (and therefore locked) in the form. */}
-              <Route
-                path="/contact"
-                element={
-                  <ProtectedRoute>
-                    <ContactPage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Requires login — contacting support is gated so every
+                    enquiry is tied to a real account and the email field can
+                    be trusted (and therefore locked) in the form. */}
+                <Route
+                  path="/contact"
+                  element={
+                    <ProtectedRoute>
+                      <ContactPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Requires login */}
-              <Route
-                path="/checkout"
-                element={
-                  <ProtectedRoute>
-                    <Checkout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/orders"
-                element={
-                  <ProtectedRoute>
-                    <Orders />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Requires login */}
+                <Route
+                  path="/checkout"
+                  element={
+                    <ProtectedRoute>
+                      <Checkout />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/orders"
+                  element={
+                    <ProtectedRoute>
+                      <Orders />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin */}
-              <Route
-                path="/admin/products"
-                element={
-                  <AdminRoute>
-                    <AdminProducts />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/orders"
-                element={
-                  <AdminRoute>
-                    <AdminOrders />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <AdminRoute>
-                    <AdminUsers />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/coupons"
-                element={
-                  <AdminRoute>
-                    <AdminCoupons />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/settings"
-                element={
-                  <AdminRoute>
-                    <AdminSettings />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/enquiries"
-                element={
-                  <AdminRoute>
-                    <AdminEnquiries />
-                  </AdminRoute>
-                }
-              />
-            </Routes>
+                {/* Admin */}
+                <Route
+                  path="/admin/products"
+                  element={
+                    <AdminRoute>
+                      <AdminProducts />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/orders"
+                  element={
+                    <AdminRoute>
+                      <AdminOrders />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <AdminRoute>
+                      <AdminUsers />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/coupons"
+                  element={
+                    <AdminRoute>
+                      <AdminCoupons />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <AdminRoute>
+                      <AdminSettings />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/enquiries"
+                  element={
+                    <AdminRoute>
+                      <AdminEnquiries />
+                    </AdminRoute>
+                  }
+                />
+              </Routes>
+            </div>
           </Suspense>
         </ErrorBoundary>
       </main>

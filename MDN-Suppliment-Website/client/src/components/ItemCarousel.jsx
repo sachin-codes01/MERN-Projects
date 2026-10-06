@@ -21,6 +21,8 @@ export default function ItemCarousel({
   itemClassName = "w-[78%] sm:w-[46%] lg:w-[23%]",
   showDots = true,
   showArrows = true,
+  // Reference jaisa patli progress line (dots ki jagah) — kitna scroll hua dikhata hai
+  showProgress = false,
 }) {
   const containerRef = useRef(null);
   const viewportRef = useRef(null);
@@ -394,7 +396,7 @@ export default function ItemCarousel({
       >
         <div
           ref={trackRef}
-          className={`flex py-4 ${gapClassName} ${fitsInRow ? "justify-center" : ""}`}
+          className={`-my-2 flex py-6 ${gapClassName} ${fitsInRow ? "justify-center" : ""}`}
           style={{
             transform: `translateX(calc(-${positionFor(index)}px + ${dragOffset + wheelOffset}px))`,
             // No easing while a drag or trackpad gesture is live, so the
@@ -411,25 +413,44 @@ export default function ItemCarousel({
           ))}
         </div>
 
+        {/* Arrow tabhi jab us taraf jaane ko kuch ho — warna start pe left arrow
+            bina wajah pehle card ko dhak deta tha. Autoplay carousels loop karte
+            hain, isliye unme dono hamesha dikhte hain. */}
         {showArrows && maxIndex > 0 && (
           <>
-            <SliderArrow
-              direction="left"
-              onClick={() => {
-                goTo(index - 1);
-                startAutoplay();
-              }}
-            />
-            <SliderArrow
-              direction="right"
-              onClick={() => {
-                goTo(index + 1);
-                startAutoplay();
-              }}
-            />
+            {(autoPlay || index > 0) && (
+              <SliderArrow
+                direction="left"
+                onClick={() => {
+                  goTo(index - 1);
+                  startAutoplay();
+                }}
+              />
+            )}
+            {(autoPlay || index < maxIndex) && (
+              <SliderArrow
+                direction="right"
+                onClick={() => {
+                  goTo(index + 1);
+                  startAutoplay();
+                }}
+              />
+            )}
           </>
         )}
       </div>
+
+      {showProgress && maxIndex > 0 && (
+        <div aria-hidden="true" className="mx-auto mt-3 h-[3px] w-40 overflow-hidden rounded-full bg-mdn-border-strong/60 sm:w-56">
+          <div
+            className="h-full rounded-full bg-mdn-orange-solid transition-[margin] duration-500 ease-brand"
+            style={{
+              width: `${Math.max(18, 100 / (maxIndex + 1))}%`,
+              marginLeft: `${(index / maxIndex) * (100 - Math.max(18, 100 / (maxIndex + 1)))}%`,
+            }}
+          />
+        </div>
+      )}
 
       {showDots && maxIndex > 0 && (
         <div className="mt-5 flex justify-center gap-2">
@@ -443,7 +464,7 @@ export default function ItemCarousel({
               }}
               aria-label={`Go to position ${i + 1}`}
               className={`tap-44 h-2 rounded-full transition-all duration-300 ${
-                i === index ? "w-6 bg-mdn-green" : "w-2 bg-white/25 hover:bg-white/45"
+                i === index ? "w-6 bg-mdn-green" : "w-2 bg-mdn-border-strong hover:bg-mdn-ink-muted"
               }`}
             />
           ))}

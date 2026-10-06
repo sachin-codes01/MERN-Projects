@@ -1,14 +1,18 @@
+import { useRef } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "motion/react";
+import { EASE_OUT_QUINT, EASE_OUT_EXPO } from "../lib/easings";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import bannerVideo from "../assets/mdn-hero-banner.mp4";
+import mobileBannerVideo from "../assets/banner for mobile.mp4";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { SHOP_CATEGORIES } from "../data/shopCategories";
 
-// The five reassurances shown in the panel over the banner's bottom edge.
-// Split into `value` (the number/short claim, set large) and `label` (what
-// it refers to, set small and uppercase) so the row scans as five figures
-// rather than five sentences.
+// Banner ke neeche wali trust row ke paanch points.
 const TRUST_ITEMS = [
   { value: "11+", label: "Happy Customers", Icon: PersonOutlineRoundedIcon },
   { value: "50K+", label: "Orders Delivered", Icon: Inventory2OutlinedIcon },
@@ -17,105 +21,162 @@ const TRUST_ITEMS = [
   { value: "24/7", label: "Customer Support", Icon: HeadsetMicOutlinedIcon },
 ];
 
-export default function Hero() {
+// Hero entrance ka sequence: banner → Shop Now → trust chips → categories.
+// Sab mount pe chalta hai (scroll pe nahi), aur stagger se ek-ek karke aata hai.
+const rise = (delay, y = 14) => ({
+  initial: { opacity: 0, y },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, delay, ease: EASE_OUT_QUINT },
+});
+
+const Hero = () => {
+  // Phone pe portrait video (478x850), tablet/desktop pe landscape (16:9).
+  // Ek hi <video> render hota hai — dono ek saath load nahi hote.
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  // Portrait tablet pe 16:9 video ko window-height tak kheenchna use bahut
+  // pichka deta — wahan banner apne natural 16:9 shape me rehta hai.
+  const isPortraitTablet = useMediaQuery("(min-width: 768px) and (orientation: portrait)");
+  const fitWindow = !isPortraitTablet;
+
+  // Mouse banner pe aaye to video ruke, hate to phir chale. Sirf asli mouse
+  // (hover: hover) pe — phone pe tap se video atakna nahi chahiye.
+  const videoRef = useRef(null);
+  const canHover = useMediaQuery("(hover: hover)");
+  const pauseVideo = () => canHover && videoRef.current?.pause();
+  const playVideo = () => {
+    if (!canHover || !videoRef.current) return;
+    // play() promise reject ho sakta hai (e.g. tab background me) — ignore
+    videoRef.current.play().catch(() => {});
+  };
+
   return (
-    <section className="relative">
-      {/* Banner — still full-bleed, but its BOTTOM corners are curved so
-          the artwork ends on a soft edge rather than a hard rule, per the
-          reference. `overflow-hidden` is what actually clips the carousel
-          images to that radius; without it the radius sits on the box and
-          the image corners still square it off.
+    <section className="relative mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
+      {/* Banner ke neeche halki brand glow — sirf desktop, static (koi loop nahi) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-[8%] bottom-[10%] -z-10 hidden h-56 bg-[radial-gradient(ellipse_at_center,rgb(var(--green-mid)/0.16),transparent_70%)] lg:block"
+      />
 
-          The radius scales up with the viewport: a 32px curve that reads
-          as a deliberate sweep on a phone looks like a rounding error
-          across a 1536px banner. */}
-      <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen overflow-hidden rounded-b-[28px] bg-mdn-black sm:rounded-b-[40px] lg:rounded-b-[56px]">
-        {/* One video, no carousel. The box is `aspect-video` because the
-            source is 1920x1080 — matching the box to the file means the
-            full frame is visible at every width with nothing cropped,
-            which the old 4:5 mobile box could not have done. There is
-            deliberately no max-height cap: capping it would make the box
-            shorter than 16:9 on wide screens and squash the video.
-            Swap the ratio here if a re-cut banner ships at a new size. */}
-        <video
-          src={bannerVideo}
-          // The four attributes below are what let a video play on its own:
-          // iOS/Android refuse to autoplay anything with sound, and refuse
-          // to play inline without `playsInline` (it goes fullscreen
-          // instead). Dropping `muted` silently breaks autoplay on mobile.
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-label="MDN promotional banner"
-          // object-fill, not cover/contain, by request: the whole frame
-          // must always be visible. Cover crops the edges off and contain
-          // adds letterbox bars — fill stretches the video to the box
-          // instead, so nothing is ever cut away. With the box set to
-          // aspect-video and the source at 1920x1080 the ratios match, so
-          // in practice there is no stretch to see either.
-          //
-          // Desktop (lg+) only: a 16:9 box on a wide window is taller than
-          // the screen, so there the box is sized so banner + trust bar
-          // together fit the first screen: 100svh minus the sticky navbar
-          // (~112px at lg: logo row + link row), the trust bar's part below
-          // the banner (~96px tall − 14px overlap = 82px) and a small 4px
-          // gap so the card doesn't sit hard against the screen's edge.
-          // The video switches to object-cover — fill would visibly squash
-          // it at that ratio. Phones/tablets keep the aspect-video box above.
-          className="aspect-video h-full w-full bg-mdn-charcoal2 object-fill lg:aspect-auto lg:h-[calc(100svh-198px)] lg:object-cover"
-        />
+      {/* Banner + trust row milke ek window ki height lete hain (navbar ke neeche),
+          taaki trust row hamesha first screen ke bottom pe dikhe. Banner bachi
+          hui jagah bharta hai aur video usme stretch hota hai (crop nahi). */}
+      <div
+        className={`flex flex-col pb-3 pt-3 sm:pb-4 sm:pt-4 ${
+          fitWindow ? "h-[calc(100svh-var(--nav-h,72px))] min-h-[420px]" : ""
+        }`}
+      >
+        {/* Reference jaisa inset banner — halka zoom-out ke saath settle hota hai */}
+        <motion.div
+          initial={{ opacity: 0.4, scale: 1.025 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.1, ease: EASE_OUT_EXPO }}
+          className="relative min-h-0 flex-1 rounded-[18px] bg-mdn-charcoal2 shadow-lg sm:rounded-[24px]"
+        >
+          {/* Video ki rounded clipping alag GPU layer pe — warna scroll karte waqt
+              Chrome me rounded corners wala video flicker karta tha. */}
+          <div
+            className="relative h-full overflow-hidden rounded-[inherit]"
+            onMouseEnter={pauseVideo}
+            onMouseLeave={playVideo}
+            style={{ transform: "translateZ(0)" }}
+          >
+            <video
+              ref={videoRef}
+              key={isMobile ? "mobile" : "desktop"}
+              src={isMobile ? mobileBannerVideo : bannerVideo}
+              // Mobile pe autoplay ke liye muted + playsInline zaroori hain.
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-label="MDN promotional banner"
+              className={fitWindow ? "block h-full w-full object-fill" : "block aspect-video w-full object-cover"}
+            />
+
+            {/* "Shop Now" pill — banner ke bottom-left pe, reference jaisa */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/45 via-black/10 to-transparent p-4 pt-16 sm:p-6 sm:pt-20 md:bg-none lg:p-8">
+              <motion.div {...rise(0.45, 18)} className="pointer-events-auto">
+                <Link
+                  to="/products"
+                  className="btn-shine press group inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 font-heading text-sm font-semibold text-[#241f1a] shadow-lg transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:px-6 sm:py-3"
+                >
+                  Shop Now
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    className="transition-transform duration-300 group-hover:translate-x-1"
+                  >
+                    <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+
+        <HeroTrustRow />
       </div>
-
-      <HeroTrustBar />
+      <HeroCategoryRail />
     </section>
   );
-}
+};
 
-// Trust bar — the cream panel that straddles the banner's lower edge.
-//
-// It is a SIBLING of the banner, not a child: the banner needs
-// `overflow-hidden` to clip its own rounded corners, and anything nested
-// inside that would be clipped the moment it overhangs. Pulling it up
-// with a negative margin instead lets it sit half on the artwork and half
-// on the page, which is the effect in the reference.
-//
-// The overhang shrinks on small screens — the panel grows to three rows
-// there, and a large negative margin would bury the banner behind it.
-//
-// Overhang is 9px — a shallow tuck, not a real overlap. The reference
-// has the panel's top edge essentially flush with the banner's bottom
-// (banner ends y=392, panel starts y=393); this sits a few pixels
-// higher so the panel visibly laps the curve while its body still
-// stands clear on the page. An earlier version overlapped by half the
-// panel's height, which put the banner's bottom edge straight through
-// its centre.
-function HeroTrustBar() {
-  return (
-    <div className="relative z-10 mx-auto -mt-[14px] max-w-shell px-4 sm:px-6 lg:px-[34px]">
-      <div className="rounded-2xl border border-mdn-border bg-mdn-sand px-3 py-5 shadow-lg sm:px-6 sm:py-6">
-        {/* 2 cols on phones, 3 on small tablets, all 5 in a row from lg.
-            Five equal columns squeezed onto a phone would clip the longer
-            labels ("Orders Delivered", "Customer Support"). */}
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-5">
-          {TRUST_ITEMS.map(({ value, label, Icon }) => (
-            <li key={label} className="flex items-center justify-center gap-2.5 sm:gap-3">
-              <Icon
+// Slim trust row — mobile pe horizontal scroll, desktop pe ek line me paanchon.
+const HeroTrustRow = () => (
+  <ul
+    className="no-scrollbar -mx-4 mt-3 flex flex-shrink-0 snap-x scroll-px-4 gap-2 overflow-x-auto px-4 sm:-mx-6 sm:mt-4 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible lg:px-0"
+  >
+    {TRUST_ITEMS.map(({ value, label, Icon }, i) => (
+      <motion.li
+        key={label}
+        {...rise(0.6 + i * 0.07, 10)}
+        className="flex flex-shrink-0 snap-start items-center gap-2.5 rounded-full border border-mdn-border bg-mdn-charcoal py-2 pl-2 pr-5 shadow-xs lg:justify-center"
+      >
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-mdn-green-soft text-mdn-green">
+          <Icon aria-hidden="true" sx={{ fontSize: 22 }} />
+        </span>
+        <span className="whitespace-nowrap font-heading text-sm font-semibold leading-tight text-mdn-ink-body sm:text-[15px]">
+          <strong className="font-extrabold text-mdn-ink">{value}</strong> {label}
+        </span>
+      </motion.li>
+    ))}
+  </ul>
+);
+
+// Reference ka category icon row (Winter Arc / Build / Wellness ...) —
+// hamare apne shop categories ke saath. Mobile pe swipe hota hai.
+const HeroCategoryRail = () => (
+  <nav aria-label="Shop by category" className="no-scrollbar -mx-4 overflow-x-auto px-4 pb-5 pt-2 sm:-mx-6 sm:px-6 sm:pt-3">
+    {/* overflow-x-auto vertical bhi clip karta hai — pt/pb ki jagah hover lift (-4px)
+        aur shadow ko kaatne se bachati hai.
+        w-max + mx-auto: jagah ho to row centre me, kam ho to pehle item se scroll (clip nahi) */}
+    <ul className="mx-auto flex w-max gap-3 sm:gap-4 xl:gap-5">
+      {SHOP_CATEGORIES.map((c, i) => (
+        <motion.li key={c.label} {...rise(0.8 + i * 0.04, 10)} className="flex-shrink-0">
+          <Link to={c.to} className="group flex w-[80px] flex-col items-center gap-2 sm:w-[100px] xl:w-[118px]">
+            <span className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-2xl border border-mdn-border-strong/70 bg-mdn-charcoal shadow-xs transition-[transform,box-shadow,border-color] duration-300 ease-brand-out group-hover:-translate-y-1 group-hover:border-mdn-green/50 group-hover:shadow-lg group-active:scale-95 sm:h-[88px] sm:w-[88px] xl:h-[104px] xl:w-[104px]">
+              <img
+                src={c.image}
+                alt=""
                 aria-hidden="true"
-                className="shrink-0 text-mdn-green"
-                sx={{ fontSize: 30 }}
+                loading="lazy"
+                decoding="async"
+                className="h-[88%] w-[88%] object-contain transition-transform duration-500 ease-brand-out group-hover:scale-110"
               />
-              <div className="min-w-0">
-                <p className="text-[15px] font-bold leading-none text-mdn-ink sm:text-lg">{value}</p>
-                <p className="mt-1 text-[10px] font-medium uppercase leading-tight tracking-wider text-mdn-ink-muted sm:text-[11px]">
-                  {label}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
+            </span>
+            <span className="text-center font-heading text-[12.5px] font-bold leading-tight text-mdn-ink transition-colors group-hover:text-mdn-green sm:text-[14px] xl:text-[15px]">
+              {c.label}
+            </span>
+          </Link>
+        </motion.li>
+      ))}
+    </ul>
+  </nav>
+);
+
+export default Hero;

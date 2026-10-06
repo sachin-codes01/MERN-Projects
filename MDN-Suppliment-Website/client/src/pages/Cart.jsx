@@ -99,7 +99,7 @@ export default function Cart() {
   if (error) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-        <p className="text-red-400">{error}</p>
+        <p className="text-mdn-danger">{error}</p>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export default function Cart() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center animate-fade-up">
         <CartGlyph />
-        <h2 className="mt-6 font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-3xl">
+        <h2 className="mt-6 display-xl">
           Your <span className="text-mdn-green">Cart</span> Is Empty
         </h2>
         <p className="mt-2 max-w-sm text-sm text-mdn-gray">
@@ -125,7 +125,7 @@ export default function Cart() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <h2 className="text-center font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-left">
+      <h2 className="text-center display-xl sm:text-left">
         Your <span className="text-mdn-green">Cart</span>
       </h2>
 
@@ -184,7 +184,7 @@ export default function Cart() {
                 {(flavor || weight) && (
                   <p className="mt-0.5 truncate text-xs text-mdn-gray">{[flavor, weight].filter(Boolean).join(" · ")}</p>
                 )}
-                <p className="mt-1 font-mono text-xs text-mdn-gray">₹{item.priceAtAddition} each</p>
+                <p className="mt-1 tabular-nums text-xs text-mdn-gray">₹{item.priceAtAddition} each</p>
               </div>
             </div>
 
@@ -193,8 +193,8 @@ export default function Cart() {
                 sm:justify-end pulls them into a tight right-aligned
                 group once there's a row's worth of space to share with
                 the image+text block instead. */}
-            <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4 sm:justify-end sm:gap-6 sm:border-t-0 sm:pt-0">
-              <div className="flex shrink-0 items-center rounded-lg border border-white/10 bg-mdn-charcoal2">
+            <div className="flex items-center justify-between gap-4 border-t border-mdn-border pt-4 sm:justify-end sm:gap-6 sm:border-t-0 sm:pt-0">
+              <div className="flex shrink-0 items-center rounded-lg border border-mdn-border bg-mdn-charcoal2">
                 {/* At quantity 1 the minus slot becomes a bin that removes
                     the line — it replaces the separate Remove button, so
                     stepping down past 1 is how an item leaves the cart. */}
@@ -203,7 +203,7 @@ export default function Cart() {
                     type="button"
                     onClick={() => handleRemove(item._id)}
                     aria-label="Remove item"
-                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-red-400 transition-colors hover:bg-white/5 hover:text-red-300"
+                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-mdn-danger transition-colors hover:bg-mdn-sand hover:text-mdn-danger"
                   >
                     <DeleteOutlineRoundedIcon sx={{ fontSize: 18 }} />
                   </button>
@@ -212,7 +212,7 @@ export default function Cart() {
                     type="button"
                     onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
                     aria-label="Decrease quantity"
-                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5"
+                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-mdn-sand"
                   >
                     −
                   </button>
@@ -224,13 +224,13 @@ export default function Cart() {
                   type="button"
                   onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
                   aria-label="Increase quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded-r-lg text-base font-bold text-mdn-white transition-colors hover:bg-white/5"
+                  className="flex h-8 w-8 items-center justify-center rounded-r-lg text-base font-bold text-mdn-white transition-colors hover:bg-mdn-sand"
                 >
                   +
                 </button>
               </div>
 
-              <p className="shrink-0 text-right font-mono text-base font-bold text-mdn-green">
+              <p className="shrink-0 text-right tabular-nums text-base font-bold text-mdn-green">
                 ₹{item.priceAtAddition * item.quantity}
               </p>
             </div>
@@ -239,7 +239,7 @@ export default function Cart() {
         })}
       </div>
 
-      <div className="mt-6 flex flex-col items-center gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-6 flex flex-col items-center gap-4 border-t border-mdn-border pt-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Labelled "Subtotal", not "Total" — shipping and GST are added
             on top at checkout, where the full itemised breakdown is
             shown. Calling this the total here would understate what the

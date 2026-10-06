@@ -23,7 +23,7 @@ export default function MDNLoader({ label = "Loading", fullScreen = false, class
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-[999] flex items-center justify-center bg-mdn-black/90 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-mdn-black/90 backdrop-blur-sm">
         {content}
       </div>
     );

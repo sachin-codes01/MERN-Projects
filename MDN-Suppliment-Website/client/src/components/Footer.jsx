@@ -47,163 +47,189 @@ const TICKER_ITEMS = [
 // phone, which is the wrong trade for a secondary link list — 34px with
 // generous horizontal room is the usual compromise for dense footer
 // navigation, and it is a 60% larger target than before.
-const LINK =
-  "inline-block py-1.5 font-nav text-[14px] text-[#b9c2a4] transition-colors duration-200 hover:text-[#fdf8f1]";
-const HEADING = "label text-[13px] text-[#fdf8f1]";
+// Reference ka highlight banner (unka red, hamara deep green) — footer ke theek upar
+const HIGHLIGHTS = [
+  { title: "Lab tested, every batch", text: "Purity and label claims verified before dispatch", Icon: VerifiedRoundedIcon },
+  { title: "Same day dispatch", text: "Order by 1PM and it ships the same day", Icon: BoltRoundedIcon },
+  { title: "Trusted by 2,00,000+ athletes", text: "Clean nutrition for every stage of training", Icon: GroupsRoundedIcon },
+];
 
-export default function Footer() {
+const LINK =
+  "inline-block py-1.5 text-[14px] text-[#b9c2a4] transition-colors duration-200 hover:text-[#fdf8f1]";
+const HEADING = "font-heading text-[15px] font-semibold text-[#fdf8f1]";
+
+const Footer = () => {
   const ticker = [...TICKER_ITEMS, ...TICKER_ITEMS];
 
   return (
-    // The footer element itself carries the copyright bar's orange. Its
-    // children each paint their own band, so this colour is only ever
-    // visible in the strip `.has-sticky-atc` reserves at the bottom while
-    // the sticky Add to Cart bar is up (see index.css). Without it that
-    // reserved strip fell through to the cream page background and read as
-    // a gap between the footer and the bar.
-    <footer id="site-footer" className="relative mt-6 w-full overflow-hidden bg-mdn-orange-badge">
-      {/* Always-running info strip — deep green, cream type.
-
-          Fixed hex, not `bg-mdn-green`. The footer is permanently dark
-          chrome: every colour in it is already a literal (#fdf8f1 type,
-          #b9c2a4 links, #5c6a4a rules) precisely so the bar looks the
-          same in both themes. `bg-mdn-green` was the one exception, and
-          because --green-primary LIGHTENS in dark mode the cream type on
-          it dropped to 3.67:1 there. This is the light-mode value of
-          that token, pinned. */}
-      <div className="overflow-hidden bg-[#33431e] py-3">
-        <div className="marquee-track gap-10 motion-reduce:animate-none">
-          {ticker.map((item, i) => {
-            const Icon = item.Icon;
-            return (
-              <span
-                key={i}
-                className="label flex items-center gap-2 whitespace-nowrap text-[11px] tracking-[0.1em] text-[#fdf8f1] sm:text-xs"
-              >
-                <Icon sx={{ fontSize: 16 }} className="text-[#d9a441]" />
-                {item.text}
+    <>
+      <div className="mx-auto max-w-shell px-4 pb-10 pt-4 sm:px-6 sm:pb-14 lg:px-[34px]">
+        <ul className="relative grid gap-4 overflow-hidden rounded-2xl bg-[#33431e] p-5 shadow-lg sm:grid-cols-3 sm:gap-6 sm:p-6 lg:px-10 lg:py-8">
+          {HIGHLIGHTS.map(({ title, text, Icon }) => (
+            <li key={title} className="group flex items-center gap-3.5">
+              <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#fdf8f1] text-[#33431e] transition-transform duration-300 ease-brand-out group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]">
+                <Icon sx={{ fontSize: 22 }} />
               </span>
-            );
-          })}
-        </div>
+              <div className="min-w-0">
+                <p className="font-heading text-[15px] font-semibold leading-snug text-[#fdf8f1] sm:text-base">{title}</p>
+                <p className="mt-0.5 text-[13px] leading-snug text-[#b9c2a4]">{text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
+      {/* The footer element itself carries the copyright bar's orange. Its
+         children each paint their own band, so this colour is only ever
+         visible in the strip `.has-sticky-atc` reserves at the bottom while
+         the sticky Add to Cart bar is up (see index.css). Without it that
+         reserved strip fell through to the cream page background and read as
+         a gap between the footer and the bar. */}
+      <footer id="site-footer" className="relative w-full overflow-hidden bg-mdn-orange-badge">
+        {/* Always-running info strip — deep green, cream type.
 
-      {/* Main Links/Grid Area */}
-      <div className="bg-mdn-green-dark">
-        {/* Two columns from the smallest screen up, not one.
-            Stacked in a single column the link lists still occupied the
-            full 343px width while their text only filled the left quarter
-            — so the footer read as a thin ribbon of type down the left
-            edge with the whole right side empty, and ran very tall. Pairing
-            them uses the width and roughly halves the footer's height on a
-            phone. Desktop is untouched at four across, and the items and
-            their order are exactly as before. */}
-        <div className="mx-auto grid max-w-shell grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-4 lg:px-[34px]">
-          {/* Logo + blurb + socials keep the full width on phone and
-              tablet — squeezed into one of two columns the blurb wraps to
-              five or six very short lines. Only at lg, where it is one of
-              four real columns, does it share the row. */}
-          <div className="col-span-2 lg:col-span-1">
-            {/* Same reserved-box + overflow technique as Navbar, and the
-                exact same box/image sizes, so the logo reads as identical
-                between nav and footer without changing either bar's height.
-                `brightness-0 invert` renders the dark wordmark as solid
-                cream — the source PNG is a dark logo made for light
-                backgrounds, and it would otherwise disappear here. */}
-            <span className="relative block h-8 w-16 sm:h-9 sm:w-20">
-              <img
-                src={mdnLogo}
-                alt="MDN — My Daily Nutrition"
-                className="absolute left-1/2 top-1/2 h-14 w-auto -translate-x-1/2 -translate-y-1/2 brightness-0 invert sm:h-16"
-              />
-            </span>
-            <p className="mt-4 max-w-[34ch] font-nav text-[14px] leading-relaxed text-[#b9c2a4]">
-              My Daily Nutrition — clean, tested supplements for every stage of your training.
-            </p>
-            <div className="mt-5 flex gap-2.5">
-              {FOOTER_SOCIALS.map((social) => {
-                const Icon = social.Icon;
-                const iconClass =
-                  // `tap-44` grows the hit region to 44x44 without
-                  // changing the 36px ring, which is sized to the row.
-                  "tap-44 flex h-9 w-9 items-center justify-center rounded-full border border-[#5c6a4a] text-[#b9c2a4] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#fdf8f1] hover:bg-[#fdf8f1] hover:text-[#2a361b]";
+            Fixed hex, not `bg-mdn-green`. The footer is permanently dark
+            chrome: every colour in it is already a literal (#fdf8f1 type,
+            #b9c2a4 links, #5c6a4a rules) precisely so the bar looks the
+            same in both themes. `bg-mdn-green` was the one exception, and
+            because --green-primary LIGHTENS in dark mode the cream type on
+            it dropped to 3.67:1 there. This is the light-mode value of
+            that token, pinned. */}
+        <div className="overflow-hidden bg-[#33431e] py-3">
+          <div className="marquee-track gap-10 motion-reduce:animate-none">
+            {ticker.map((item, i) => {
+              const Icon = item.Icon;
+              return (
+                <span
+                  key={i}
+                  className="label flex items-center gap-2 whitespace-nowrap text-[11px] tracking-[0.1em] text-[#fdf8f1] sm:text-xs"
+                >
+                  <Icon sx={{ fontSize: 16 }} className="text-[#d9a441]" />
+                  {item.text}
+                </span>
+              );
+            })}
+          </div>
+        </div>
 
-                // Support channels route through the in-app contact form
-                // (login-gated); profile links stay plain external <a>.
-                return social.internal ? (
-                  <Link key={social.name} to={social.href} aria-label={social.name} className={iconClass}>
-                    <Icon sx={{ fontSize: 17 }} />
-                  </Link>
-                ) : (
-                  <a
-                    key={social.name}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.name}
-                    className={iconClass}
-                  >
-                    <Icon sx={{ fontSize: 17 }} />
-                  </a>
-                );
-              })}
+        {/* Main Links/Grid Area */}
+        <div className="bg-mdn-green-dark">
+          {/* Two columns from the smallest screen up, not one.
+              Stacked in a single column the link lists still occupied the
+              full 343px width while their text only filled the left quarter
+              — so the footer read as a thin ribbon of type down the left
+              edge with the whole right side empty, and ran very tall. Pairing
+              them uses the width and roughly halves the footer's height on a
+              phone. Desktop is untouched at four across, and the items and
+              their order are exactly as before. */}
+          <div className="mx-auto grid max-w-shell grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 sm:grid-cols-3 sm:px-6 sm:py-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-[34px]">
+            {/* Logo + blurb + socials keep the full width on phone and
+                tablet — squeezed into one of two columns the blurb wraps to
+                five or six very short lines. Only at lg, where it is one of
+                four real columns, does it share the row. */}
+            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+              {/* Same reserved-box + overflow technique as Navbar, and the
+                  exact same box/image sizes, so the logo reads as identical
+                  between nav and footer without changing either bar's height.
+                  `brightness-0 invert` renders the dark wordmark as solid
+                  cream — the source PNG is a dark logo made for light
+                  backgrounds, and it would otherwise disappear here. */}
+              <span className="relative block h-8 w-16 sm:h-9 sm:w-20">
+                <img
+                  src={mdnLogo}
+                  alt="MDN — My Daily Nutrition"
+                  className="absolute left-1/2 top-1/2 h-14 w-auto -translate-x-1/2 -translate-y-1/2 brightness-0 invert sm:h-16"
+                />
+              </span>
+              <p className="mt-4 max-w-[38ch] text-[14px] leading-relaxed text-[#b9c2a4]">
+                My Daily Nutrition — clean, tested supplements for every stage of your training.
+              </p>
+              <div className="mt-5 flex gap-2.5">
+                {FOOTER_SOCIALS.map((social) => {
+                  const Icon = social.Icon;
+                  const iconClass =
+                    // `tap-44` grows the hit region to 44x44 without
+                    // changing the 36px ring, which is sized to the row.
+                    "tap-44 flex h-9 w-9 items-center justify-center rounded-full border border-[#5c6a4a] text-[#b9c2a4] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#fdf8f1] hover:bg-[#fdf8f1] hover:text-[#2a361b]";
+
+                  // Support channels route through the in-app contact form
+                  // (login-gated); profile links stay plain external <a>.
+                  return social.internal ? (
+                    <Link key={social.name} to={social.href} aria-label={social.name} className={iconClass}>
+                      <Icon sx={{ fontSize: 17 }} />
+                    </Link>
+                  ) : (
+                    <a
+                      key={social.name}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.name}
+                      className={iconClass}
+                    >
+                      <Icon sx={{ fontSize: 17 }} />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <h4 className={HEADING}>Shop</h4>
+              <ul className="mt-3 space-y-1">
+                <li><Link to="/products/section/best_seller" className={LINK}>Best Sellers</Link></li>
+                <li><Link to="/products/section/new_arrival" className={LINK}>New Arrivals</Link></li>
+                {/* Flagship category — same route the navbar's Shop menu
+                    uses for it, so both entry points land on one page. */}
+                <li><Link to="/search?q=whey%20protein" className={LINK}>Whey Protein</Link></li>
+                {/* Labelled "Combos" to match the navbar's Shop menu — same
+                    route, and two different names for one destination read
+                    as two different pages. */}
+                <li><Link to="/products/section/fitness_combo" className={LINK}>Combos</Link></li>
+                <li><Link to="/products" className={LINK}>All Products</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className={HEADING}>Support</h4>
+              <ul className="mt-3 space-y-1">
+                {/* Dedicated Customer Support page, listed first */}
+                <li><Link to="/support" className={LINK}>Customer Support</Link></li>
+                <li><Link to="/orders" className={LINK}>Track Order</Link></li>
+                <li><Link to="/#faq" className={LINK}>FAQs</Link></li>
+                <li><Link to="/contact" className={LINK}>Contact Us</Link></li>
+                <li><Link to="/support?topic=shipping" className={LINK}>Shipping and Returns</Link></li>
+              </ul>
+            </div>
+
+            {/* Replaced the old "Get in Touch" column. Publishing the email,
+                WhatsApp number and hours here undercut the login-gated
+                contact flow — anyone could skip the form and message
+                directly. Those details now live on the /contact success
+                screen, shown once an enquiry is on record. */}
+            <div>
+              <h4 className={HEADING}>Company</h4>
+              <ul className="mt-3 space-y-1">
+                <li><Link to="/#story" className={LINK}>Our Story</Link></li>
+                <li><Link to="/blogs" className={LINK}>Blogs</Link></li>
+                <li><Link to="/products/section/fitness_combo" className={LINK}>Build Your Bundle</Link></li>
+                <li><Link to="/search?q=wholesale" className={LINK}>Wholesale</Link></li>
+                <li><Link to="/#why-choose-mdn" className={LINK}>Why Choose MDN</Link></li>
+              </ul>
             </div>
           </div>
-
-          <div>
-            <h4 className={HEADING}>Shop</h4>
-            <ul className="mt-4 space-y-2.5">
-              <li><Link to="/products/section/best_seller" className={LINK}>Best Sellers</Link></li>
-              <li><Link to="/products/section/new_arrival" className={LINK}>New Arrivals</Link></li>
-              {/* Flagship category — same route the navbar's Shop menu
-                  uses for it, so both entry points land on one page. */}
-              <li><Link to="/search?q=whey%20protein" className={LINK}>Whey Protein</Link></li>
-              {/* Labelled "Combos" to match the navbar's Shop menu — same
-                  route, and two different names for one destination read
-                  as two different pages. */}
-              <li><Link to="/products/section/fitness_combo" className={LINK}>Combos</Link></li>
-              <li><Link to="/products" className={LINK}>All Products</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className={HEADING}>Support</h4>
-            <ul className="mt-4 space-y-2.5">
-              {/* Dedicated Customer Support page, listed first */}
-              <li><Link to="/support" className={LINK}>Customer Support</Link></li>
-              <li><Link to="/orders" className={LINK}>Track Order</Link></li>
-              <li><Link to="/#faq" className={LINK}>FAQs</Link></li>
-              <li><Link to="/contact" className={LINK}>Contact Us</Link></li>
-              <li><Link to="/support?topic=shipping" className={LINK}>Shipping and Returns</Link></li>
-            </ul>
-          </div>
-
-          {/* Replaced the old "Get in Touch" column. Publishing the email,
-              WhatsApp number and hours here undercut the login-gated
-              contact flow — anyone could skip the form and message
-              directly. Those details now live on the /contact success
-              screen, shown once an enquiry is on record. */}
-          <div>
-            <h4 className={HEADING}>Company</h4>
-            <ul className="mt-4 space-y-2.5">
-              <li><Link to="/#story" className={LINK}>Our Story</Link></li>
-              <li><Link to="/blogs" className={LINK}>Blogs</Link></li>
-              <li><Link to="/products/section/fitness_combo" className={LINK}>Build Your Bundle</Link></li>
-              <li><Link to="/search?q=wholesale" className={LINK}>Wholesale</Link></li>
-              <li><Link to="/#why-choose-mdn" className={LINK}>Why Choose MDN</Link></li>
-            </ul>
-          </div>
         </div>
-      </div>
 
-      {/* Copyright — its own orange band, as in the reference home page */}
-      {/* `text-mdn-badge-ink`, not `text-white`: --orange-badge lightens
-          in dark mode, where white on it measured 2.8:1. The token flips
-          to near-black there and stays white in light mode. Same pairing
-          the "Save X%" pills use. */}
-      <div className="bg-mdn-orange-badge px-4 py-3.5 text-center font-nav text-[12px] tracking-wide text-mdn-badge-ink sm:px-6">
-        {"©"} {new Date().getFullYear()} MDN {"—"} My Daily Nutrition. All rights reserved.
-      </div>
-    </footer>
+        {/* Copyright — its own orange band, as in the reference home page */}
+        {/* `text-mdn-badge-ink`, not `text-white`: --orange-badge lightens
+            in dark mode, where white on it measured 2.8:1. The token flips
+            to near-black there and stays white in light mode. Same pairing
+            the "Save X%" pills use. */}
+        <div className="bg-mdn-orange-badge px-4 py-3 text-center text-xs text-mdn-badge-ink sm:px-6">
+          {"©"} {new Date().getFullYear()} MDN {"—"} My Daily Nutrition. All rights reserved.
+        </div>
+      </footer>
+    </>
   );
-}
+};
+
+export default Footer;

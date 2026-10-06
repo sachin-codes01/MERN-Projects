@@ -1,15 +1,17 @@
 import ProductCarousel from "./ProductCarousel";
 
-export default function BundleOffers() {
-  return (
-    <ProductCarousel
-      sectionId="bundles"
-      section="fitness_combo"
-      index="06"
-      eyebrow="Save more, train more"
-      titleMain="Bundles &"
-      titleAccent="Offers"
-      moreLink="/products/section/fitness_combo"
-    />
-  );
-}
+const BundleOffers = () => (
+  <ProductCarousel
+    sectionId="bundles"
+    className="!pt-9"
+    section="fitness_combo"
+    index="06"
+    eyebrow="Save more, train more"
+    titleMain="Bundles &"
+    titleAccent="Offers"
+    subtitle="Stack your essentials together and save more"
+    moreLink="/products/section/fitness_combo"
+  />
+);
+
+export default BundleOffers;

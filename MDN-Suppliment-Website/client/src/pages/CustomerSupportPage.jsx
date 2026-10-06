@@ -46,10 +46,10 @@ export default function CustomerSupportPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-[34px]">
-      <p className="text-center text-xs font-semibold uppercase tracking-widest text-mdn-green sm:text-left">
+      <p className="text-center eyebrow sm:text-left">
         {topic.eyebrow}
       </p>
-      <h1 className="mt-1 text-center font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-left sm:text-3xl">
+      <h1 className="mt-1 text-center display-xl sm:text-left sm:text-3xl">
         {topic.title}
       </h1>
       <p className="mt-3 max-w-2xl text-center text-sm leading-relaxed text-mdn-gray sm:text-left">
@@ -61,7 +61,7 @@ export default function CustomerSupportPage() {
           the /contact route, and it renders its own sign-in prompt when
           signed out (this page is public). */}
       <section id="contact-form" className="mt-8">
-        <h2 className="font-display text-xl font-bold uppercase tracking-wide text-mdn-white sm:text-2xl">
+        <h2 className="display-lg">
           Send us a message
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-mdn-gray">
@@ -105,7 +105,7 @@ function InfoCard({ Icon, title, body, to, cta, highlighted }) {
       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mdn-green/15 text-mdn-green">
         <Icon sx={{ fontSize: 18 }} />
       </span>
-      <h3 className="mt-3 text-sm font-bold uppercase tracking-wide text-mdn-white">{title}</h3>
+      <h3 className="mt-3 font-heading text-base font-semibold text-mdn-ink">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-mdn-gray">{body}</p>
       {to && (
         <Link to={to} className="mt-3 inline-block text-sm font-semibold text-mdn-green hover:text-mdn-green-light">

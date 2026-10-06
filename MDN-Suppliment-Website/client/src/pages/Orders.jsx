@@ -14,7 +14,7 @@ const NON_CANCELLABLE = ["shipped", "out_for_delivery", "delivered", "cancelled"
 function StatusTimeline({ order }) {
   if (order.orderStatus === "cancelled" || order.orderStatus === "returned") {
     return (
-      <p className="inline-block rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-400">
+      <p className="inline-block rounded-full border border-mdn-danger/30 bg-mdn-danger/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-mdn-danger">
         Order {order.orderStatus}
         {order.cancelReason ? ` — ${order.cancelReason}` : ""}
       </p>
@@ -30,7 +30,7 @@ function StatusTimeline({ order }) {
           <div className="flex flex-col items-center gap-1">
             <div
               className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                i <= currentIndex ? "bg-mdn-green shadow-[0_0_8px_rgba(34,177,76,0.7)]" : "bg-white/15"
+                i <= currentIndex ? "bg-mdn-green" : "bg-mdn-border-strong"
               }`}
             />
             <span className={`whitespace-nowrap text-[10px] uppercase tracking-wide ${i <= currentIndex ? "text-mdn-green" : "text-mdn-gray"}`}>
@@ -38,7 +38,7 @@ function StatusTimeline({ order }) {
             </span>
           </div>
           {i < STATUS_STEPS.length - 1 && (
-            <div className={`h-px w-6 ${i < currentIndex ? "bg-mdn-green" : "bg-white/15"}`} />
+            <div className={`h-px w-6 ${i < currentIndex ? "bg-mdn-green" : "bg-mdn-border-strong"}`} />
           )}
         </div>
       ))}
@@ -145,7 +145,7 @@ export default function Orders() {
   if (error && orders.length === 0) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-        <p className="text-red-400">{error}</p>
+        <p className="text-mdn-danger">{error}</p>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export default function Orders() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center animate-fade-up">
         <OrdersGlyph />
-        <h2 className="mt-6 font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-3xl">
+        <h2 className="mt-6 display-xl">
           No <span className="text-mdn-green">Orders</span> Yet
         </h2>
         <p className="mt-2 max-w-sm text-sm text-mdn-gray">
@@ -169,7 +169,7 @@ export default function Orders() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-mdn-white">
+      <h2 className="display-xl">
         Your <span className="text-mdn-green">Orders</span>
       </h2>
 
@@ -205,7 +205,7 @@ export default function Orders() {
                     It has been sent back to your original payment method
                     {order.payment.refundedAt ? ` on ${new Date(order.payment.refundedAt).toLocaleDateString()}` : ""} and
                     usually reaches your account within 5–7 working days.
-                    {order.payment.refundId && <> Refund ID: <span className="font-mono">{order.payment.refundId}</span></>}
+                    {order.payment.refundId && <> Refund ID: <span className="tabular-nums">{order.payment.refundId}</span></>}
                   </p>
                 </div>
               )}
@@ -237,7 +237,7 @@ export default function Orders() {
                 </>
               )}
 
-              <ul className="mt-4 divide-y divide-white/5 border-t border-white/5">
+              <ul className="mt-4 divide-y divide-mdn-border border-t border-mdn-border">
                 {order.items.map((item, i) => (
                   <li key={i} className="flex items-center gap-3 py-2">
                     {/* object-fill, no inset padding. The thumbnail used to
@@ -261,7 +261,7 @@ export default function Orders() {
                     <span className="flex-1 text-sm text-mdn-white/90">
                       {item.name} {item.flavor ? `(${item.flavor})` : ""} — {item.weight} × {item.quantity}
                     </span>
-                    <span className="font-mono text-sm font-bold text-mdn-green">₹{item.price * item.quantity}</span>
+                    <span className="tabular-nums text-sm font-bold text-mdn-green">₹{item.price * item.quantity}</span>
                   </li>
                 ))}
               </ul>
@@ -269,7 +269,7 @@ export default function Orders() {
               {/* Full breakdown of what was charged, not just the final
                   figure — so the shipping fee and GST baked into the
                   total are visible on the order record too. */}
-              <div className="mt-3 space-y-1 border-t border-white/5 pt-3 text-sm">
+              <div className="mt-3 space-y-1 border-t border-mdn-border pt-3 text-sm">
                 <div className="flex items-center justify-between text-mdn-gray">
                   <span>Subtotal</span><span>₹{order.pricing.subtotal}</span>
                 </div>
@@ -290,7 +290,7 @@ export default function Orders() {
                 <div className="flex items-center justify-between text-mdn-gray">
                   <span>GST</span><span>₹{order.pricing.tax}</span>
                 </div>
-                <div className="flex items-center justify-between border-t border-white/5 pt-1.5 font-bold text-mdn-white">
+                <div className="flex items-center justify-between border-t border-mdn-border pt-1.5 font-bold text-mdn-white">
                   <span>Total paid</span>
                   <span className="text-mdn-green">₹{order.pricing.total}</span>
                 </div>
@@ -302,7 +302,7 @@ export default function Orders() {
                   <button
                     disabled={cancellingId === order._id}
                     onClick={() => openCancelModal(order)}
-                    className="text-xs font-semibold text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
+                    className="text-xs font-semibold text-mdn-danger transition-colors hover:text-mdn-danger disabled:opacity-50"
                   >
                     Cancel Order
                   </button>

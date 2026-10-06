@@ -50,14 +50,14 @@ const Badge = ({ label, src }) => (
         the product tiles elsewhere on the page. object-contain rather
         than object-cover: the seals are circular with their own margin
         baked in, and cover was cropping the gold ring at the edges. */}
-    <div className="aspect-square w-full overflow-hidden rounded-xl">
+    <div className="aspect-square w-full overflow-hidden rounded-xl transition-transform duration-500 ease-brand-out hover:-translate-y-1 hover:rotate-[-4deg]">
       <img src={src} alt={label} loading="lazy" className="h-full w-full object-contain" />
     </div>
     {/* lg steps DOWN to text-sm (xl returns to the original text-base):
         ten columns instead of eight makes each one ~110px on a 1280px
         screen, and the two longest labels ("Made With Precision", "FSSAI
         Approved") lost their second line to line-clamp-2 at text-base. */}
-    <p className="line-clamp-2 text-[8px] font-semibold uppercase leading-tight tracking-wide text-mdn-white sm:text-sm lg:text-sm xl:text-base">
+    <p className="line-clamp-2 font-heading text-[11px] font-medium leading-tight text-mdn-ink-body sm:text-[13px] xl:text-sm">
       {label}
     </p>
   </div>
@@ -81,8 +81,8 @@ const AssuredBadges = () => {
     // section's 64px stacked into a 128px void under a single short row
     // of badges. Halving the bottom keeps the badges reading as attached
     // to the content they vouch for.
-    <section className="mx-auto max-w-shell px-4 pb-6 pt-10 sm:px-6 sm:pb-8 sm:pt-12 lg:px-[34px]">
-      <SectionHeading index="03" eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" />
+    <section className="section !pb-6">
+      <SectionHeading index="03" eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" subtitle="Every batch is tested, certified and verified" />
 
       {/* At lg+ the full content shell holds all ten badges in ONE row, so
           the carousel is dropped there entirely — paging across 1536px
@@ -94,7 +94,7 @@ const AssuredBadges = () => {
           rather than a fixed width, so they shrink to fit the row instead
           of overflowing. The carousel is kept below lg, where 10 across
           genuinely doesn't fit. */}
-      <div className="mt-10 hidden grid-cols-10 gap-3 lg:grid xl:gap-4">
+      <div className="mt-6 hidden grid-cols-10 gap-3 lg:grid xl:gap-4">
         {BADGES.map((b, i) => (
           <Reveal key={b.label} from="scale" delay={(i % 10) * 0.08} amount={0.35}>
             <Badge {...b} />
@@ -102,20 +102,10 @@ const AssuredBadges = () => {
         ))}
       </div>
 
-      <div className="mt-10 lg:hidden">
+      <div className="mt-5 lg:hidden">
         <Carousel slides={slides} autoPlay interval={4500} showArrows={false} />
       </div>
 
-      {/* Closing rule, so this strip and "Our Bestsellers" below it read as
-          two separate sections rather than one continuous run. It lives
-          INSIDE the section (rather than as a border on the section box) so
-          it lines up with the content column instead of stretching out into
-          the gutters.
-
-          `border-strong` rather than the softer default: on the cream page
-          ground (#fef4e9) the soft token is only a few values away and the
-          hairline all but vanishes, which defeats the point of a divider. */}
-      <div className="mt-8 border-t border-mdn-border-strong sm:mt-10" />
     </section>
   );
 };

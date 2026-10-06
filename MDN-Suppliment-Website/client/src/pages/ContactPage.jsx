@@ -17,8 +17,8 @@ export default function ContactPage() {
   return (
     <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 lg:px-[34px]">
       <div className="mx-auto max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Get in touch</p>
-        <h1 className="mt-1 font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-3xl">
+        <p className="eyebrow">Get in touch</p>
+        <h1 className="mt-1 display-xl">
           Contact Us
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-mdn-gray">{intro}</p>

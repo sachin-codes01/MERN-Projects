@@ -22,7 +22,7 @@ function Highlight({ text = "", term = "" }) {
   return (
     <>
       {text.slice(0, at)}
-      <span className="text-mdn-green">{text.slice(at, at + term.length)}</span>
+      <span className="rounded-sm bg-mdn-orange-soft font-extrabold text-mdn-ink">{text.slice(at, at + term.length)}</span>
       {text.slice(at + term.length)}
     </>
   );
@@ -30,16 +30,13 @@ function Highlight({ text = "", term = "" }) {
 
 export default function SearchSuggest({
   className = "",
-  // No `text-sm` here. iOS Safari ZOOMS THE WHOLE PAGE when a focused
-  // input's font-size is under 16px, and it does not zoom back out on
-  // blur — so tapping search on an iPhone left the site stuck at ~1.14x
-  // with the layout shifted sideways. `.input-field` now pins 16px for
-  // exactly this reason (see index.css); the override is simply dropped.
-  // `!py-2` stays: it is what keeps the navbar row compact, and 16px
-  // text at py-2 still measures 42px tall.
-  inputClassName = "input-field w-full !py-2 pl-9 pr-9",
+  // Input khud transparent hai — border, focus glow aur height pill <form>
+  // sambhalta hai. Font 16px pe fixed: iOS Safari 16px se chhote input pe
+  // focus karte hi poora page zoom kar deta hai aur wapas nahi aata.
+  inputClassName = "h-full min-w-0 flex-1 border-0 bg-transparent px-2 font-heading text-[16px] font-semibold text-mdn-ink outline-none placeholder:font-medium placeholder:text-mdn-ink-muted focus-visible:!shadow-none focus-visible:!outline-none",
   placeholder = "Search supplements...",
   onNavigate,
+  autoFocus = false,
 }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -153,9 +150,15 @@ export default function SearchSuggest({
 
   return (
     <div ref={boxRef} className={`relative ${className}`}>
-      <form onSubmit={onSubmit} className="relative" role="search">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mdn-gray">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      {/* Poora pill hi container hai — focus pe green border + halka glow,
+          taaki saaf dikhe ki search active hai. */}
+      <form
+        onSubmit={onSubmit}
+        role="search"
+        className="group flex h-12 items-center gap-1 rounded-full border-2 border-mdn-border-strong bg-mdn-charcoal pl-4 pr-1.5 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-mdn-ink-muted/50 focus-within:border-mdn-green focus-within:shadow-[0_0_0_4px_rgb(var(--green-primary)/0.14)]"
+      >
+        <span className="pointer-events-none flex-shrink-0 text-mdn-ink-muted transition-colors duration-200 group-focus-within:text-mdn-green">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <circle cx="11" cy="11" r="7" />
             <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
           </svg>
@@ -169,9 +172,11 @@ export default function SearchSuggest({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
+          autoFocus={autoFocus}
           placeholder={placeholder}
           className={inputClassName}
           autoComplete="off"
+          enterKeyHint="search"
           aria-label="Search products"
           aria-expanded={showPanel}
         />
@@ -185,74 +190,94 @@ export default function SearchSuggest({
               close();
             }}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-mdn-white transition-colors hover:bg-mdn-green hover:text-mdn-black"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-mdn-sand text-mdn-ink-muted transition-colors hover:bg-mdn-ink hover:text-mdn-charcoal"
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
               <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
             </svg>
           </button>
         )}
+
+        {/* Pill ke andar "Search" button — click pe full search submit */}
+        <button
+          type="submit"
+          className="press flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full bg-mdn-green px-4 font-heading text-[13px] font-bold text-mdn-on-primary hover:bg-mdn-green-light sm:px-5"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" className="hidden sm:block">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
+          </svg>
+          Search
+        </button>
       </form>
 
       {showPanel && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-white/10 bg-mdn-charcoal shadow-2xl shadow-black/50">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 animate-fade-up overflow-hidden rounded-2xl border border-mdn-border bg-mdn-charcoal shadow-lg">
           {loading && items.length === 0 && (
-            <p className="px-4 py-4 text-sm text-mdn-gray">Searching…</p>
+            <p className="flex items-center gap-2.5 px-4 py-4 text-sm text-mdn-ink-muted">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-mdn-border-strong border-t-mdn-green" />
+              Searching…
+            </p>
           )}
 
           {!loading && items.length === 0 && (
-            <p className="px-4 py-4 text-sm text-mdn-gray">
-              No products match “{term}”.
-            </p>
+            <div className="px-4 py-5">
+              <p className="font-heading text-sm font-semibold text-mdn-ink">No products match “{term}”</p>
+              <p className="mt-1 text-[13px] text-mdn-ink-muted">Try a different word, like “whey”, “creatine” or “isolate”.</p>
+            </div>
           )}
 
           {/* Lenis swallows wheel events page-wide by default, which would
               make this list's own scrollbar dead — data-lenis-prevent is
               Lenis's opt-out for elements with independent scroll. */}
           {items.length > 0 && (
-            <ul data-lenis-prevent className="max-h-[22rem] overflow-y-auto py-1">
-              {items.map((p, i) => {
-                const size = p.sizes?.[0];
-                const { effectivePrice } = getSizePrice(size);
-                return (
-                  <li key={p._id}>
-                    <button
-                      type="button"
-                      onMouseEnter={() => setActive(i)}
-                      onClick={() => goToProduct(p)}
-                      className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
-                        i === active ? "bg-white/10" : "hover:bg-white/5"
-                      }`}
-                    >
-                      <span className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border border-white/10 bg-mdn-charcoal2">
-                        {p.thumbnail && (
-                          <img src={p.thumbnail} alt="" className="h-full w-full object-cover" />
+            <>
+              <p className="eyebrow px-4 pb-1 pt-3">Products</p>
+              <ul data-lenis-prevent className="max-h-[22rem] overflow-y-auto px-1.5 pb-1.5">
+                {items.map((p, i) => {
+                  const size = p.sizes?.[0];
+                  const { effectivePrice } = getSizePrice(size);
+                  return (
+                    <li key={p._id}>
+                      <button
+                        type="button"
+                        onMouseEnter={() => setActive(i)}
+                        onClick={() => goToProduct(p)}
+                        className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors ${
+                          i === active ? "bg-mdn-sand" : "hover:bg-mdn-sand"
+                        }`}
+                      >
+                        <span className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-mdn-border bg-mdn-sand">
+                          {p.thumbnail && <img src={p.thumbnail} alt="" className="h-full w-full object-cover" />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-heading text-[14px] font-bold text-mdn-ink">
+                            <Highlight text={p.name} term={term} />
+                          </span>
+                          <span className="block truncate text-xs font-medium text-mdn-ink-muted">{p.productType}</span>
+                        </span>
+                        {effectivePrice > 0 && (
+                          <span className="flex-shrink-0 font-heading text-sm font-bold tabular-nums text-mdn-ink">
+                            ₹{effectivePrice}
+                          </span>
                         )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-mdn-white">
-                          <Highlight text={p.name} term={term} />
-                        </span>
-                        <span className="block truncate text-xs text-mdn-gray">{p.productType}</span>
-                      </span>
-                      {effectivePrice > 0 && (
-                        <span className="flex-shrink-0 text-sm font-bold text-mdn-green">
-                          ₹{effectivePrice}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
 
           <button
             type="button"
             onClick={submitSearch}
-            className="block w-full border-t border-white/10 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-mdn-green transition-colors hover:bg-white/5"
+            className="group flex w-full items-center justify-between border-t border-mdn-border bg-mdn-sand/60 px-4 py-3 text-left font-heading text-[13px] font-bold text-mdn-green transition-colors hover:bg-mdn-sand"
           >
-            View all results for “{term}”
+            <span>View all results for “{term}”</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="transition-transform duration-200 group-hover:translate-x-1">
+              <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       )}

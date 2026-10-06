@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { api } from "../api/api";
+import Reveal from "./motion/Reveal";
 import ProductCard from "./ProductCard";
+import ViewAllLink from "./ViewAllLink";
 
 /**
  * Groups the full catalog by category and renders one row per category,
@@ -32,7 +33,7 @@ export default function ProductsByCategory() {
     return (
       <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
         <div className="h-6 w-40 animate-pulse rounded bg-mdn-charcoal2" />
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="aspect-[3/4] animate-pulse rounded-xl bg-mdn-charcoal2" />
           ))}
@@ -46,19 +47,16 @@ export default function ProductsByCategory() {
   return (
     <div>
       {groups.map((g) => (
-        <section key={g.id} className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-mdn-white sm:text-2xl">{g.name}</h2>
-            <Link
-              to={`/search?q=${encodeURIComponent(g.name)}`}
-              className="text-sm font-semibold text-mdn-green transition-colors hover:text-mdn-green-light"
-            >
-              Show More →
-            </Link>
+        <section key={g.id} className="mx-auto max-w-shell px-4 py-6 sm:px-6 sm:py-8 lg:px-[34px]">
+          <div className="mb-4 flex items-end justify-between gap-4 sm:mb-5">
+            <h2 className="display-lg">{g.name}</h2>
+            <ViewAllLink to={`/search?q=${encodeURIComponent(g.name)}`} />
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {g.products.slice(0, 8).map((p) => (
-              <ProductCard key={p._id} product={p} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            {g.products.slice(0, 8).map((p, i) => (
+              <Reveal key={p._id} from="up" delay={(i % 5) * 0.06} amount={0.15} className="h-full">
+                <ProductCard product={p} />
+              </Reveal>
             ))}
           </div>
         </section>

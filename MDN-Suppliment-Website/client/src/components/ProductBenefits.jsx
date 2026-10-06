@@ -49,8 +49,8 @@ export default function ProductBenefits({ benefits = [] }) {
   if (!shown.length) return null;
 
   return (
-    <div className="mt-12 rounded-xl border border-white/10 bg-mdn-charcoal2/40 px-2 py-6 sm:px-4">
-      <div className="grid grid-cols-2 gap-y-6 divide-white/10 sm:divide-x lg:grid-cols-4">
+    <div className="mt-12 rounded-xl border border-mdn-border bg-mdn-charcoal2/40 px-2 py-6 sm:px-4">
+      <div className="grid grid-cols-2 gap-y-6 divide-mdn-border sm:divide-x lg:grid-cols-4">
         {shown.map((b, i) => {
           // Falls back to cycling the icon set when a benefit has no icon
           // chosen, so an admin can type claims and skip the picker
@@ -59,10 +59,10 @@ export default function ProductBenefits({ benefits = [] }) {
           const { Icon } = BENEFIT_ICONS[key];
           return (
             <div key={i} className="flex flex-col items-center gap-3 px-2 text-center sm:px-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-mdn-charcoal text-mdn-green">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-mdn-border bg-mdn-charcoal text-mdn-green">
                 <Icon sx={{ fontSize: 22 }} />
               </span>
-              <span className="text-[11px] font-bold uppercase leading-snug tracking-wide text-mdn-white sm:text-xs">
+              <span className="font-heading text-[11px] font-semibold leading-snug text-mdn-ink sm:text-xs">
                 {b.text}
               </span>
             </div>

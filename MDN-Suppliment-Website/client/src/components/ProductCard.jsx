@@ -8,7 +8,7 @@ import { guestCart } from "../utils/guestCart";
 import { getSizePrice } from "../utils/pricing";
 import { getDisplayRating } from "../utils/rating";
 
-function Stars({ stars }) {
+const Stars = ({ stars }) => {
   const rounded = Math.max(0, Math.min(5, stars));
   return (
     <div className="flex gap-0.5 text-mdn-star">
@@ -27,9 +27,9 @@ function Stars({ stars }) {
       ))}
     </div>
   );
-}
+};
 
-export default function ProductCard({ product }) {
+const ProductCard = ({ product }) => {
   const size = product.sizes?.[0];
   // Quick add-to-cart from the listing card has no size/flavor picker, so
   // it defaults to the first of each — same convention as which one shows
@@ -96,110 +96,63 @@ export default function ProductCard({ product }) {
   return (
     <Link
       to={`/products/${product.slug}`}
-      className={`card group relative z-0 flex flex-col overflow-hidden transition-all duration-300 hover:z-10 hover:-translate-y-1 hover:border-mdn-green/50 hover:shadow-green-glow ${
+      className={`lift group relative z-0 flex h-full flex-col overflow-hidden rounded-xl border border-mdn-border bg-mdn-charcoal shadow-xs hover:z-10 ${
         outOfStock ? "opacity-60" : ""
       }`}
     >
-      {/* object-fill — the shot is stretched to fill the whole square, by
-          request. `cover` was the alternative and it crops whichever edge
-          doesn't match the box, which cut lids and label text off the
-          taller product shots; `contain` shows the whole shot undistorted
-          but letterboxes it, leaving the card's image area part empty.
-          Fill trades geometric accuracy for a completely filled card: on
-          photos that aren't square the packaging is rendered slightly
-          squashed or stretched, and nothing is ever cropped or padded.
-
-          Hover zoom stays at 1.05 rather than the 1.10 used elsewhere —
-          on an already-stretched image a larger scale exaggerates the
-          distortion noticeably. */}
-      <div className="relative aspect-square overflow-hidden rounded-t-[15px] bg-mdn-charcoal2">
+      {/* Image — object-fill (pehle ki request), hover pe halka zoom */}
+      <div className="relative aspect-square overflow-hidden bg-mdn-sand">
         <img
           src={product.thumbnail}
           alt={product.name}
           loading="lazy"
           decoding="async"
           onError={(e) => (e.target.style.display = "none")}
-          className="h-full w-full object-fill transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-fill transition-transform duration-700 ease-brand-out group-hover:scale-[1.06]"
         />
+        {/* Reference ka "Deal" jaisa corner badge — real discount % se */}
+        {!outOfStock && size && discountPct > 0 && (
+          <span className="absolute left-2 top-2 rounded-md bg-mdn-orange-badge px-1.5 py-0.5 text-[10px] font-bold text-mdn-badge-ink shadow-xs sm:left-3 sm:top-3 sm:px-2 sm:text-xs">
+            {discountPct}% OFF
+          </span>
+        )}
         {outOfStock && (
-          /* `--danger` token, not `text-red-400`. The Tailwind red is a
-             cold, fully-saturated hue that is the only thing on the page
-             not tuned to the warm palette, and it has no dark-mode
-             counterpart. */
-          <span className="absolute left-2.5 top-2.5 rounded-sm bg-mdn-charcoal/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-mdn-danger shadow-xs">
+          <span className="absolute left-2 top-2 rounded-md bg-mdn-charcoal/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-mdn-danger shadow-xs sm:left-2.5 sm:top-2.5">
             Out of stock
           </span>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-3">
-        {/* Name first, then rating — matching the reference card order.
-            `line-clamp-2` (not 1) because at this width most names run to
-            two lines; clamping to one was cutting "MDN Hydroxy Fat Cutter
-            Pro" mid-word. */}
-        {/* font-body overrides the Didot default that h1-h4 inherit —
-            product names read as normal sans here, not display serif. */}
-        <h3 className="line-clamp-2 font-body text-sm font-semibold leading-snug text-mdn-white">
+      <div className="flex flex-1 flex-col p-2.5 sm:p-3.5">
+        {/* Naam pehle, phir rating — reference card order. Phone pe (2 cards/row,
+            naam aksar wrap hote hain) 2 line ki jagah reserve — taaki row ke dono
+            cards ke price ek line me rahein. Bade screen pe reserve nahi (khaali patti). */}
+        <h3 className="line-clamp-2 min-h-[2.5em] font-heading text-[12.5px] font-semibold leading-[1.25] text-mdn-ink sm:min-h-0 sm:text-[15px]">
           {product.name}
         </h3>
 
+        {/* Rating sirf tab jab ho — khaali row se naam aur price ke beech faltu gap banta tha */}
         {hasRating && (
           <div className="mt-1.5 flex items-center gap-1.5">
             <Stars stars={stars} />
-            <span className="text-[11px] font-medium text-mdn-ink-muted">({ratingValue.toFixed(1)})</span>
+            <span className="text-[11px] font-medium text-mdn-ink-muted sm:text-xs">{ratingValue.toFixed(1)}</span>
           </div>
         )}
 
-        {/* Always renders — price line and button below are never
-            conditionally omitted, only their label/disabled state changes.
-            Skipping them for out-of-stock cards used to make those cards
-            shorter than in-stock ones, breaking the grid row's alignment. */}
-        {/* flex-nowrap below `sm`: on a phone the card is only ~164px wide and
-            the "% OFF" pill was wrapping onto its own line under the price.
-            The type below is a size smaller on mobile purely to buy the room
-            that keeps price + pill on one line; from `sm` up there is space
-            to spare, so the original sizes and wrapping behaviour return. */}
-        <div className="mt-1.5 flex flex-nowrap items-center gap-x-1 gap-y-1 sm:flex-wrap sm:gap-x-2">
+        {/* Price row: ₹final  ₹MRP(strike)  xx% off */}
+        <div className="mt-1.5 flex flex-nowrap items-baseline gap-x-1.5 sm:flex-wrap sm:gap-y-0.5">
           {size ? (
             <>
-              {/* Orange, not green. The token block in index.css is
-                  explicit about this: where the old dark theme used green
-                  as an ACCENT — prices, discount badges, heading
-                  highlights — the correct colour in the new palette is
-                  the rust orange. Green is now the primary ACTION colour
-                  (it is the fill of the button directly below this line),
-                  so pricing it green made the number look like a second
-                  button rather than a figure.
-
-                  `tabular-nums` instead of the mono family: monospace
-                  gives every glyph an equal width including the letters,
-                  which made "From" and the rupee sign sit oddly loose.
-                  Tabular figures line the DIGITS up in a column — which
-                  is all a price actually needs — while keeping Inter's
-                  proportional spacing everywhere else. */}
-              <p className="whitespace-nowrap text-[11px] font-bold tabular-nums text-mdn-orange-ink sm:text-sm">
-                {showFrom && (
-                  <span className="mr-0.5 text-[10px] font-medium text-mdn-ink-muted sm:mr-1 sm:text-xs">
-                    From
-                  </span>
-                )}
+              {showFrom && <span className="text-[10px] font-medium text-mdn-ink-muted sm:text-[11px]">From</span>}
+              <span className="font-heading text-[15px] font-bold tabular-nums leading-none text-mdn-ink sm:text-lg">
                 ₹{effectivePrice}
-                {discountPrice && (
-                  <span className="ml-0.5 text-[10px] font-medium text-mdn-ink-muted line-through sm:ml-2 sm:text-xs">
-                    ₹{price}
-                  </span>
-                )}
-              </p>
-              {/* Discount pill, e.g. "24% OFF". getSizePrice already
-                  derives the percentage from price vs discountPrice, so
-                  this reads real catalogue data rather than a hardcoded
-                  number, and disappears on products with no discount.
-                  shrink-0 so the pill keeps its shape and the price line
-                  (which is nowrap anyway) is what absorbs any squeeze. */}
+              </span>
+              {discountPrice && (
+                <span className="truncate text-[11px] tabular-nums text-mdn-ink-muted line-through sm:text-[13px]">₹{price}</span>
+              )}
               {discountPct > 0 && (
-                <span className="badge-save shrink-0 whitespace-nowrap px-[3px] text-[9px] tracking-normal sm:px-2.5 sm:text-[10px] sm:tracking-wide">
-                  {discountPct}% OFF
-                </span>
+                // Phone pe chhupa — wahi % image ke badge pe already hai, aur yahan line wrap karta tha
+                <span className="hidden text-xs font-semibold text-mdn-orange-ink sm:inline sm:text-[13px]">{discountPct}% off</span>
               )}
             </>
           ) : (
@@ -207,32 +160,20 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        <button
-          onClick={handleAddToCart}
-          disabled={adding || outOfStock}
-          // Green at rest, orange on hover/press. Was a fixed near-black
-          // (#14151a) left over from the dark theme, which read as a
-          // neutral UI button rather than the brand's primary action —
-          // the reference sets this as a solid forest-green bar under
-          // every product card. Orange is the interaction state here
-          // specifically because this button is already green: a green
-          // hover on a green fill would give no feedback at all.
-          // `active:` matches hover so a tap on touch (where :hover is
-          // suppressed) still confirms the press.
-          // `text-mdn-on-primary`, not `text-white`: --green-primary
-          // lightens in dark mode so white on it measured 3.88:1. The
-          // token flips to near-black there. On the orange hover/active
-          // fills white is still correct in light mode and the token
-          // matches, so the hover state needs no separate treatment.
-          // py-3 (was py-2.5) → 44px rather than 36px. This is the
-          // primary commerce action on a phone and it was the shortest
-          // button on the page.
-          className="mt-3 w-full rounded-sm bg-mdn-green py-3 text-xs font-bold uppercase tracking-wide text-mdn-on-primary transition-all duration-200 hover:bg-mdn-orange-solid hover:text-white active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
-        </button>
+        {/* mt-auto: button hamesha card ke bottom pe, chahe naam 1 line ho ya 2 */}
+        <div className="mt-auto pt-3">
+          <button
+            onClick={handleAddToCart}
+            disabled={adding || outOfStock}
+            className="btn-shine press flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-mdn-green py-2 font-heading text-[12px] font-semibold sm:min-h-[42px] sm:py-2.5 text-mdn-on-primary transition-colors duration-200 hover:bg-mdn-orange-solid hover:text-white active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+          >
+            {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
+          </button>
+        </div>
         {error && <span className="mt-1 text-xs text-mdn-danger">{error}</span>}
       </div>
     </Link>
   );
-}
+};
+
+export default ProductCard;

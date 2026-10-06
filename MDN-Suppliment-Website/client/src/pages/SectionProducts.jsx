@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/api";
+import Reveal from "../components/motion/Reveal";
 import ProductCard from "../components/ProductCard";
 import MDNLoader from "../components/MDNLoader";
 
@@ -61,8 +62,8 @@ export default function SectionProducts() {
 
   return (
     <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 lg:px-[34px]">
-      <p className="text-xs font-semibold uppercase tracking-widest text-mdn-green">Catalog</p>
-      <h2 className="mt-1 text-2xl font-bold text-mdn-white sm:text-3xl">
+      <p className="eyebrow">Catalog</p>
+      <h2 className="mt-1 display-xl">
         {SECTION_LABELS[section] || "Products"}
       </h2>
 
@@ -108,7 +109,7 @@ export default function SectionProducts() {
         </select>
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-mdn-danger">{error}</p>}
 
       {loading && <MDNLoader label="Loading products" />}
 
@@ -117,9 +118,11 @@ export default function SectionProducts() {
       )}
 
       {!loading && products.length > 0 && (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {products.map((p) => (
-            <ProductCard key={p._id} product={p} />
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+          {products.map((p, i) => (
+            <Reveal key={p._id} from="up" delay={(i % 5) * 0.06} amount={0.15} className="h-full">
+              <ProductCard product={p} />
+            </Reveal>
           ))}
         </div>
       )}

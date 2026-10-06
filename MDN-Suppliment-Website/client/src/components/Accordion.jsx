@@ -4,14 +4,14 @@ import { useState } from "react";
 // disclosure pattern. Items with no content are dropped before rendering
 // so an unset field (e.g. a product with no `whoIsThisFor` text) doesn't
 // show an empty row.
-export default function Accordion({ items, defaultOpen = -1 }) {
+const Accordion = ({ items, defaultOpen = -1 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const visibleItems = items.filter((item) => item.content && item.content.trim());
 
   if (visibleItems.length === 0) return null;
 
   return (
-    <div className="divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
+    <div className="divide-y divide-mdn-border overflow-hidden rounded-xl border border-mdn-border">
       {visibleItems.map((item, i) => {
         const isOpen = open === i;
         return (
@@ -19,9 +19,9 @@ export default function Accordion({ items, defaultOpen = -1 }) {
             <button
               type="button"
               onClick={() => setOpen(isOpen ? -1 : i)}
-              className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-white/5 sm:px-5 sm:py-4"
+              className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-mdn-sand sm:px-5 sm:py-4"
             >
-              <span className="text-sm font-semibold text-mdn-white sm:text-base">{item.title}</span>
+              <span className="font-heading text-[15px] font-semibold text-mdn-ink sm:text-base">{item.title}</span>
               <svg
                 width="18"
                 height="18"
@@ -29,7 +29,7 @@ export default function Accordion({ items, defaultOpen = -1 }) {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className={`flex-shrink-0 text-mdn-green transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                className={`h-7 w-7 flex-shrink-0 rounded-full p-1.5 transition-all duration-300 ${isOpen ? "rotate-180 bg-mdn-ink text-mdn-charcoal" : "bg-mdn-sand text-mdn-ink"}`}
               >
                 <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -40,7 +40,7 @@ export default function Accordion({ items, defaultOpen = -1 }) {
               }`}
             >
               <div className="min-w-0 overflow-hidden">
-                <p className="whitespace-pre-line break-words px-4 pb-3 text-sm leading-relaxed text-mdn-gray sm:px-5 sm:pb-4">
+                <p className="whitespace-pre-line break-words px-4 pb-3 text-[15px] leading-relaxed text-mdn-ink-body sm:px-5 sm:pb-4">
                   {item.content}
                 </p>
               </div>
@@ -50,4 +50,6 @@ export default function Accordion({ items, defaultOpen = -1 }) {
       })}
     </div>
   );
-}
+};
+
+export default Accordion;

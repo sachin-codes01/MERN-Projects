@@ -201,7 +201,7 @@ export default function ContactForm({ defaultSubject = "" }) {
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mdn-gray">
           Email
         </label>
-        <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-mdn-charcoal2/60 px-4 py-3">
+        <div className="flex items-center gap-2 rounded-lg border border-mdn-border bg-mdn-charcoal2/60 px-4 py-3">
           <EmailRoundedIcon sx={{ fontSize: 18 }} className="shrink-0 text-mdn-gray" />
           <span className="min-w-0 flex-1 truncate text-sm text-mdn-white">{form.email}</span>
           <span className="shrink-0 rounded-full bg-mdn-green/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-mdn-green">
@@ -262,11 +262,11 @@ export default function ContactForm({ defaultSubject = "" }) {
           placeholder="Tell us what's going on — order number, product name, anything that helps us help you."
           className="input-field w-full resize-y"
         />
-        {errors.message && <p className="mt-1.5 text-xs text-red-400">{errors.message}</p>}
+        {errors.message && <p className="mt-1.5 text-xs text-mdn-danger">{errors.message}</p>}
       </div>
 
       {serverError && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <p className="rounded-lg border border-mdn-danger/30 bg-mdn-danger/10 px-4 py-3 text-sm text-mdn-danger">
           {serverError}
         </p>
       )}
@@ -310,7 +310,7 @@ function SuccessPanel({ form, enquiryId, token }) {
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-mdn-green/15 text-mdn-green">
           <CheckCircleRoundedIcon sx={{ fontSize: 32 }} />
         </span>
-        <h2 className="mt-4 font-display text-2xl font-bold uppercase tracking-wide text-mdn-white sm:text-3xl">
+        <h2 className="mt-4 display-xl">
           Thanks, {form.firstName}
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-mdn-gray">
@@ -371,13 +371,13 @@ function SuccessPanel({ form, enquiryId, token }) {
         <div className="card p-6">
           <div className="flex items-center gap-2">
             <ScheduleRoundedIcon sx={{ fontSize: 18 }} className="text-mdn-green" />
-            <h3 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Contact schedule</h3>
+            <h3 className="font-heading text-base font-semibold text-mdn-ink">Contact schedule</h3>
           </div>
           <ul className="mt-4 space-y-2.5">
             {SUPPORT_HOURS.map((row) => (
               <li
                 key={row.days}
-                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-white/5 pb-2.5 last:border-0 last:pb-0"
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-mdn-border pb-2.5 last:border-0 last:pb-0"
               >
                 <span className="text-sm text-mdn-white">{row.days}</span>
                 <span className="text-sm text-mdn-gray">{row.hours}</span>

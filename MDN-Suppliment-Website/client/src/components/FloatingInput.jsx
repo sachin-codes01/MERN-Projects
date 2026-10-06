@@ -27,7 +27,7 @@ export default function FloatingInput({
     <div className={`relative pt-1 ${className}`}>
       <div
         className={`relative rounded-lg border bg-mdn-charcoal transition-colors duration-200 ${
-          error ? "border-red-500/60" : focused ? "border-mdn-green" : "border-white/10"
+          error ? "border-mdn-danger/60" : focused ? "border-mdn-green" : "border-mdn-border"
         }`}
       >
         <input
@@ -52,7 +52,7 @@ export default function FloatingInput({
           }`}
         >
           {label}
-          {required && <span className="ml-0.5 text-red-400">*</span>}
+          {required && <span className="ml-0.5 text-mdn-danger">*</span>}
         </label>
         {/* Animated focus underline */}
         <span
@@ -61,7 +61,7 @@ export default function FloatingInput({
           }`}
         />
       </div>
-      {error && <p className="mt-1 animate-fade-up text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 animate-fade-up text-xs text-mdn-danger">{error}</p>}
     </div>
   );
 }

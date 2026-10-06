@@ -38,7 +38,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
       onClick={onClose}
     >
       <div
@@ -58,7 +58,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
               className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-2.5 text-sm transition-colors ${
                 selectedReason === reason
                   ? "border-mdn-green/50 bg-mdn-green/10 text-mdn-white"
-                  : "border-white/10 text-mdn-gray hover:border-white/20"
+                  : "border-mdn-border text-mdn-gray hover:border-mdn-border"
               }`}
             >
               <input
@@ -93,7 +93,7 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
           <button
             onClick={handleConfirm}
             disabled={!canSubmit || cancelling}
-            className="w-full rounded-lg bg-red-500/90 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            className="w-full rounded-lg bg-mdn-danger/90 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-mdn-danger disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             {cancelling ? "Cancelling..." : "Cancel Order"}
           </button>

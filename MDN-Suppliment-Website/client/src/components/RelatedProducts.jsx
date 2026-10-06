@@ -96,20 +96,21 @@ export default function RelatedProducts({ product }) {
     // No max-w-shell / px-* here: this sits INSIDE the product page's
     // existing shell, so adding its own would double the gutters. Matches
     // the spacing ProductReviews below it uses.
-    <section className="mt-16 border-t border-mdn-border pt-10">
-      <SectionHeading eyebrow="You may also like" title="Related" accent="Products" />
+    <section className="mt-10 border-t border-mdn-border pt-8 sm:mt-14 sm:pt-10">
+      <SectionHeading title="You may also" accent="like" subtitle="Related picks other customers buy with this" />
 
-      <div className="mt-8">
+      <div className="mt-4 sm:mt-6">
         <ItemCarousel
           items={items}
           // No autoplay — like Bestsellers, this only moves when the user
           // scrolls, drags or clicks an arrow.
           autoPlay={false}
           showDots={false}
-          gapClassName="gap-4"
+          showProgress
+          gapClassName="gap-3 sm:gap-4"
           // Same widths as the home page's product rows, so a card is the
           // same size wherever it appears.
-          itemClassName="w-[47%] sm:w-[31%] lg:w-[18.4%]"
+          itemClassName="w-[calc(50%-6px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]"
           renderItem={(p) => <ProductCard product={p} />}
         />
       </div>

@@ -12,16 +12,16 @@ import { EASE_OUT_EXPO } from "../../lib/easings";
  * carries a little padding-bottom so descenders/apostrophes aren't
  * sheared off by the clip.
  */
-export default function MaskReveal({
+const MaskReveal = ({
   lines,
   delay = 0,
   stagger = 0.09,
-  duration = 0.9,
+  duration = 0.8,
   amount = 0.6,
   as: Component = "div",
   lineClassName = "",
   className = "",
-}) {
+}) => {
   const MotionComponent = motion[Component] ?? motion.div;
 
   return (
@@ -54,4 +54,6 @@ export default function MaskReveal({
       ))}
     </MotionComponent>
   );
-}
+};
+
+export default MaskReveal;

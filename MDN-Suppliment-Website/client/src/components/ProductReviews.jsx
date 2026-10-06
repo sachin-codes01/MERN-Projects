@@ -83,7 +83,7 @@ function WriteReviewForm({ onSubmitReview }) {
 
   return (
     <form onSubmit={handleSubmit} className="card mt-6 space-y-3 p-4 sm:p-5">
-      <h3 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Write a Review</h3>
+      <h3 className="font-heading text-base font-bold text-mdn-ink">Write a Review</h3>
       <StarPicker value={rating} onChange={setRating} />
       <textarea
         value={comment}
@@ -92,7 +92,7 @@ function WriteReviewForm({ onSubmitReview }) {
         rows={3}
         className="input-field w-full resize-none"
       />
-      {formError && <p className="text-xs text-red-400">{formError}</p>}
+      {formError && <p className="text-xs text-mdn-danger">{formError}</p>}
       <button type="submit" disabled={submitting} className="btn-primary !px-5 !py-2 text-sm">
         {submitting ? "Submitting..." : "Submit Review"}
       </button>
@@ -141,10 +141,10 @@ export default function ProductReviews({
   const hasMore = visibleCount < displayedReviews.length;
 
   return (
-    <section className="mt-16 border-t border-white/5 pt-10">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-mdn-white sm:text-2xl">
-          Customer <span className="text-mdn-green">Reviews</span>
+    <section id="product-reviews" className="mt-10 border-t border-mdn-border pt-8 sm:mt-14 sm:pt-10">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="display-lg">
+          Customer <span className="display-accent">Reviews</span>
         </h2>
         <div className="flex items-center gap-2">
           <Stars rating={ratingsAverage} />
@@ -158,12 +158,12 @@ export default function ProductReviews({
       {reviews.length === 0 ? (
         <p className="mt-6 text-sm text-mdn-gray">No reviews yet — be the first to share your experience.</p>
       ) : (
-        <div className="mt-6 divide-y divide-white/10 border-t border-white/10">
+        <div className="mt-6 divide-y divide-mdn-border border-t border-mdn-border">
           {visibleReviews.map((r) => (
             <div key={r._id} className="py-5">
               <Stars rating={r.rating} />
               <div className="mt-3 flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-mdn-green/30 bg-mdn-green/15 text-sm font-bold text-mdn-green">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mdn-green text-sm font-bold text-mdn-on-primary">
                   {(r.user?.name || "?").charAt(0).toUpperCase()}
                 </span>
                 <div className="min-w-0">
@@ -178,7 +178,7 @@ export default function ProductReviews({
                   <span className="text-xs text-mdn-gray">{formatDate(r.createdAt)}</span>
                 </div>
               </div>
-              {r.comment && <p className="mt-3 break-words text-sm leading-relaxed text-mdn-white/90">{r.comment}</p>}
+              {r.comment && <p className="mt-3 break-words text-sm leading-relaxed text-mdn-ink-body">{r.comment}</p>}
             </div>
           ))}
         </div>

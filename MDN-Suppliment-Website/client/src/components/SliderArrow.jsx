@@ -17,11 +17,12 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
  *   way of finger-swiping, so touch-sized viewports rely on drag only —
  *   arrows only render from `lg` up, where a mouse is the norm.
  */
-export default function SliderArrow({ direction, onClick }) {
+const SliderArrow = ({ direction, onClick }) => {
   const Icon = direction === "left" ? ChevronLeftRoundedIcon : ChevronRightRoundedIcon;
   const sideClass = direction === "left" ? "left-0" : "right-0";
   const nudgeClass = direction === "left" ? "group-hover:-translate-x-0.5" : "group-hover:translate-x-0.5";
 
+  // Redesign: reference jaisa chhota safed gol button, edge ke beech me.
   return (
     <button
       type="button"
@@ -29,12 +30,11 @@ export default function SliderArrow({ direction, onClick }) {
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       aria-label={direction === "left" ? "Previous slide" : "Next slide"}
-      className={`group absolute inset-y-0 ${sideClass} z-30 hidden w-14 items-center justify-center bg-mdn-green/0 text-white transition-colors duration-300 hover:bg-mdn-green/20 active:bg-mdn-green/40 lg:flex`}
+      className={`group absolute top-1/2 ${sideClass} z-30 mx-2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-mdn-border bg-mdn-charcoal text-mdn-ink shadow transition-colors duration-200 hover:bg-mdn-green hover:text-mdn-on-primary lg:flex`}
     >
-      <Icon
-        sx={{ fontSize: 34 }}
-        className={`drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] transition-transform duration-200 ${nudgeClass}`}
-      />
+      <Icon sx={{ fontSize: 24 }} className={`transition-transform duration-200 ${nudgeClass}`} />
     </button>
   );
-}
+};
+
+export default SliderArrow;

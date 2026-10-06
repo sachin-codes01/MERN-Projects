@@ -221,7 +221,7 @@ export default function Checkout() {
   };
 
   const fieldClass = (name) =>
-    `input-field ${fieldErrors[name] ? "!border-red-500/60 focus:!border-red-500 focus:!ring-red-500/25" : ""}`;
+    `input-field ${fieldErrors[name] ? "!border-mdn-danger/60 focus:!border-mdn-danger focus:!ring-mdn-danger/25" : ""}`;
 
   if (pageLoading) {
     return <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6"><MDNLoader label="Loading checkout" /></div>;
@@ -237,13 +237,13 @@ export default function Checkout() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-mdn-white">Checkout</h2>
+      <h2 className="display-xl">Checkout</h2>
 
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-sm text-mdn-danger">{error}</p>}
 
       <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-8">
         <section className="card space-y-4 p-4 sm:p-5">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Shipping details</h3>
+          <h3 className="font-heading text-base font-semibold text-mdn-ink">Shipping details</h3>
 
           {addresses.length > 0 && (
             <div>
@@ -270,37 +270,37 @@ export default function Checkout() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <input name="fullName" placeholder="Full name" value={form.fullName} onChange={handleChange} className={fieldClass("fullName")} />
-              {fieldErrors.fullName && <p className="mt-1 text-xs text-red-400">{fieldErrors.fullName}</p>}
+              {fieldErrors.fullName && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.fullName}</p>}
             </div>
             <div>
               <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} className={fieldClass("email")} />
-              {fieldErrors.email && <p className="mt-1 text-xs text-red-400">{fieldErrors.email}</p>}
+              {fieldErrors.email && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.email}</p>}
             </div>
           </div>
 
           <div>
             <input name="phone" placeholder="Phone number" value={form.phone} onChange={handleChange} className={fieldClass("phone")} />
-            {fieldErrors.phone && <p className="mt-1 text-xs text-red-400">{fieldErrors.phone}</p>}
+            {fieldErrors.phone && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.phone}</p>}
           </div>
 
           <div>
             <input name="line1" placeholder="Address" value={form.line1} onChange={handleChange} className={`${fieldClass("line1")} w-full`} />
-            {fieldErrors.line1 && <p className="mt-1 text-xs text-red-400">{fieldErrors.line1}</p>}
+            {fieldErrors.line1 && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.line1}</p>}
           </div>
           <input name="line2" placeholder="Address line 2 (optional)" value={form.line2} onChange={handleChange} className="input-field w-full" />
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <input name="city" placeholder="City" value={form.city} onChange={handleChange} className={fieldClass("city")} />
-              {fieldErrors.city && <p className="mt-1 text-xs text-red-400">{fieldErrors.city}</p>}
+              {fieldErrors.city && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.city}</p>}
             </div>
             <div>
               <input name="state" placeholder="State" value={form.state} onChange={handleChange} className={fieldClass("state")} />
-              {fieldErrors.state && <p className="mt-1 text-xs text-red-400">{fieldErrors.state}</p>}
+              {fieldErrors.state && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.state}</p>}
             </div>
             <div>
               <input name="pincode" placeholder="Pincode" value={form.pincode} onChange={handleChange} className={fieldClass("pincode")} />
-              {fieldErrors.pincode && <p className="mt-1 text-xs text-red-400">{fieldErrors.pincode}</p>}
+              {fieldErrors.pincode && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.pincode}</p>}
             </div>
           </div>
 
@@ -311,7 +311,7 @@ export default function Checkout() {
         </section>
 
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Coupon</h3>
+          <h3 className="font-heading text-base font-semibold text-mdn-ink">Coupon</h3>
           {cart.couponApplied ? (
             <div className="card mt-3 flex flex-wrap items-center justify-between gap-3 p-4">
               <span className="text-sm text-mdn-green">Coupon applied — you saved ₹{cart.discount}</span>
@@ -332,7 +332,7 @@ export default function Checkout() {
             server/utils/orderPricing.js), so what's shown here is exactly
             what the payment popup will ask for. */}
         <section className="card space-y-1.5 p-4 sm:p-5">
-          <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-mdn-white">Price details</h3>
+          <h3 className="mb-1 font-heading text-base font-semibold text-mdn-ink">Price details</h3>
 
           <div className="flex items-center justify-between text-sm text-mdn-gray">
             <span>Subtotal</span><span>₹{cart.subtotal}</span>
@@ -359,7 +359,7 @@ export default function Checkout() {
             <span>₹{cart.tax}</span>
           </div>
 
-          <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 text-base font-bold text-mdn-white">
+          <div className="mt-2 flex items-center justify-between border-t border-mdn-border pt-2 text-base font-bold text-mdn-white">
             <span>Total payable</span><span className="text-mdn-green">₹{cart.total}</span>
           </div>
 

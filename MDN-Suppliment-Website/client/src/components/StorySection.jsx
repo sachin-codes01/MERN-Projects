@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Reveal from "./motion/Reveal";
-import MaskReveal from "./motion/MaskReveal";
+import SectionHeading from "./SectionHeading";
+import CountUp from "./motion/CountUp";
 
 const SHORT_STORY =
   "MDN was founded by Deepak Saini — a professional bodybuilder, fitness trainer, and nutrition coach whose bodybuilding journey began in 2001. A five-time Mr. Delhi and Mr. North Delhi title holder, he built MDN so his students could rely on one authentic, high-quality source for their nutrition.";
@@ -39,7 +40,7 @@ const MILESTONES = [
  * set as an article, the milestones as a ruled sidebar, and the numbers
  * as a hairline-divided ledger.
  */
-export default function StorySection() {
+const StorySection = () => {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -48,8 +49,8 @@ export default function StorySection() {
        on the page ground, so lifting this one is what separates the three
        without needing a border — which is why the old `border-white/5`
        hairlines are gone too. */
-    <section id="story" className="w-full bg-mdn-charcoal py-10 sm:py-12 lg:py-14">
-      <div className="mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
+    <section id="story" className="w-full bg-mdn-charcoal">
+      <div className="section">
         {/* Flush left, deliberately — this is the ONE section on the home
             page whose heading is not centred (see SectionHeading, which
             every other section uses). It earns the exception by being the
@@ -57,27 +58,13 @@ export default function StorySection() {
             cards: the article, the timeline and the ledger below all hang
             off a hard left edge, and a centred masthead over them would
             float free of the column it introduces. */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <span aria-hidden="true" className="section-index shrink-0">02</span>
-          <span className="eyebrow shrink-0">Our Journey</span>
-          <span aria-hidden="true" className="section-rule flex-1" />
-        </div>
-
-        <MaskReveal
-          as="h2"
-          className="display-lg mt-3.5"
-          lines={[
-            <>
-              The Story of <span className="display-accent">MDN</span>
-            </>,
-          ]}
-        />
+        <SectionHeading align="left" eyebrow="Our Journey" title="The Story of" accent="MDN" />
 
         {/* 1.1fr : 0.9fr, not 1:1. The left column holds running prose and
             the right holds five short timeline entries, so an even split
             would give the narrative too narrow a measure while leaving the
             sidebar half empty. */}
-        <div className="mt-7 grid gap-8 lg:mt-9 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
+        <div className="mt-5 grid gap-8 lg:mt-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           {/* --- Left: the article --- */}
           <Reveal from="left">
             {/* Dropped WORD, not a dropped initial. The paragraph opens
@@ -103,7 +90,7 @@ export default function StorySection() {
                    subject. Because it is an ordinary inline span, the
                    accessible reading order is already correct: "MDN" then
                    " was founded by…". */
-                <span className="float-left mr-3 mt-[0.1em] font-serif text-[2.6rem] font-normal leading-[0.85] tracking-tight text-mdn-ink sm:text-[3rem]">
+                <span className="float-left mr-2.5 mt-[0.12em] font-heading text-[2.4rem] font-extrabold leading-[0.85] tracking-tight text-mdn-green sm:text-[2.75rem]">
                   MDN
                 </span>
               )}
@@ -118,7 +105,7 @@ export default function StorySection() {
               /* Underline-on-rest, not a coloured link: the accent colour
                  is spoken for by prices and CTAs, and a green text link
                  here would read as a third action level. */
-              className="tap-44 group mt-5 inline-flex items-center gap-1.5 border-b border-mdn-ink/30 pb-0.5 text-[13px] font-semibold uppercase tracking-[0.1em] text-mdn-ink transition-colors duration-200 hover:border-mdn-orange hover:text-mdn-orange"
+              className="tap-44 group mt-4 inline-flex items-center gap-1.5 border-b border-mdn-ink/30 pb-0.5 font-heading text-[13px] font-semibold text-mdn-ink transition-colors duration-200 hover:border-mdn-orange hover:text-mdn-orange"
             >
               {expanded ? "Read less" : "Read the full story"}
               <svg
@@ -139,8 +126,8 @@ export default function StorySection() {
                 this size is the strongest typographic move available on
                 the page and this is the one line worth spending it on —
                 so it is NOT repeated anywhere else in the section. */}
-            <blockquote className="mt-7 border-l-2 border-mdn-orange/60 pl-5">
-              <p className="font-serif text-[17px] italic leading-[1.45] text-mdn-ink sm:text-lg">
+            <blockquote className="mt-6 rounded-r-xl border-l-2 border-mdn-orange/60 bg-mdn-sand py-4 pl-5 pr-4">
+              <p className="font-heading text-[15px] font-medium italic leading-[1.55] text-mdn-ink sm:text-base">
                 Our mission is simple: to deliver trusted, high-quality nutrition that empowers
                 people to achieve their fitness, performance, and wellness goals with confidence.
               </p>
@@ -167,14 +154,14 @@ export default function StorySection() {
                   from="up"
                   delay={i * 0.09}
                   amount={0.4}
-                  className="relative pb-6 pl-6 last:pb-0 sm:pl-7"
+                  className="relative pb-5 pl-6 last:pb-0 sm:pl-7"
                 >
                   <span
                     aria-hidden="true"
                     className="absolute -left-[5.5px] top-[0.45em] block h-[11px] w-[11px] rounded-full border-2 border-mdn-ink bg-mdn-charcoal"
                   />
-                  <p className="label text-[10px] text-mdn-orange-ink">{m.year}</p>
-                  <p className="mt-1.5 text-[14px] leading-relaxed text-mdn-ink-body sm:text-[15px]">
+                  <p className="label text-[11px] text-mdn-orange-ink">{m.year}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-mdn-ink-body sm:text-[15px]">
                     {m.text}
                   </p>
                 </Reveal>
@@ -195,7 +182,7 @@ export default function StorySection() {
             columns above rather than being pushed down by a top rule and
             a tall pad on every side, which is where most of this
             section's dead space was coming from. */}
-        <div className="mt-9 grid grid-cols-2 gap-y-6 border-t border-mdn-border-strong pt-7 sm:grid-cols-4 sm:gap-y-0 lg:mt-11">
+        <div className="mt-8 grid grid-cols-2 gap-y-6 border-t border-mdn-border-strong pt-6 sm:grid-cols-4 sm:gap-y-0 lg:mt-10">
           {STATS.map((s, i) => (
             <Reveal
               key={s.label}
@@ -220,14 +207,16 @@ export default function StorySection() {
               {/* Didot at 400. No `font-bold` — the display face has one
                   weight and a bold utility would make the browser fake
                   it (see the synthetic-bold guard in index.css). */}
-              <p className="font-display text-[2rem] leading-none text-mdn-ink sm:text-[2.5rem]">
-                {s.value}
+              <p className="font-heading text-[2rem] font-bold leading-none tracking-tight text-mdn-green sm:text-[2.75rem]">
+                <CountUp value={s.value} />
               </p>
-              <p className="label mt-2 text-[10px] leading-tight text-mdn-ink-muted">{s.label}</p>
+              <p className="label mt-2 text-[11px] leading-tight text-mdn-ink-muted sm:text-xs">{s.label}</p>
             </Reveal>
           ))}
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default StorySection;

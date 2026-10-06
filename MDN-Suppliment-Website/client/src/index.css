@@ -5,7 +5,7 @@
            bowls and even stroke weight sit quietly under Didot's
            high-contrast display type instead of competing with it, and
            unlike Didot it stays crisp at 11-14px. */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Jost:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Jost:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap");
 
 @import "./styles/admin.css";
 
@@ -234,7 +234,7 @@
      3px -> 2 -> 1 -> 0 over about three rows, which is a ~4px curve at
      poster scale and ~6px at the real 1536px shell. The buttons in the
      reference are only barely softened, not pill-like. */
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
   --radius-xl: 22px;
@@ -414,8 +414,11 @@ body {
    11-14px. Anything small and bold should therefore use the `.label`
    class or `font-serif` below — both put plain `Didot` first, so the
    browser loads the genuine Didot Bold file instead of faking it. */
+/* Redesign (reference ke hisaab se): saare headings ab bold Poppins sans me —
+   Didot sirf jahan explicitly `font-didot-bold` laga ho wahi bachega. */
 h1, h2, h3, h4 {
-  font-family: "Didot Title", "Didot", "Didot LT Std", Georgia, "Times New Roman", serif;
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 700;
   color: rgb(var(--ink));
   text-wrap: balance;
 }
@@ -436,49 +439,56 @@ h1, h2, h3, h4 {
   text-transform: uppercase;
 }
 
+/* Display scale — Poppins bold, normal case, tight tracking (reference look). */
 .display-hero {
-  font-family: "Didot Title", "Didot", Georgia, serif;
-  font-size: clamp(2.75rem, 7.5vw, 5.5rem);
-  line-height: 0.92;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
 }
 .display-xl {
-  font-family: "Didot Title", "Didot", Georgia, serif;
-  font-size: clamp(1.75rem, 3.6vw, 2.75rem);
-  line-height: 1.05;
-  letter-spacing: -0.012em;
-  text-transform: uppercase;
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.875rem, 4.2vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 .display-lg {
-  font-family: "Didot Title", "Didot", Georgia, serif;
-  font-size: clamp(1.5rem, 2.8vw, 2.125rem);
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.625rem, 3vw, 2.625rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
 }
 .display-md {
-  font-family: "Didot", Georgia, serif;
-  font-size: clamp(1.125rem, 1.8vw, 1.5rem);
-  line-height: 1.2;
-  letter-spacing: -0.005em;
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.1875rem, 1.9vw, 1.625rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
-/* The accent word inside a section heading ("…by COLLECTION",
-   "OUR BESTSELLERS"). Italic + orange, per the reference. */
+/* Heading ka accent hissa ("Trusted By <500k+ Customers>") — same font,
+   brand orange, neeche halki underline. Italic ab nahi. */
 .display-accent {
-  font-family: "Didot", Georgia, serif;
-  font-style: italic;
+  font-family: inherit;
+  font-style: normal;
   color: rgb(var(--orange-accent));
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: rgb(var(--orange-accent) / 0.55);
 }
 /* Small caps label above a heading. Inter, never Didot — at 11px
    Didot's hairlines vanish. */
+/* Reference ka "— FOR HER" / "SHOP BY GOAL" jaisa chhota orange label. */
 .eyebrow {
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Poppins, Inter, system-ui, sans-serif;
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgb(var(--ink-muted));
+  color: rgb(var(--orange-ink));
 }
 
 /* ------------------------------------------------------------
@@ -497,13 +507,7 @@ h1, h2, h3, h4 {
    didone gets `.font-didot-bold` below, which switches to the "Didot"
    family — that one has a REAL 700 file.
    ------------------------------------------------------------ */
-.display-hero,
-.display-xl,
-.display-lg,
-.font-display {
-  font-weight: 400;
-  font-synthesis-weight: none;
-}
+/* Poppins me asli bold files hain, isliye synthetic-bold guard ki ab zarurat nahi. */
 .font-didot-bold {
   font-family: "Didot", Georgia, serif;
   font-weight: 700;
@@ -517,8 +521,8 @@ h1, h2, h3, h4 {
    Tabular figures so the numerals in a sequence share one width and
    the eyebrows after them start at a consistent offset. */
 .section-index {
-  font-family: "Didot", Georgia, serif;
-  font-style: italic;
+  display: none; /* reference me folio numbers nahi hain */
+  font-family: Poppins, Inter, sans-serif;
   font-size: 0.8125rem;
   line-height: 1;
   color: rgb(var(--ink-muted));
@@ -674,7 +678,8 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
      easing come from the tokens so every button on the site
      decelerates on the same curve. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 px-7 py-3 text-[15px] font-semibold;
+    font-family: Poppins, Inter, system-ui, sans-serif;
     background: rgb(var(--green-primary));
     /* Token, not a literal. In dark mode --green-primary lightens to a
        mid sage so it stays visible against the dark page, and a near-
@@ -691,7 +696,8 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 px-7 py-3 text-[15px] font-semibold;
+    font-family: Poppins, Inter, system-ui, sans-serif;
     background: rgb(var(--orange-solid));
     color: #fff;
     border-radius: var(--radius-sm);
@@ -704,7 +710,8 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider;
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 px-7 py-3 text-[15px] font-semibold;
+    font-family: Poppins, Inter, system-ui, sans-serif;
     background: transparent;
     color: rgb(var(--ink));
     border: 1px solid rgb(var(--border-strong));
@@ -742,7 +749,7 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
     background: rgb(var(--mdn-charcoal));
   }
   .badge-save {
-    @apply inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+    @apply inline-flex items-center px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide;
     background: rgb(var(--orange-badge));
     /* See --badge-ink: white here, near-black in dark mode, because the
        badge fill lightens there. */
@@ -803,7 +810,8 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
      44px guideline; the extra 10px also stops a row of chips from
      reading as cramped next to the 40-48px buttons around it. */
   .chip {
-    @apply inline-flex items-center gap-1.5 whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em];
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap px-4 py-2 text-[13px] font-medium;
+    font-family: Poppins, Inter, system-ui, sans-serif;
     border-radius: var(--radius-pill);
     border: 1px solid rgb(var(--border-strong));
     background: transparent;
@@ -848,7 +856,7 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
      so the gaps between them are identical instead of each section
      inventing its own py-*. */
   .section {
-    @apply mx-auto max-w-shell px-4 py-14 sm:px-6 sm:py-16 lg:px-[34px] lg:py-20;
+    @apply mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-14 lg:px-[34px] lg:py-16;
   }
   /* Full-bleed band that still aligns its CONTENT to the shell. */
   .band {
@@ -926,3 +934,204 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
 }
+
+/* NOTE: horizontal rails pe `data-lenis-prevent` mat lagana — wheel events Lenis se
+   bach ke native scroll karte hain aur Lenis ki apni animation se ladte hain, jisse
+   page scroll pe upar-neeche jhatke khata hai. Lenis sirf vertical wheel leta hai,
+   isliye horizontal swipe bina attribute ke bhi chalta hai.
+   Horizontal rails (hero trust row, category row, carousels) — scroll hota hai
+   par scrollbar nahi dikhta, reference jaisa clean look. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================
+   Motion system (premium pass)
+   Rules: sirf transform + opacity animate hote hain (GPU-friendly),
+   important cheezein zyada move karti hain, background sabse kam.
+   prefers-reduced-motion upar wale global block se sab band ho jata hai.
+   ============================================================ */
+
+/* Route badalne pe page halka sa fade + rise ke saath aata hai */
+/* Sirf opacity — transform bilkul nahi. Page wrapper pe transform (chahe
+   animation ke dauraan hi ho) `position: fixed` bachchon (sticky Add-to-Cart
+   bar, modals, loader) ko viewport ki jagah page se chipka deta hai. */
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.page-enter {
+  animation: page-enter 420ms var(--ease-out) backwards;
+}
+
+/* Buttons — lift ke saath ek patli light sweep (sirf mouse hover pe) */
+.btn-primary,
+.btn-accent {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.btn-primary::after,
+.btn-accent::after,
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.22) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.btn-shine {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+@media (hover: hover) {
+  .btn-primary:hover::after,
+  .btn-accent:hover::after,
+  .btn-shine:hover::after {
+    transform: translateX(120%);
+    transition: transform 700ms var(--ease-out);
+  }
+}
+/* Press feedback — touch pe bhi */
+/* Poori transition list yahin — warna yeh class Tailwind ki transition-colors
+   jaisi utilities ko override karke hover colour fade tod deti thi. */
+.press {
+  transition: transform var(--dur-fast) var(--ease), background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Card lift — normal → hover: thoda upar, halka scale, gehra shadow, border highlight */
+/* Sirf translateY — scale carousel ke overflow edge pe card ka border kaat deta tha.
+   will-change nahi: har card ke liye permanent GPU layer ban jati thi. */
+.lift {
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgb(var(--border-strong));
+  }
+  /* Card ke andar ka icon hover pe thoda sa uthta hai */
+  .lift:hover .lift-icon {
+    transform: translateY(-2px) rotate(-6deg);
+  }
+}
+.lift-icon {
+  transition: transform var(--dur) var(--ease-out), background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+/* Navbar links — neeche se sweep hone wali underline, active pe bhari rehti hai */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgb(var(--orange-solid));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms var(--ease-out);
+}
+.nav-link:hover::after,
+.nav-link[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+/* Sand bands ke upar-neeche soft fade — sections ek-dusre me ghulte hain,
+   hard stripe nahi banti. */
+.band-soft {
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--mdn-black)) 0,
+    rgb(var(--sand)) 72px,
+    rgb(var(--sand)) calc(100% - 72px),
+    rgb(var(--mdn-black)) 100%
+  );
+}
+
+/* Ambient background — do dheere chalne wale blurred blobs (brand green + orange).
+   Sirf tablet/desktop pe; phone pe GPU bachane ke liye band. */
+.ambient {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.ambient::before,
+.ambient::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 520px;
+  height: 520px;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+  display: none;
+}
+.ambient::before {
+  top: -160px;
+  left: -140px;
+  background: rgb(var(--green-mid) / 0.14);
+  animation: ambient-drift 28s ease-in-out infinite alternate;
+}
+.ambient::after {
+  bottom: -180px;
+  right: -140px;
+  background: rgb(var(--orange-accent) / 0.12);
+  animation: ambient-drift 34s ease-in-out infinite alternate-reverse;
+}
+@media (min-width: 768px) {
+  .ambient::before,
+  .ambient::after {
+    display: block;
+  }
+}
+@keyframes ambient-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(80px, 40px, 0) scale(1.15); }
+}
+
+/* Faint dot grid — "tech" texture, bahut halka, mask se edges pe fade */
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(var(--ink) / 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient::before,
+  .ambient::after,
+  .page-enter {
+    animation: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
+}
+
+/* z-index ladder (poori site me yahi follow hota hai):
+   decorations -1 · content 0 · hovered card 10 · carousel arrows 30 ·
+   sticky Add-to-Cart 40 · navbar + dropdowns 50 · scroll progress 60 ·
+   modal 70 · full-screen loader 80 · toasts 90 */

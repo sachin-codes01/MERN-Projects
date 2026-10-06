@@ -3,13 +3,19 @@ import { EASE_OUT_QUINT } from "../../lib/easings";
 
 // Offsets are big enough to read as arriving from OUTSIDE the layout, not
 // nudging into place — see the note on the component below.
+// Phone pe movement chhota rakha hai — chhoti screen pe 90px ka jump "udta hua" lagta tha.
+// Module load pe ek baar check (har Reveal pe listener lagana mehenga padta).
+const SMALL = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+const D = SMALL ? 16 : 28;
+const X = SMALL ? 20 : 40;
+
 const VARIANTS = {
-  up: { hidden: { opacity: 0, y: 90 }, visible: { opacity: 1, y: 0 } },
-  down: { hidden: { opacity: 0, y: -90 }, visible: { opacity: 1, y: 0 } },
-  left: { hidden: { opacity: 0, x: -120 }, visible: { opacity: 1, x: 0 } },
-  right: { hidden: { opacity: 0, x: 120 }, visible: { opacity: 1, x: 0 } },
+  up: { hidden: { opacity: 0, y: D }, visible: { opacity: 1, y: 0 } },
+  down: { hidden: { opacity: 0, y: -D }, visible: { opacity: 1, y: 0 } },
+  left: { hidden: { opacity: 0, x: -X }, visible: { opacity: 1, x: 0 } },
+  right: { hidden: { opacity: 0, x: X }, visible: { opacity: 1, x: 0 } },
   fade: { hidden: { opacity: 0 }, visible: { opacity: 1 } },
-  scale: { hidden: { opacity: 0, scale: 0.92 }, visible: { opacity: 1, scale: 1 } },
+  scale: { hidden: { opacity: 0, scale: 0.96 }, visible: { opacity: 1, scale: 1 } },
 };
 
 /**
@@ -21,11 +27,11 @@ const VARIANTS = {
  * Fires once (`viewport={{ once: true }}`) and stays revealed — this is a
  * one-way entrance, not a scrubbed/looping effect.
  */
-export default function Reveal({
+const Reveal = ({
   children,
   from = "up",
   delay = 0,
-  duration = 0.9,
+  duration = 0.7,
   amount = 0.25,
   as: Component = "div",
   className = "",
@@ -36,7 +42,7 @@ export default function Reveal({
   // thrown them away with no error, leaving a carousel that no longer
   // pauses under the pointer.
   ...rest
-}) {
+}) => {
   const MotionComponent = motion[Component] ?? motion.div;
   const variants = VARIANTS[from] ?? VARIANTS.up;
 
@@ -53,4 +59,6 @@ export default function Reveal({
       {children}
     </MotionComponent>
   );
-}
+};
+
+export default Reveal;

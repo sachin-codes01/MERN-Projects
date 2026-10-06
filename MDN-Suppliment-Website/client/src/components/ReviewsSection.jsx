@@ -17,13 +17,22 @@ const REVIEWS = [
   { name: "Dev S.", role: "College Athlete", rating: 4, tag: "Growth", quote: "Steady lean gains over two months, nothing bloated or watery." },
 ];
 
-function chunk(arr, size) {
+const chunk = (arr, size) => {
   const out = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
-}
+};
 
-export default function ReviewsSection() {
+// Naam ke pehle letters se avatar (e.g. "Rohit S." -> "RS")
+const initials = (name) =>
+  name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+const ReviewsSection = () => {
   const [activeTag, setActiveTag] = useState("All");
   const [index, setIndex] = useState(0);
   const timerRef = useRef(null);
@@ -66,8 +75,8 @@ export default function ReviewsSection() {
        nothing for them to be brighter than, so they rendered as an olive
        smudge and a layer of dirt. A tinted band separates this section
        from its neighbours on its own. */
-    <section className="w-full bg-mdn-sand py-14 sm:py-16 lg:py-20">
-      <div className="mx-auto max-w-shell px-4 sm:px-6 lg:px-[34px]">
+    <section className="band-soft ambient w-full">
+      <div className="section">
         <SectionHeading
           index="07"
           eyebrow="Testimonials"
@@ -82,7 +91,7 @@ export default function ReviewsSection() {
         <div
           role="group"
           aria-label="Filter reviews by topic"
-          className="mt-9 flex flex-wrap justify-center gap-2"
+          className="no-scrollbar -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:mt-6 sm:flex-wrap sm:justify-center sm:px-0"
         >
           {TAGS.map((tag) => (
             <button
@@ -112,7 +121,7 @@ export default function ReviewsSection() {
         <Reveal
           from="up"
           amount={0.15}
-          className="relative mt-8 overflow-hidden"
+          className="relative mt-2 overflow-hidden sm:mt-4"
           onMouseEnter={stopAutoplay}
           onMouseLeave={startAutoplay}
         >
@@ -124,11 +133,11 @@ export default function ReviewsSection() {
               // center card room to grow into without its top/bottom/side
               // edges getting cut off by this wrapper's overflow-hidden —
               // that clipping was the bug in the screenshot.
-              className="flex items-center py-5 transition-transform duration-700 ease-in-out"
+              className="flex items-stretch py-4 transition-transform duration-700 ease-in-out"
               style={{ transform: `translateX(-${index * 100}%)` }}
             >
               {slides.map((group, si) => (
-                <div key={si} className="grid w-full shrink-0 items-stretch gap-5 px-1 sm:grid-cols-3 sm:gap-6">
+                <div key={si} className="grid w-full shrink-0 items-stretch gap-4 px-1 sm:grid-cols-3">
                   {group.map((r, i) => (
                     /* Every card is the same size now. The middle one used
                        to be scaled to 110% and its neighbours to 95%,
@@ -141,34 +150,18 @@ export default function ReviewsSection() {
                        them, which is what testimonials are for. */
                     <article
                       key={i}
-                      className="group relative flex h-full cursor-default flex-col overflow-hidden rounded-lg border border-mdn-border bg-mdn-charcoal p-6 shadow-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-7"
+                      className="lift flex h-full cursor-default flex-col rounded-xl border border-mdn-border bg-mdn-charcoal p-5 shadow-xs sm:p-6"
                     >
-                      {/* Didot quotation mark as a watermark. Held very
-                          low in contrast and clipped by the card's own
-                          overflow, so it reads as a texture in the corner
-                          rather than a glyph competing with the copy. */}
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute -right-2 -top-8 select-none font-serif text-[7rem] leading-none text-mdn-ink/[0.045] transition-colors duration-300 group-hover:text-mdn-ink/[0.07]"
-                      >
-                        &rdquo;
-                      </span>
-
-                      {/* Gold, not green. Stars are a rating convention
-                          with a colour the whole web already agrees on,
-                          and `--star` exists in the token set precisely
-                          for this — green stars read as a brand flourish
-                          and stop communicating a score. */}
                       <div
-                        className="relative flex gap-0.5 text-mdn-star"
+                        className="flex gap-0.5 text-mdn-star"
                         role="img"
                         aria-label={`${r.rating} out of 5 stars`}
                       >
                         {Array.from({ length: 5 }).map((_, s) => (
                           <svg
                             key={s}
-                            width="15"
-                            height="15"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             aria-hidden="true"
                             fill={s < r.rating ? "currentColor" : "none"}
@@ -180,21 +173,23 @@ export default function ReviewsSection() {
                         ))}
                       </div>
 
-                      {/* `flex-1` so the attribution block below is pushed
-                          to the bottom of every card regardless of quote
-                          length — otherwise names sit at a different
-                          height in each card of the row. */}
-                      <p className="relative mt-5 flex-1 text-[15px] leading-[1.65] text-mdn-ink-body">
-                        {r.quote}
+                      {/* flex-1: naam wala block har card me bottom pe hi rahe */}
+                      <p className="mt-3 flex-1 text-[15px] leading-relaxed text-mdn-ink-body sm:text-base">
+                        &ldquo;{r.quote}&rdquo;
                       </p>
 
-                      {/* Attribution, separated by a rule rather than by
-                          whitespace alone, so it reads as a signature
-                          block under the quote instead of a third
-                          paragraph. */}
-                      <footer className="relative mt-6 border-t border-mdn-border pt-4">
-                        <p className="label text-[11px] text-mdn-ink">{r.name}</p>
-                        <p className="mt-1 text-[12px] text-mdn-ink-muted">{r.role}</p>
+                      <span className="mt-3 inline-flex w-fit rounded-md bg-mdn-sand px-2 py-0.5 text-xs font-medium text-mdn-ink-muted">
+                        {r.tag}
+                      </span>
+
+                      <footer className="mt-4 flex items-center gap-2.5 border-t border-mdn-border pt-3">
+                        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-mdn-green text-[13px] font-bold text-mdn-on-primary">
+                          {initials(r.name)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-heading text-[15px] font-semibold text-mdn-ink">{r.name}</p>
+                          <p className="text-xs text-mdn-ink-muted">{r.role}</p>
+                        </div>
                       </footer>
                     </article>
                   ))}
@@ -205,7 +200,7 @@ export default function ReviewsSection() {
         </Reveal>
 
         {slides.length > 1 && (
-          <div className="mt-6 flex justify-center gap-2">
+          <div className="mt-3 flex justify-center gap-2">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -215,7 +210,7 @@ export default function ReviewsSection() {
                 }}
                 aria-label={`Go to review slide ${i + 1}`}
                 className={`tap-44 h-2 rounded-full transition-all duration-300 ${
-                  i === index ? "w-6 bg-mdn-green" : "w-2 bg-white/20 hover:bg-white/40"
+                  i === index ? "w-6 bg-mdn-orange-solid" : "w-2 bg-mdn-border-strong hover:bg-mdn-ink-muted"
                 }`}
               />
             ))}
@@ -224,4 +219,6 @@ export default function ReviewsSection() {
       </div>
     </section>
   );
-}
+};
+
+export default ReviewsSection;

@@ -330,7 +330,7 @@ const Carousel = forwardRef(function Carousel({
                       i === realIndex ? "w-4 bg-mdn-green" : "w-1 bg-white/60 hover:bg-white/85"
                     }`
                   : `tap-44 h-2 rounded-full transition-all duration-300 ${
-                      i === realIndex ? "w-6 bg-mdn-green" : "w-2 bg-white/25 hover:bg-white/45"
+                      i === realIndex ? "w-6 bg-mdn-orange-solid" : "w-2 bg-mdn-border-strong hover:bg-mdn-ink-muted"
                     }`
               }
             />

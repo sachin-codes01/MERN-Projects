@@ -23,7 +23,7 @@ export default function Login() {
   return (
     <div className="flex min-h-[75vh] items-center justify-center px-4 py-10">
       <div className="card w-full max-w-sm animate-fade-up p-8 text-center">
-        <h2 className="font-display text-xl font-bold uppercase tracking-wide text-mdn-white">
+        <h2 className="display-lg">
           Login to MDN
         </h2>
         {redirectTo === "/checkout" && (

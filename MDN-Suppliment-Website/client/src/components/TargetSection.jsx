@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import ItemCarousel from "./ItemCarousel";
 import SectionHeading from "./SectionHeading";
 import Reveal from "./motion/Reveal";
+import ViewAllLink from "./ViewAllLink";
 import leanMusclesImg from "../assets/Lean Muscles.png";
 import guiltFreeGainsImg from "../assets/Guilt-Free Gains.png";
 import weightLossImg from "../assets/Weight Loss.png";
@@ -30,111 +31,74 @@ const TARGETS = [
   { title: "Bulking Up", query: "mass gainer", image: bulkingUpImg },
 ];
 
-export default function TargetSection() {
+// "What's Your Target?" — reference jaisa: left heading + "View all",
+// mobile pe native swipe row (2+ cards dikhte hain), sm+ pe carousel.
+const TargetSection = () => {
   const navigate = useNavigate();
+  const go = (t) => navigate(`/search?q=${encodeURIComponent(t.query)}`);
 
-  // Gutters live on the <section> here (not on the inner max-w-shell div)
-  // because the decorative glow/grid behind it must run full bleed — so
-  // this element carries the same px steps as every other shell.
   return (
-    <section className="relative overflow-hidden px-4 py-8 sm:px-6 sm:py-10 lg:px-[34px]">
-      <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-mdn-green/10 blur-[100px]" />
-      {/* Grid mesh behind the cards. Was opacity-[0.03], which on the cream
-          ground put the 1px lines about 5 values away from the background —
-          effectively invisible. 0.09 lands them ~20 values off, so the mesh
-          actually reads without competing with the photos.
-          Dark mode stays lower: there the same lines are LIGHT on a dark
-          ground, where the eye picks them up far more easily. */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.09] dark:opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgb(var(--mdn-white)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--mdn-white)) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
+    <section className="section !pb-3 !pt-9 sm:!pb-10">
+      <SectionHeading
+        align="left"
+        eyebrow="Shop by goal"
+        title="What's Your"
+        accent="Target?"
+        subtitle="Choose your objective to see recommended stacks"
+        action={<ViewAllLink to="/products" />}
       />
 
-      <div className="relative mx-auto max-w-shell">
-        <SectionHeading
-          index="05"
-          eyebrow="Goal-based stacks"
-          title="What's Your"
-          accent="Target?"
-          subtitle="Choose your objective to see recommended stacks."
-        />
-
-        {/* Below `sm`: all six goals as a static 2-across grid (three
-            rows), so nothing is hidden behind a swipe on a phone. The two
-            layouts are swapped with `sm:hidden` / `hidden sm:block` —
-            only one is ever visible, and the hidden one's images never
-            fetch because `display: none` suppresses lazy loading. */}
-        {/* Per-card stagger is safe on this branch only: it is a real
-            static grid, so every tile intersects the viewport normally.
-            The carousel branch below gets a single block reveal instead
-            — see the note there. */}
-        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:hidden">
-          {TARGETS.map((t, i) => (
-            <Reveal key={t.title} from="up" delay={i * 0.07} amount={0.3}>
-              <TargetCard item={t} onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)} />
-            </Reveal>
-          ))}
-        </div>
-
-        {/* `sm` and up: unchanged single row, sliding one card at a time —
-            auto-advances, pauses on hover, drag/swipe, arrow buttons. */}
-        {/* ONE reveal around the whole carousel, not one per card. The
-            carousel's off-screen items live outside its `overflow-hidden`
-            viewport, so they never intersect — with `once: true` a
-            per-card reveal would leave every card past the first screenful
-            stuck at opacity 0 for good, and they would still be invisible
-            after the user swiped to them. */}
-        <Reveal from="up" amount={0.2} className="mt-10 hidden sm:block">
-          <ItemCarousel
-            items={TARGETS}
-            autoPlay
-            interval={3200}
-            itemClassName="w-[62%] sm:w-[44%] lg:w-[24%]"
-            renderItem={(t) => (
-              <TargetCard item={t} onClick={() => navigate(`/search?q=${encodeURIComponent(t.query)}`)} />
-            )}
-          />
-        </Reveal>
+      {/* Mobile: halka sa agla card dikhta hai, isliye pata chalta hai ki swipe karna hai */}
+      <div
+        className="no-scrollbar -mx-4 mt-5 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:hidden"
+      >
+        {TARGETS.map((t) => (
+          <div key={t.title} className="w-[42%] flex-shrink-0 snap-start">
+            <TargetCard item={t} onClick={() => go(t)} />
+          </div>
+        ))}
       </div>
+
+      {/* sm+: auto-advance carousel, hover pe ruk jata hai */}
+      {/* Poori row me 3 card ek saath — cards 4:3 (kam lambe); photo object-contain se poori dikhti hai (crop nahi) */}
+      <Reveal from="up" amount={0.2} className="mt-6 hidden sm:block">
+        <ItemCarousel
+          items={TARGETS}
+          autoPlay
+          interval={3200}
+          showDots={false}
+          showProgress
+          gapClassName="gap-6"
+          itemClassName="w-[calc(33.333%-16px)]"
+          renderItem={(t) => <TargetCard item={t} onClick={() => go(t)} />}
+        />
+      </Reveal>
     </section>
   );
-}
+};
 
-// Bare photo tile with the goal name UNDER it, per the reference — no
-// coloured ground, no scrim, no description and no arrow. Nothing sits on
-// top of the photo, so the model is never competing with text.
-//
-// Shared by both layouts above, so the mobile grid and the desktop
-// carousel can never drift apart.
+// Pehle wala card: sirf photo (rounded frame) aur neeche goal ka naam —
+// photo ke upar koi text/overlay nahi, isliye model saaf dikhta hai.
 const TargetCard = ({ item, onClick }) => (
   <button
+    type="button"
     onClick={onClick}
-    className="group block w-full text-center transition-transform duration-300 hover:-translate-y-1.5"
+    className="group block w-full text-center transition-transform duration-300 ease-brand-out hover:-translate-y-1"
   >
-    {/* Roughly square-but-taller frame, matching the reference's
-        portrait-ish tiles. The source art is a 1086x1448 portrait, so
-        `object-cover object-top` keeps the head in frame and crops from
-        the legs up. */}
-    <span className="block aspect-[9/10] w-full overflow-hidden rounded-[22px] bg-mdn-sand shadow-sm transition-shadow duration-300 group-hover:shadow-lg">
+    <span className="block aspect-[9/10] w-full overflow-hidden rounded-[22px] sm:aspect-[4/3] bg-mdn-sand shadow-sm transition-shadow duration-300 group-hover:shadow-lg">
       <img
         src={item.image}
         alt=""
         aria-hidden="true"
         loading="lazy"
         decoding="async"
-        className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
+        className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.04] sm:object-contain sm:object-bottom"
       />
     </span>
-
-    {/* Label on the page ground, not on the card. text-mdn-white is the
-        theme's primary INK token (warm near-black in light mode), so this
-        stays readable in both themes. */}
-    <span className="mt-3 block text-[15px] font-bold leading-snug text-mdn-white sm:mt-4 sm:text-[18px]">
+    <span className="mt-3 block font-heading text-[15px] font-bold leading-snug text-mdn-ink transition-colors group-hover:text-mdn-green sm:text-[18px]">
       {item.title}
     </span>
   </button>
 );
+
+export default TargetSection;

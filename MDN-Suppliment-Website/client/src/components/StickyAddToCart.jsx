@@ -2,37 +2,26 @@ import { useEffect, useState } from "react";
 import { getSizePrice } from "../utils/pricing";
 
 /**
- * Fixed "Add to Cart" bar — shown on every screen size (not just
- * mobile). Appears once the real Add to Cart button (`atcRef`) has
- * scrolled OFF THE TOP of the viewport (the user actively scrolled past
- * it), and hides again when that button scrolls back into view.
+ * Fixed "Add to Cart" bar at the bottom of the viewport — shown on every
+ * screen size. Bar sirf tab dikhta hai jab user asli Add to Cart button
+ * (`atcRef`) se NEECHE scroll kar chuka ho (button screen ke upar nikal gaya).
+ * Button dikh raha ho, ya abhi uske upar hi ho (button neeche hai) — bar chhupa.
  *
- * It deliberately stays up over the site footer too, so the bar is still
- * reachable at the very bottom of the page. To keep it from covering the
- * footer's last rows, the footer gets extra bottom padding (via the
- * `has-sticky-atc` class, see index.css) for as long as the bar is up.
- *
- * Deliberately NOT just "button not intersecting" — on a short viewport
- * the button can start below the fold before any scrolling happens at
- * all, which made this bar appear immediately on load. Checking
- * `boundingClientRect.top < 0` distinguishes "scrolled past above" from
- * "hasn't been scrolled to yet".
+ * Footer ke neeche thodi jagah reserve hoti hai (`has-sticky-atc`, see
+ * index.css) taaki page ke end pe bar footer ki aakhri line ko na dhake.
  */
-export default function StickyAddToCart({ atcRef, product, currentSize, currentFlavor, outOfStock, adding, onAddToCart }) {
+const StickyAddToCart = ({ atcRef, product, currentSize, currentFlavor, outOfStock, adding, onAddToCart }) => {
   const [scrolledPastAtc, setScrolledPastAtc] = useState(false);
 
   useEffect(() => {
     const atcEl = atcRef.current;
     if (!atcEl) return;
-
+    // top < 0 = button screen ke upar chala gaya (user uske neeche hai)
     const atcObserver = new IntersectionObserver(
-      ([entry]) => {
-        setScrolledPastAtc(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-      },
+      ([entry]) => setScrolledPastAtc(!entry.isIntersecting && entry.boundingClientRect.top < 0),
       { threshold: 0 }
     );
     atcObserver.observe(atcEl);
-
     return () => atcObserver.disconnect();
   }, [atcRef]);
 
@@ -54,25 +43,28 @@ export default function StickyAddToCart({ atcRef, product, currentSize, currentF
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-mdn-black/95 backdrop-blur transition-transform duration-300 ${
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-mdn-border bg-mdn-charcoal/95 shadow-lg backdrop-blur transition-transform duration-300 ${
         show ? "translate-y-0" : "translate-y-full"
       }`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-shell items-center gap-3 px-4 sm:px-6 lg:px-[34px] py-3">
+      {/* Phone pe compact: chhota thumbnail, ek line naam, ek line price, chhota button */}
+      <div className="mx-auto flex max-w-shell items-center gap-2.5 px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3 lg:px-[34px]">
         <img
           src={currentFlavor?.images?.[0] || product.thumbnail}
           alt={product.name}
-          className="h-11 w-11 shrink-0 rounded-lg bg-mdn-charcoal2 object-contain"
+          className="h-10 w-10 shrink-0 rounded-lg bg-mdn-sand object-contain sm:h-11 sm:w-11"
         />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-mdn-white">{product.name}</p>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate font-heading text-[12px] font-semibold text-mdn-ink sm:text-sm">{product.name}</p>
           {currentSize && (
-            <p className="flex items-center gap-1.5 font-mono text-sm font-bold text-mdn-green">
-              ₹{effectivePrice}
-              {discountPrice && <span className="text-xs font-medium text-mdn-gray line-through">₹{price}</span>}
+            <p className="mt-0.5 flex items-center gap-1.5 whitespace-nowrap tabular-nums">
+              <span className="font-heading text-[13px] font-bold text-mdn-ink sm:text-[15px]">₹{effectivePrice}</span>
+              {discountPrice && (
+                <span className="text-[10.5px] text-mdn-ink-muted line-through sm:text-xs">₹{price}</span>
+              )}
               {pct > 0 && (
-                <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                <span className="rounded-full bg-mdn-orange-badge px-1.5 py-px text-[9.5px] font-bold leading-4 text-mdn-badge-ink sm:text-[10px]">
                   {pct}% off
                 </span>
               )}
@@ -82,7 +74,7 @@ export default function StickyAddToCart({ atcRef, product, currentSize, currentF
         <button
           onClick={onAddToCart}
           disabled={outOfStock || adding}
-          className="btn-primary shrink-0 !px-4 !py-2 text-sm"
+          className="btn-primary shrink-0 !min-h-[40px] !px-4 !py-2 !text-[13px] sm:!min-h-[44px] sm:!px-6 sm:!text-sm"
         >
           {!currentSize
             ? "Unavailable"
@@ -95,4 +87,6 @@ export default function StickyAddToCart({ atcRef, product, currentSize, currentF
       </div>
     </div>
   );
-}
+};
+
+export default StickyAddToCart;

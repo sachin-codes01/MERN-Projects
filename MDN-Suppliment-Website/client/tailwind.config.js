@@ -76,8 +76,10 @@ export default {
       fontFamily: {
         // Didot Title is the titling cut — its own family, not a weight
         // of "Didot" (see the @font-face block in index.css).
-        display: ['"Didot Title"', '"Didot"', "Georgia", "serif"],
-        serif: ['"Didot"', "Georgia", "serif"],
+        // Redesign: display/serif dono ab Poppins — reference ka bold sans look.
+        display: ["Poppins", "Inter", "system-ui", "sans-serif"],
+        serif: ["Poppins", "Inter", "system-ui", "sans-serif"],
+        heading: ["Poppins", "Inter", "system-ui", "sans-serif"],
         body: ["Inter", "system-ui", "sans-serif"],
         // Navigation chrome ONLY — navbar and footer. Deliberately not
         // used anywhere else on the site, so page content stays on

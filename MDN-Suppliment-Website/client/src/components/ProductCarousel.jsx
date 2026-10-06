@@ -16,9 +16,12 @@ import Reveal from "./motion/Reveal";
  * cards are always exactly one row, at every screen size, and just show
  * fewer of them at once on narrow screens.
  */
-export default function ProductCarousel({
+const ProductCarousel = ({
   section,
   eyebrow,
+  subtitle,
+  // Section padding me per-instance tweak (e.g. Bestsellers ka top gap kam)
+  className = "",
   titleMain,
   titleAccent,
   moreLink,
@@ -28,7 +31,7 @@ export default function ProductCarousel({
   // Products" on a PDP is a lone section, so a numeral there would be
   // counting something the reader can't see.
   index,
-}) {
+}) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +45,7 @@ export default function ProductCarousel({
 
   if (loading) {
     return (
-      <section id={sectionId} className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-[34px]">
+      <section id={sectionId} className={`section ${className}`}>
         <div className="mx-auto h-6 w-48 animate-pulse rounded bg-mdn-charcoal2" />
 
         {/* The placeholder mirrors the LOADED layout: one non-wrapping row
@@ -52,12 +55,12 @@ export default function ProductCarousel({
             which stacked into TWO rows on a phone — so the section visibly
             collapsed from two rows to one the moment the products landed.
             Six blocks, because at lg the row fits five and a sliver. */}
-        <div className="mt-8 overflow-hidden">
-          <div className="flex gap-4 py-4">
+        <div className="mt-6 overflow-hidden">
+          <div className="flex gap-3 py-4 sm:gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-[3/4] w-[47%] flex-shrink-0 animate-pulse rounded-xl bg-mdn-charcoal2 sm:w-[31%] lg:w-[18.4%]"
+                className="aspect-[3/4] w-[calc(50%-6px)] flex-shrink-0 animate-pulse rounded-xl bg-mdn-charcoal2 sm:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]"
               />
             ))}
           </div>
@@ -69,8 +72,8 @@ export default function ProductCarousel({
   if (products.length === 0) return null;
 
   return (
-    <section id={sectionId} className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-[34px]">
-      <SectionHeading index={index} eyebrow={eyebrow} title={titleMain} accent={titleAccent} />
+    <section id={sectionId} className={`section ${className}`}>
+      <SectionHeading index={index} eyebrow={eyebrow} title={titleMain} accent={titleAccent} subtitle={subtitle} />
 
       {/* ONE reveal around the carousel rather than one per ProductCard.
           Two reasons, both of which make per-card reveals actively wrong
@@ -87,34 +90,35 @@ export default function ProductCarousel({
              movement for a merchandising row the user is going to scan,
              not read. The row arriving as one object is calmer and
              matches how the Assured badge row already behaves. */}
-      <Reveal from="up" amount={0.15} className="mt-8">
+      <Reveal from="up" amount={0.15} className="mt-4 sm:mt-6">
         <ItemCarousel
           items={products}
           // No autoplay — these only move when the user drags/swipes or
           // clicks an arrow, per request.
           autoPlay={false}
           showDots={false}
-          gapClassName="gap-4"
-          itemClassName="w-[47%] sm:w-[31%] lg:w-[18.4%]"
+          showProgress
+          gapClassName="gap-3 sm:gap-4"
+          itemClassName="w-[calc(50%-6px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-13px)]"
           renderItem={(p) => <ProductCard product={p} />}
         />
       </Reveal>
 
       {moreLink && (
-        <Reveal from="up" delay={0.1} className="mt-8 text-center">
+        <Reveal from="up" delay={0.1} className="mt-5 text-center sm:mt-6">
           <Link
             to={moreLink}
-            className="group inline-flex items-center gap-2 rounded-full border border-mdn-green/40 px-6 py-2.5 text-sm font-semibold text-mdn-green transition-all duration-300 hover:border-mdn-green hover:bg-mdn-green hover:text-black hover:shadow-green-glow"
+            className="press group inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-mdn-border-strong px-6 py-2.5 font-heading text-sm font-semibold text-mdn-ink transition-colors duration-200 hover:border-mdn-green hover:bg-mdn-green hover:text-mdn-on-primary"
           >
-            Show More
+            View all
             <svg
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.4"
-              className="transition-transform duration-300 group-hover:translate-x-1"
+              className="transition-transform duration-200 group-hover:translate-x-0.5"
             >
               <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -123,4 +127,6 @@ export default function ProductCarousel({
       )}
     </section>
   );
-}
+};
+
+export default ProductCarousel;

@@ -52,7 +52,7 @@ export function ProductTagRow({ product }) {
       {goals.map((g) => (
         <span
           key={g}
-          className="rounded-full border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-mdn-white/75"
+          className="rounded-full border border-mdn-border px-2.5 py-1 text-[11px] font-semibold text-mdn-ink-body"
         >
           {GOAL_LABELS[g]}
         </span>
@@ -64,9 +64,9 @@ export function ProductTagRow({ product }) {
 function Row({ label, value }) {
   if (value === null || value === undefined || value === "") return null;
   return (
-    <div className="flex items-center justify-between border-b border-white/5 py-2 last:border-b-0">
+    <div className="flex items-center justify-between border-b border-mdn-border py-2 last:border-b-0">
       <span className="text-sm text-mdn-gray">{label}</span>
-      <span className="font-mono text-sm font-semibold text-mdn-white">{value}</span>
+      <span className="tabular-nums text-sm font-semibold text-mdn-white">{value}</span>
     </div>
   );
 }
@@ -97,11 +97,11 @@ export default function ProductFacts({ product }) {
   if (!hasNutrition && !product.warnings && !hasDates) return null;
 
   return (
-    <div className="mt-10 grid gap-4 lg:grid-cols-2">
+    <div className="mt-8 grid gap-4 lg:grid-cols-2">
       {hasNutrition && (
         <div className="card p-5">
-          <h3 className="font-display text-sm font-bold uppercase tracking-wide text-mdn-white">
-            Nutrition <span className="text-mdn-green">Facts</span>
+          <h3 className="font-heading text-base font-bold text-mdn-ink">
+            Nutrition <span className="text-mdn-orange-ink">Facts</span>
           </h3>
           {n.servingSize && (
             <p className="mt-1 text-xs text-mdn-gray">
@@ -129,8 +129,8 @@ export default function ProductFacts({ product }) {
       <div className="flex flex-col gap-4">
         {hasDates && (
           <div className="card p-5">
-            <h3 className="font-display text-sm font-bold uppercase tracking-wide text-mdn-white">
-              Batch <span className="text-mdn-green">Freshness</span>
+            <h3 className="font-heading text-base font-bold text-mdn-ink">
+              Batch <span className="text-mdn-orange-ink">Freshness</span>
             </h3>
             <div className="mt-3">
               <Row label="Manufactured" value={made} />
@@ -142,14 +142,14 @@ export default function ProductFacts({ product }) {
         {product.warnings && (
           // Amber rather than the page's green: this is the one block on
           // the page a buyer should not skim past.
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
-            <h3 className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-amber-400">
+          <div className="rounded-xl border border-[rgb(var(--caution-border))] bg-[rgb(var(--caution-bg))] p-5">
+            <h3 className="flex items-center gap-2 font-heading text-base font-bold text-mdn-stock-low">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Safety Information
             </h3>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-mdn-white/75">
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-mdn-ink-body">
               {product.warnings}
             </p>
           </div>
