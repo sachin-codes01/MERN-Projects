@@ -187,17 +187,20 @@ export default function Navbar() {
           {mobileOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
 
-        {/* Logo — reference jaisa left side pe */}
-        <Link to="/" className="flex flex-shrink-0 flex-col items-center justify-center leading-none xl:justify-self-start">
-          <span className="relative block h-7 w-14 sm:h-8 sm:w-16 min-[1500px]:h-10 min-[1500px]:w-20">
+        {/* Phone (<md) pe logo navbar ke bilkul centre me (absolute), md+ pe left side */}
+        <Link
+          to="/"
+          className="flex flex-shrink-0 flex-col items-center justify-center leading-none max-md:absolute max-md:left-1/2 max-md:-translate-x-1/2 xl:justify-self-start"
+        >
+          <span className="relative block h-9 w-[72px] sm:h-8 sm:w-16 min-[1500px]:h-10 min-[1500px]:w-20">
             <img
               src={mdnLogo}
               alt="MDN — My Daily Nutrition"
               loading="eager"
-              className="absolute left-1/2 top-1/2 h-12 w-auto -translate-x-1/2 -translate-y-1/2 sm:h-14 min-[1500px]:h-[68px]"
+              className="absolute left-1/2 top-1/2 h-[60px] w-auto -translate-x-1/2 -translate-y-1/2 sm:h-14 min-[1500px]:h-[68px]"
             />
           </span>
-          <span className="label mt-1 whitespace-nowrap text-[7.5px] tracking-[0.2em] text-mdn-ink-muted sm:text-[8.5px] min-[1500px]:text-[10px]">
+          <span className="label mt-1 whitespace-nowrap text-[8.5px] tracking-[0.2em] text-mdn-ink-muted sm:text-[8.5px] min-[1500px]:text-[10px]">
             My Daily Nutrition
           </span>
         </Link>

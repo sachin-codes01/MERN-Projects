@@ -39,7 +39,7 @@ const CategoryMoves = () => {
       <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-4 sm:gap-4">
         {COLLECTIONS.map((c, i) => (
           <Reveal key={c.title} from="up" delay={i * 0.08} amount={0.3}>
-            <ImageTile title={c.title} image={c.image} ratio="aspect-square" imgClassName="object-cover" onClick={() => navigate(c.to)} />
+            <ImageTile title={c.title} image={c.image} ratio="aspect-[5/6] sm:aspect-square" imgClassName="object-cover" onClick={() => navigate(c.to)} />
           </Reveal>
         ))}
       </div>

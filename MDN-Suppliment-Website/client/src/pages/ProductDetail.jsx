@@ -224,10 +224,11 @@ const ProductDetail = () => {
             Add to Cart reaches its lower edge, and re-pins on the way back
             up. No scroll listener involved. */}
         <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[calc(var(--nav-h,79px)+16px)] lg:self-start">
-          {/* Koi box/frame nahi. Desktop pe badi image ka size/jagah fixed (column ke
-              right me, 88px left offset), thumbnails uske theek neeche. */}
+          {/* Koi box/frame nahi. Phone/tablet pe image row ki poori width (edge to edge)
+              aur photo ki asli 4:5 shape me (stretch nahi). Desktop pe poore left column
+              ki width (koi khaali jagah nahi), height window ke hisaab se. */}
           {/* Phone/tablet pe image screen ki poori width aur navbar se chipki (page padding ke bahar) */}
-          <div className="-mx-4 -mt-4 overflow-hidden sm:-mx-6 sm:-mt-6 lg:mx-0 lg:ml-[88px] lg:mt-0">
+          <div className="-mx-4 -mt-4 overflow-hidden sm:-mx-6 sm:-mt-6 lg:mx-0 lg:mt-0">
             <Carousel
               // Remount on flavour change so the gallery restarts at the
               // new flavour's first photo instead of a stale slide index.
@@ -258,14 +259,14 @@ const ProductDetail = () => {
               dotsPosition="overlay"
               showArrows
               onIndexChange={setActiveImage}
-              slideClassName="aspect-[4/5] sm:aspect-square lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
+              slideClassName="aspect-[4/5] lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
             />
           </div>
 
           {/* Thumbnails — har screen pe badi image ke neeche ek row.
               Click karne pe bada carousel us photo pe jata hai (`goTo`). */}
           {galleryImages.length > 1 && (
-            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto lg:ml-[88px]">
+            <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
               {galleryImages.map((src, i) => (
                 <button
                   key={i}

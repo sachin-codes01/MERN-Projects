@@ -64,13 +64,15 @@ const Badge = ({ label, src }) => (
 );
 
 const AssuredBadges = () => {
-  // Chunked 5-at-a-time, not 4: ten badges over 4 would leave a final
-  // slide holding 2 seals and a gap. Two even slides of 5, and the column
-  // count is fixed at every breakpoint so a slide never wraps to 2 rows.
-  const slides = chunk(BADGES, 5).map((group, gi) => (
-    <div key={gi} className="grid grid-cols-5 gap-2 px-1 sm:gap-6">
+  // Phone/tablet carousel: 4 badge per slide (pehle 5 the — badge thode bade
+  // dikhte hain). 10 badges = 4+4+2; har slide flex + justify-center hai, isliye
+  // aakhri slide ke 2 badge beech me rehte hain, right side khaali nahi lagti.
+  const slides = chunk(BADGES, 4).map((group, gi) => (
+    <div key={gi} className="flex justify-center gap-3 px-1 sm:gap-6">
       {group.map((b) => (
-        <Badge key={b.label} {...b} />
+        <div key={b.label} className="w-[calc(25%-9px)] sm:w-[calc(25%-18px)]">
+          <Badge {...b} />
+        </div>
       ))}
     </div>
   ));
