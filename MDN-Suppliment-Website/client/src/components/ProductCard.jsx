@@ -165,8 +165,25 @@ const ProductCard = ({ product }) => {
           <button
             onClick={handleAddToCart}
             disabled={adding || outOfStock}
-            className="btn-shine press flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-mdn-green py-2 font-heading text-[12px] font-semibold sm:min-h-[42px] sm:py-2.5 text-mdn-on-primary transition-colors duration-200 hover:bg-mdn-orange-solid hover:text-white active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+            className="btn-shine btn-shine-loop press flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-mdn-green py-2 font-heading text-[12px] font-semibold sm:min-h-[42px] sm:py-2.5 text-mdn-on-primary transition-colors duration-200 hover:bg-mdn-orange-solid hover:text-white active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
           >
+            {/* Text se pehle chhota cart icon (out of stock pe nahi) */}
+            {!outOfStock && (
+              <svg
+                aria-hidden="true"
+                className="h-[15px] w-[15px] flex-shrink-0 sm:h-[17px] sm:w-[17px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="9" cy="20" r="1.4" />
+                <circle cx="18" cy="20" r="1.4" />
+                <path d="M2.5 3.5h2.6l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.2l1.7-7.3H6.2" />
+              </svg>
+            )}
             {outOfStock ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
           </button>
         </div>

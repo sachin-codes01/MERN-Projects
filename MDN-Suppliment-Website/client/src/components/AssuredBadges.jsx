@@ -1,5 +1,8 @@
-import Carousel from "./Carousel";
-import SectionHeading from "./SectionHeading";
+import { useState } from "react";
+import { motion } from "motion/react";
+import ItemCarousel from "./ItemCarousel";
+import { EASE_OUT_QUINT } from "../lib/easings";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import Reveal from "./motion/Reveal";
 // Renamed from the original export names ("200% Money Back.png", "Lab
 // Tested.png", …) to kebab-case. The "%" was not optional: the browser
@@ -37,78 +40,81 @@ const BADGES = [
   { label: "One Ingredient", src: oneIngredient },
 ];
 
-const chunk = (arr, size) => {
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+
+// Zoom-in: section screen pe neeche se aate hi har badge chhote se poore size me
+// aata hai, ek-ek karke (index ke hisaab se delay). Trigger parent ka whileInView
+// hai — slider ke side me chhupe badges bhi saath me animate ho jate hain.
+const ZOOM = {
+  hidden: { opacity: 0, scale: 0.55 },
+  visible: (i) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, delay: Math.min(i, 9) * 0.08, ease: EASE_OUT_QUINT },
+  }),
 };
 
-const Badge = ({ label, src }) => (
-  <div className="flex flex-col items-center gap-2 text-center sm:gap-3">
-    {/* No hover lift/border/shadow here by request — these are static
-        trust seals, not clickable cards, so they shouldn't behave like
-        the product tiles elsewhere on the page. object-contain rather
-        than object-cover: the seals are circular with their own margin
-        baked in, and cover was cropping the gold ring at the edges. */}
-    <div className="aspect-square w-full overflow-hidden rounded-xl transition-transform duration-500 ease-brand-out hover:-translate-y-1 hover:rotate-[-4deg]">
-      <img src={src} alt={label} loading="lazy" className="h-full w-full object-contain" />
+// Sirf badge image — neeche naam nahi (label alt text me rehta hai, screen readers ke liye)
+// `focus`: phone pe beech wala badge thoda bada (1.15x), baaki thode chhote (0.9x)
+const Badge = ({ label, src, index, focus }) => (
+  <motion.div variants={ZOOM} custom={index}>
+    <div
+      className={`aspect-square w-full overflow-hidden rounded-xl transition-transform duration-500 ease-brand-out hover:-translate-y-1 hover:rotate-[-4deg] ${
+        focus === true ? "scale-[1.15]" : focus === false ? "scale-90" : ""
+      }`}
+    >
+      <img src={src} alt={label} loading="lazy" className="h-full w-full object-contain" draggable="false" />
     </div>
-    {/* lg steps DOWN to text-sm (xl returns to the original text-base):
-        ten columns instead of eight makes each one ~110px on a 1280px
-        screen, and the two longest labels ("Made With Precision", "FSSAI
-        Approved") lost their second line to line-clamp-2 at text-base. */}
-    <p className="line-clamp-2 font-heading text-[11px] font-medium leading-tight text-mdn-ink-body sm:text-[13px] xl:text-sm">
-      {label}
-    </p>
-  </div>
+  </motion.div>
 );
 
 const AssuredBadges = () => {
-  // Phone/tablet carousel: 4 badge per slide (pehle 5 the — badge thode bade
-  // dikhte hain). 10 badges = 4+4+2; har slide flex + justify-center hai, isliye
-  // aakhri slide ke 2 badge beech me rehte hain, right side khaali nahi lagti.
-  const slides = chunk(BADGES, 4).map((group, gi) => (
-    <div key={gi} className="flex justify-center gap-3 px-1 sm:gap-6">
-      {group.map((b) => (
-        <div key={b.label} className="w-[calc(25%-9px)] sm:w-[calc(25%-18px)]">
-          <Badge {...b} />
-        </div>
-      ))}
-    </div>
-  ));
+  // Zoom-in sirf phone pe; desktop pe badges bina animation ke seedhe dikhte hain
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  // Phone pe 3 badge dikhte hain — beech wala = left wala index + 1
+  const [first, setFirst] = useState(0);
 
   return (
-    // Bottom padding is deliberately lighter than the top. This is a slim
-    // trust strip, not a full section — its own 64px plus the following
-    // section's 64px stacked into a 128px void under a single short row
-    // of badges. Halving the bottom keeps the badges reading as attached
-    // to the content they vouch for.
-    <section className="section !pb-6">
-      <SectionHeading index="03" eyebrow="Certified & Verified" title="AS-IT-IS" accent="Assured" subtitle="Every batch is tested, certified and verified" />
+  // Bottom padding halki — yeh trust strip hai, neeche wale section se juda lagna chahiye.
+  <section className="section !pb-6">
+    {/* "AS-IT-IS Assured" heading hata diya — sirf chhota eyebrow aur ek line */}
+    <div className="flex flex-col items-center text-center">
+      <Reveal from="up" duration={0.6} className="flex items-center gap-2">
+        <span aria-hidden="true" className="h-0.5 w-6 rounded-full bg-mdn-orange-ink" />
+        <span className="eyebrow">Certified &amp; Verified</span>
+        <span aria-hidden="true" className="h-0.5 w-6 rounded-full bg-mdn-orange-ink" />
+      </Reveal>
+      <Reveal
+        as="p"
+        from="up"
+        delay={0.1}
+        duration={0.6}
+        className="mt-2.5 max-w-[58ch] text-sm leading-relaxed text-mdn-ink-muted sm:text-base"
+      >
+        Every batch is tested, certified and verified
+      </Reveal>
+    </div>
 
-      {/* At lg+ the full content shell holds all ten badges in ONE row, so
-          the carousel is dropped there entirely — paging across 1536px
-          left each badge floating in a wide column with dead air on both
-          sides. grid-cols-10, not 5 x 2: wrapping to a second row makes
-          each seal half the shell wide, which reads as a huge feature
-          block rather than the slim trust strip this is meant to be. The
-          badge boxes are sized by the grid track (w-full + aspect-square)
-          rather than a fixed width, so they shrink to fit the row instead
-          of overflowing. The carousel is kept below lg, where 10 across
-          genuinely doesn't fit. */}
-      <div className="mt-6 hidden grid-cols-10 gap-3 lg:grid xl:gap-4">
-        {BADGES.map((b, i) => (
-          <Reveal key={b.label} from="scale" delay={(i % 10) * 0.08} amount={0.35}>
-            <Badge {...b} />
-          </Reveal>
-        ))}
-      </div>
-
-      <div className="mt-5 lg:hidden">
-        <Carousel slides={slides} autoPlay interval={4500} showArrows={false} />
-      </div>
-
-    </section>
+    {/* Har screen pe slider — ek baar me ek badge aage badhta hai (auto + swipe),
+        bina dots/progress line ke. Bade badges: phone pe 3, tablet 4, laptop 6, bade screen 7. */}
+    <motion.div
+      initial={isMobile ? "hidden" : false}
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.3 }}
+      className="mt-4 sm:mt-5"
+    >
+      <ItemCarousel
+        items={BADGES}
+        autoPlay
+        interval={2600}
+        showDots={false}
+        showProgress={false}
+        gapClassName="gap-3 sm:gap-5"
+        itemClassName="w-[calc(33.333%-8px)] sm:w-[calc(25%-15px)] lg:w-[calc(16.666%-17px)] xl:w-[calc(14.285%-18px)]"
+        onIndexChange={setFirst}
+        renderItem={(b, i) => <Badge {...b} index={i} focus={isMobile ? i === first + 1 : undefined} />}
+      />
+    </motion.div>
+  </section>
   );
 };
 

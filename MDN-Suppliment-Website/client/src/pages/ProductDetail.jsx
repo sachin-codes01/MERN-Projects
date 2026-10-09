@@ -225,7 +225,8 @@ const ProductDetail = () => {
             up. No scroll listener involved. */}
         <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[calc(var(--nav-h,79px)+16px)] lg:self-start">
           {/* Koi box/frame nahi. Phone/tablet pe image row ki poori width (edge to edge)
-              aur photo ki asli 4:5 shape me (stretch nahi). Desktop pe poore left column
+              aur phone pe 9:10 frame (tablet 4:5) — poori photo frame me fit (object-fill, kuch crop nahi).
+              Desktop pe poore left column
               ki width (koi khaali jagah nahi), height window ke hisaab se. */}
           {/* Phone/tablet pe image screen ki poori width aur navbar se chipki (page padding ke bahar) */}
           <div className="-mx-4 -mt-4 overflow-hidden sm:-mx-6 sm:-mt-6 lg:mx-0 lg:mt-0">
@@ -259,7 +260,7 @@ const ProductDetail = () => {
               dotsPosition="overlay"
               showArrows
               onIndexChange={setActiveImage}
-              slideClassName="aspect-[4/5] lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
+              slideClassName="aspect-[9/10] sm:aspect-[4/5] lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
             />
           </div>
 
@@ -360,7 +361,10 @@ const ProductDetail = () => {
                 Choose Flavour
                 {currentFlavor && <span className="ml-1.5 font-normal text-mdn-ink-muted">{currentFlavor.name}</span>}
               </p>
-              <div className="mt-2.5 grid grid-cols-4 gap-2 sm:grid-cols-5">
+              {/* Ek hi row me side scroll — zyada flavours ho to bhi box lamba nahi hota.
+                  Card ~22% chauda taaki agla card adha dikhe (scroll ka ishara).
+                  py padding: hover lift + border scroll box me kate nahi. */}
+              <div className="no-scrollbar -mx-1 mt-1.5 flex snap-x gap-2 overflow-x-auto scroll-px-1 px-1 py-1.5 [&>button]:w-[22%] [&>button]:flex-shrink-0 [&>button]:snap-start sm:[&>button]:w-[18%]">
                 {flavors.map((f) => {
                   const isSelected = selectedFlavorId === f._id;
                   return (
@@ -512,29 +516,6 @@ const ProductDetail = () => {
         {/* Small screens only — see the note on `isDesktop` above. */}
         {!isDesktop && accordionBlock}
       </div>
-
-      {/* Two stacked promo posters — top is full width at half the
-          bottom poster's height at every breakpoint (h-40/h-80,
-          sm:h-52/h-[26rem], lg:h-64/h-[32rem]). Image box me stretch hoti
-          hai (object-fill) — poora poster dikhta hai, crop nahi. */}
-      {(product.posterTop || product.posterBottom) && (
-        <div className="mt-10 sm:mt-14">
-          <div className="h-40 overflow-hidden rounded-xl border border-mdn-border bg-mdn-charcoal2 sm:h-52 lg:h-64">
-            {product.posterTop ? (
-              <img src={product.posterTop} alt="" className="h-full w-full object-fill" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-mdn-gray">Poster space</div>
-            )}
-          </div>
-          <div className="mt-4 h-80 overflow-hidden rounded-xl border border-mdn-border bg-mdn-charcoal2 sm:h-[26rem] lg:h-[32rem]">
-            {product.posterBottom ? (
-              <img src={product.posterBottom} alt="" className="h-full w-full object-fill" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-mdn-gray">Poster space</div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Sits directly above the reviews, per request. */}
       <RelatedProducts product={product} />

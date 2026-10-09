@@ -23,6 +23,8 @@ export default function ItemCarousel({
   showArrows = true,
   // Reference jaisa patli progress line (dots ki jagah) — kitna scroll hua dikhata hai
   showProgress = false,
+  // Parent ko batata hai ki abhi kaun sa item sabse left me hai (e.g. beech wala card highlight karne ke liye)
+  onIndexChange,
 }) {
   const containerRef = useRef(null);
   const viewportRef = useRef(null);
@@ -171,6 +173,10 @@ export default function ItemCarousel({
   }, [index, stepPx, maxScroll]);
 
   const goTo = (i) => setIndex(Math.max(0, Math.min(maxIndex, i)));
+
+  useEffect(() => {
+    onIndexChange?.(index);
+  }, [index, onIndexChange]);
 
   // ---- Trackpad / horizontal-wheel scrolling -------------------------
   //

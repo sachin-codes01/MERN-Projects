@@ -64,10 +64,10 @@ const Footer = () => {
   return (
     <>
       <div className="mx-auto max-w-shell px-4 pb-10 pt-4 sm:px-6 sm:pb-14 lg:px-[34px]">
-        <ul className="relative grid gap-4 overflow-hidden rounded-2xl bg-[#33431e] p-5 shadow-lg sm:grid-cols-3 sm:gap-6 sm:p-6 lg:px-10 lg:py-8">
+        <ul className="relative grid gap-4 overflow-hidden rounded-2xl bg-[#3f5524] p-5 shadow-lg sm:grid-cols-3 sm:gap-6 sm:p-6 lg:px-10 lg:py-8">
           {HIGHLIGHTS.map(({ title, text, Icon }) => (
             <li key={title} className="group flex items-center gap-3.5">
-              <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#fdf8f1] text-[#33431e] transition-transform duration-300 ease-brand-out group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]">
+              <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#fdf8f1] text-[#3f5524] transition-transform duration-300 ease-brand-out group-hover:-translate-y-0.5 group-hover:rotate-[-8deg]">
                 <Icon sx={{ fontSize: 22 }} />
               </span>
               <div className="min-w-0">
@@ -94,7 +94,7 @@ const Footer = () => {
             because --green-primary LIGHTENS in dark mode the cream type on
             it dropped to 3.67:1 there. This is the light-mode value of
             that token, pinned. */}
-        <div className="overflow-hidden bg-[#33431e] py-3">
+        <div className="overflow-hidden bg-[#3f5524] py-3">
           <div className="marquee-track gap-10 motion-reduce:animate-none">
             {ticker.map((item, i) => {
               const Icon = item.Icon;
@@ -149,7 +149,7 @@ const Footer = () => {
                   const iconClass =
                     // `tap-44` grows the hit region to 44x44 without
                     // changing the 36px ring, which is sized to the row.
-                    "tap-44 flex h-9 w-9 items-center justify-center rounded-full border border-[#5c6a4a] text-[#b9c2a4] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#fdf8f1] hover:bg-[#fdf8f1] hover:text-[#2a361b]";
+                    "tap-44 flex h-9 w-9 items-center justify-center rounded-full border border-[#5c6a4a] text-[#b9c2a4] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#fdf8f1] hover:bg-[#fdf8f1] hover:text-[#334420]";
 
                   // Support channels route through the in-app contact form
                   // (login-gated); profile links stay plain external <a>.

@@ -6,7 +6,6 @@ import WhyChooseMDN from "../components/WhyChooseMDN";          // "Why Choose M
 import AssuredBadges from "../components/AssuredBadges";        // new "AS-IT-IS Assured" carousel
 import Bestsellers from "../components/Bestsellers";            // now a drag/dot carousel
 import TargetSection from "../components/TargetSection";        // "What's Your Target?" — now a single-row slider
-import BundleOffers from "../components/BundleOffers";          // new "Bundles & Offers" carousel
 import ReviewsSection from "../components/ReviewsSection";      // "Real People, Real Stories"
 import FAQ from "../components/FAQ";                            // unchanged
 
@@ -21,7 +20,6 @@ export default function Home() {
       <AssuredBadges />
       <Bestsellers />
       <TargetSection />
-      <BundleOffers />
       <ReviewsSection />
       <FAQ />
     </>

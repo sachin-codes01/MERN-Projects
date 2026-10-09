@@ -139,9 +139,9 @@
   --mdn-gray: 110 100 90;        /* muted ink */
 
   /* --- greens --- */
-  --green-deep: 42 54 27;        /* #2a361b — hero + footer ground */
-  --green-primary: 51 67 30;     /* #33431e — primary buttons, dark blocks */
-  --green-mid: 74 92 51;         /* #4a5c33 — selected states, hover fills */
+  --green-deep: 51 68 32;        /* #334420 — hero + footer ground (pehle #2a361b, thoda halka) */
+  --green-primary: 63 85 36;     /* #3f5524 — primary buttons, dark blocks (pehle #33431e, thoda halka kiya) */
+  --green-mid: 84 108 60;        /* #546c3c — selected states, hover fills (primary se halka hi rahe) */
   --green-soft: 234 238 226;     /* #eaeee2 — green-tinted chips on cream */
   --green-title: 44 58 20;       /* #2c3a14 — Didot product/section titles */
 
@@ -998,6 +998,43 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
     transition: transform 700ms var(--ease-out);
   }
 }
+/* Loop shine — product card ke "Add to Cart" pe. Ek patli, tirchhi roshni ki
+   patti ~2.5s me dheere se button ke aar-paar guzarti hai, phir ~2.5s ruk kar
+   dobara — aaram se glide karti hai, distracting nahi. */
+.btn-shine-loop::after {
+  inset: -20% auto -20% 0;
+  width: 45%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.08) 30%,
+    rgb(255 255 255 / 0.45) 50%,
+    rgb(255 255 255 / 0.08) 70%,
+    transparent 100%
+  );
+  transform: translateX(-130%) skewX(-20deg);
+  animation: btn-shine-loop 5s ease-in-out infinite;
+}
+@keyframes btn-shine-loop {
+  0% {
+    transform: translateX(-130%) skewX(-20deg);
+  }
+  50%,
+  100% {
+    transform: translateX(330%) skewX(-20deg);
+  }
+}
+.btn-shine-loop:disabled::after {
+  animation: none;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine-loop::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Press feedback — touch pe bhi */
 /* Poori transition list yahin — warna yeh class Tailwind ki transition-colors
    jaisi utilities ko override karke hover colour fade tod deti thi. */

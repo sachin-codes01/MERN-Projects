@@ -31,17 +31,30 @@ const ProductCarousel = ({
   // Products" on a PDP is a lone section, so a numeral there would be
   // counting something the reader can't see.
   index,
+  // Optional tabs (reference jaisa "Best Sellers / Proteins / ..."): har tab
+  // { key, label, match(product), link }. Diye ho to poora catalogue ek baar
+  // fetch hota hai aur tab badalne pe client-side filter — turant switch.
+  tabs,
+  // Phone pe slider ki jagah 2-column grid me itni rows (e.g. 2 → 4 cards)
+  mobileRows,
 }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeKey, setActiveKey] = useState(tabs?.[0]?.key);
 
   useEffect(() => {
     api
-      .getProducts({ section, limit: 16 })
+      .getProducts(tabs ? { limit: 100 } : { section, limit: 16 })
       .then((d) => setProducts(d.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [section]);
+  }, [section, tabs]);
+
+  // Sirf wahi tabs jinme kam se kam ek product hai
+  const visibleTabs = tabs ? tabs.filter((t) => products.some(t.match)) : [];
+  const activeTab = visibleTabs.find((t) => t.key === activeKey) || visibleTabs[0];
+  const shown = tabs ? (activeTab ? products.filter(activeTab.match).slice(0, 16) : []) : products;
+  const viewAllLink = tabs ? activeTab?.link : moreLink;
 
   if (loading) {
     return (
@@ -69,11 +82,39 @@ const ProductCarousel = ({
     );
   }
 
-  if (products.length === 0) return null;
+  if (shown.length === 0) return null;
 
   return (
     <section id={sectionId} className={`section ${className}`}>
       <SectionHeading index={index} eyebrow={eyebrow} title={titleMain} accent={titleAccent} subtitle={subtitle} />
+
+      {visibleTabs.length > 1 && (
+        // Tab strip — neeche patli orange line, active tab orange border wala
+        // "folder" tab jo line ke upar baithta hai. Phone pe side me scroll.
+        <div className="no-scrollbar -mx-4 mt-5 overflow-x-auto px-4 sm:mx-0 sm:mt-6 sm:px-0">
+          <div role="tablist" aria-label="Product categories" className="mx-auto flex w-max min-w-full justify-center border-b-2 border-mdn-orange-solid/70">
+            {visibleTabs.map((t) => {
+              const active = t.key === activeTab?.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveKey(t.key)}
+                  className={`label -mb-[2px] whitespace-nowrap rounded-t-2xl border-2 px-4 py-2.5 text-[11.5px] !tracking-[0.14em] transition-colors duration-200 sm:px-7 sm:py-3 sm:text-[13px] ${
+                    active
+                      ? "border-mdn-orange-solid/70 border-b-mdn-black bg-mdn-black text-mdn-ink"
+                      : "border-transparent text-mdn-ink-muted hover:text-mdn-ink"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ONE reveal around the carousel rather than one per ProductCard.
           Two reasons, both of which make per-card reveals actively wrong
@@ -90,9 +131,22 @@ const ProductCarousel = ({
              movement for a merchandising row the user is going to scan,
              not read. The row arriving as one object is calmer and
              matches how the Assured badge row already behaves. */}
-      <Reveal from="up" amount={0.15} className="mt-4 sm:mt-6">
+      {mobileRows && (
+        // Phone: 2 column grid, `mobileRows` rows — baaki "View all" se
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:hidden">
+          {shown.slice(0, mobileRows * 2).map((p, i) => (
+            <Reveal key={p._id} from="up" delay={(i % 2) * 0.06} amount={0.15} className="h-full">
+              <ProductCard product={p} />
+            </Reveal>
+          ))}
+        </div>
+      )}
+
+      <Reveal from="up" amount={0.15} className={`mt-4 sm:mt-6 ${mobileRows ? "hidden sm:block" : ""}`}>
         <ItemCarousel
-          items={products}
+          // Tab badalne pe carousel shuru se (key se remount)
+          key={activeTab?.key || "all"}
+          items={shown}
           // No autoplay — these only move when the user drags/swipes or
           // clicks an arrow, per request.
           autoPlay={false}
@@ -104,10 +158,10 @@ const ProductCarousel = ({
         />
       </Reveal>
 
-      {moreLink && (
+      {viewAllLink && (
         <Reveal from="up" delay={0.1} className="mt-5 text-center sm:mt-6">
           <Link
-            to={moreLink}
+            to={viewAllLink}
             className="press group inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-mdn-border-strong px-6 py-2.5 font-heading text-sm font-semibold text-mdn-ink transition-colors duration-200 hover:border-mdn-green hover:bg-mdn-green hover:text-mdn-on-primary"
           >
             View all

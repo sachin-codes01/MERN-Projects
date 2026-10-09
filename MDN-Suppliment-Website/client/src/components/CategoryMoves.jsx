@@ -10,6 +10,7 @@ import isolateImg from "../assets/isolete.jpeg";
 import collagenImg from "../assets/Collagen.jpeg";
 import ImageTile from "./ImageTile";
 import ViewAllLink from "./ViewAllLink";
+import CategoryRail from "./CategoryRail";
 
 // Chaar collections — har ek ka apna square poster.
 const COLLECTIONS = [
@@ -42,6 +43,17 @@ const CategoryMoves = () => {
             <ImageTile title={c.title} image={c.image} ratio="aspect-[5/6] sm:aspect-square" imgClassName="object-cover" onClick={() => navigate(c.to)} />
           </Reveal>
         ))}
+      </div>
+
+      {/* Saari categories ki icon row — collection cards ke theek neeche,
+          halki "Browse by category" line ke saath, taaki dono ek hi shopping block lagein */}
+      {/* Phone pe yeh row hero me trust chips ke neeche dikhti hai — yahan sirf tablet/desktop */}
+      <div className="mt-8 hidden sm:mt-10 md:block">
+        <div className="flex items-center gap-3">
+          <span className="eyebrow flex-shrink-0">Browse by category</span>
+          <span aria-hidden="true" className="h-px flex-1 bg-mdn-border-strong" />
+        </div>
+        <CategoryRail className="mt-1" />
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { EASE_OUT_QUINT, EASE_OUT_EXPO } from "../lib/easings";
@@ -9,8 +9,15 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import bannerVideo from "../assets/mdn-hero-banner.mp4";
 import mobileBannerVideo from "../assets/banner for mobile.mp4";
+import collagenVideo from "../assets/1-video.mp4";
+import preWorkoutVideo from "../assets/2nd video.mp4";
+import wheyVideo from "../assets/3rd video.mp4";
+import wellnessVideo from "../assets/4th video.mp4";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { SHOP_CATEGORIES } from "../data/shopCategories";
+import CategoryRail from "./CategoryRail";
+
+// Phone banner ke 5 portrait (9:16) videos — ek ke baad ek auto-scroll.
+const MOBILE_SLIDES = [mobileBannerVideo, collagenVideo, preWorkoutVideo, wheyVideo, wellnessVideo];
 
 // Banner ke neeche wali trust row ke paanch points.
 const TRUST_ITEMS = [
@@ -21,7 +28,7 @@ const TRUST_ITEMS = [
   { value: "24/7", label: "Customer Support", Icon: HeadsetMicOutlinedIcon },
 ];
 
-// Hero entrance ka sequence: banner → Shop Now → trust chips → categories.
+// Hero entrance ka sequence: banner → trust chips (ek-ek karke).
 // Sab mount pe chalta hai (scroll pe nahi), aur stagger se ek-ek karke aata hai.
 const rise = (delay, y = 14) => ({
   initial: { opacity: 0, y },
@@ -61,7 +68,7 @@ const Hero = () => {
           taaki trust row hamesha first screen ke bottom pe dikhe. Banner bachi
           hui jagah bharta hai aur video usme stretch hota hai (crop nahi). */}
       <div
-        className={`flex flex-col pb-3 pt-3 sm:pb-4 sm:pt-4 ${
+        className={`flex flex-col pb-1 pt-3 sm:pb-4 sm:pt-4 ${
           fitWindow ? "h-[calc(100svh-var(--nav-h,72px))] min-h-[420px]" : ""
         }`}
       >
@@ -74,55 +81,144 @@ const Hero = () => {
         >
           {/* Video ki rounded clipping alag GPU layer pe — warna scroll karte waqt
               Chrome me rounded corners wala video flicker karta tha. */}
-          <div
-            className="relative h-full overflow-hidden rounded-[inherit]"
+          {/* Poora banner clickable — products page pe le jata hai (Shop Now button hata diya) */}
+          <Link
+            to="/products"
+            aria-label="Shop all products"
+            className="relative block h-full cursor-pointer overflow-hidden rounded-[inherit]"
             onMouseEnter={pauseVideo}
             onMouseLeave={playVideo}
             style={{ transform: "translateZ(0)" }}
           >
-            <video
-              ref={videoRef}
-              key={isMobile ? "mobile" : "desktop"}
-              src={isMobile ? mobileBannerVideo : bannerVideo}
-              // Mobile pe autoplay ke liye muted + playsInline zaroori hain.
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              aria-label="MDN promotional banner"
-              className={fitWindow ? "block h-full w-full object-fill" : "block aspect-video w-full object-cover"}
-            />
-
-            {/* "Shop Now" pill — banner ke bottom-left pe, reference jaisa */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/45 via-black/10 to-transparent p-4 pt-16 sm:p-6 sm:pt-20 md:bg-none lg:p-8">
-              <motion.div {...rise(0.45, 18)} className="pointer-events-auto">
-                <Link
-                  to="/products"
-                  className="btn-shine press group inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 font-heading text-sm font-semibold text-[#241f1a] shadow-lg transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:px-6 sm:py-3"
-                >
-                  Shop Now
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                  >
-                    <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Link>
-              </motion.div>
-            </div>
-          </div>
+            {isMobile ? (
+              // Phone: 5 videos ka slider — har video khatam hote hi agla, swipe bhi
+              <MobileBannerSlider fit={fitWindow} />
+            ) : (
+              <video
+                ref={videoRef}
+                src={bannerVideo}
+                // Autoplay ke liye muted + playsInline zaroori hain.
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                aria-label="MDN promotional banner"
+                className={fitWindow ? "block h-full w-full object-fill" : "block aspect-video w-full object-cover"}
+              />
+            )}
+          </Link>
         </motion.div>
 
         <HeroTrustRow />
+        {/* Sirf phone pe: category icon row trust chips ke neeche, isi viewport block
+            me — banner flex-1 hai isliye apne aap chhota ho jata hai aur sab
+            pehli screen me fit hota hai. Desktop pe yeh "Shop by Collection" me hai. */}
+        <CategoryRail className="flex-shrink-0 !pb-2 !pt-3 md:hidden" />
       </div>
-      <HeroCategoryRail />
     </section>
+  );
+};
+
+// Phone banner slider: native swipe (scroll-snap) + auto-advance. Sirf active
+// video chalta hai; baaki ruke rehte hain (aur shuru pe wapas). Video khatam
+// hote hi agla slide. Infinite loop: aakhir me pehle video ki ek copy hai —
+// 5th ke baad slider aage hi badhta hai (copy pe), phir chupke se asli 1st pe
+// aa jata hai. Isliye peeche ki taraf rewind hota nahi dikhta.
+const SLIDE_COUNT = MOBILE_SLIDES.length;
+const LOOP_SLIDES = [...MOBILE_SLIDES, MOBILE_SLIDES[0]];
+
+const MobileBannerSlider = ({ fit }) => {
+  const trackRef = useRef(null);
+  const videoRefs = useRef([]);
+  const settleTimer = useRef(null);
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    videoRefs.current.forEach((v, i) => {
+      if (!v) return;
+      if (i === active) {
+        // Browser sirf muted video ko khud chalne deta hai — play se pehle pakka muted
+        v.muted = true;
+        // Pehle khatam ho chuka video ho to shuru se chalao
+        if (v.ended) v.currentTime = 0.1;
+        v.play().catch(() => {});
+      } else {
+        v.pause();
+        v.currentTime = 0.1;
+      }
+    });
+  }, [active]);
+
+  useEffect(() => () => clearTimeout(settleTimer.current), []);
+
+  // Scroll rukne ke baad hi decide karo kaun sa slide samne hai — beech ke
+  // slides (smooth scroll ke dauran) ignore ho jate hain.
+  const settle = () => {
+    const el = trackRef.current;
+    if (!el || !el.clientWidth) return;
+    let i = Math.round(el.scrollLeft / el.clientWidth);
+    if (i >= SLIDE_COUNT) {
+      // Copy pe pahunch gaye — bina animation asli 1st slide pe (dikhta same hai)
+      el.scrollLeft = 0;
+      i = 0;
+    }
+    setActive(i);
+  };
+
+  const onScroll = () => {
+    clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(settle, 120);
+  };
+
+  const goTo = (i) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative h-full">
+      <div
+        ref={trackRef}
+        onScroll={onScroll}
+        className={`no-scrollbar flex snap-x snap-mandatory overflow-x-auto ${fit ? "h-full" : ""}`}
+      >
+        {LOOP_SLIDES.map((src, i) => {
+          const isCopy = i === SLIDE_COUNT;
+          return (
+            <video
+              key={i}
+              ref={(el) => (videoRefs.current[i] = el)}
+              // #t=0.1 — play se pehle bhi pehla frame dikhe
+              src={`${src}#t=0.1`}
+              muted
+              playsInline
+              autoPlay={i === 0}
+              preload={i === 0 ? "auto" : "metadata"}
+              onEnded={() => goTo(i + 1)}
+              aria-hidden={isCopy || undefined}
+              aria-label={isCopy ? undefined : `MDN promotional video ${i + 1}`}
+              className={`block w-full flex-shrink-0 snap-start snap-always object-fill ${
+                fit ? "h-full" : "aspect-[478/850]"
+              }`}
+            />
+          );
+        })}
+      </div>
+
+      {/* Chhote dots — kaun sa video chal raha hai */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+        {MOBILE_SLIDES.map((src, i) => (
+          <span
+            key={src}
+            className={`h-1.5 rounded-full bg-white shadow transition-all duration-300 ${
+              i === active ? "w-5 opacity-100" : "w-1.5 opacity-60"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -146,37 +242,6 @@ const HeroTrustRow = () => (
       </motion.li>
     ))}
   </ul>
-);
-
-// Reference ka category icon row (Winter Arc / Build / Wellness ...) —
-// hamare apne shop categories ke saath. Mobile pe swipe hota hai.
-const HeroCategoryRail = () => (
-  <nav aria-label="Shop by category" className="no-scrollbar -mx-4 overflow-x-auto px-4 pb-5 pt-2 sm:-mx-6 sm:px-6 sm:pt-3">
-    {/* overflow-x-auto vertical bhi clip karta hai — pt/pb ki jagah hover lift (-4px)
-        aur shadow ko kaatne se bachati hai.
-        w-max + mx-auto: jagah ho to row centre me, kam ho to pehle item se scroll (clip nahi) */}
-    <ul className="mx-auto flex w-max gap-3 sm:gap-4 xl:gap-5">
-      {SHOP_CATEGORIES.map((c, i) => (
-        <motion.li key={c.label} {...rise(0.8 + i * 0.04, 10)} className="flex-shrink-0">
-          <Link to={c.to} className="group flex w-[80px] flex-col items-center gap-2 sm:w-[100px] xl:w-[118px]">
-            <span className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-2xl border border-mdn-border-strong/70 bg-mdn-charcoal shadow-xs transition-[transform,box-shadow,border-color] duration-300 ease-brand-out group-hover:-translate-y-1 group-hover:border-mdn-green/50 group-hover:shadow-lg group-active:scale-95 sm:h-[88px] sm:w-[88px] xl:h-[104px] xl:w-[104px]">
-              <img
-                src={c.image}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-                className="h-[88%] w-[88%] object-contain transition-transform duration-500 ease-brand-out group-hover:scale-110"
-              />
-            </span>
-            <span className="text-center font-heading text-[12.5px] font-bold leading-tight text-mdn-ink transition-colors group-hover:text-mdn-green sm:text-[14px] xl:text-[15px]">
-              {c.label}
-            </span>
-          </Link>
-        </motion.li>
-      ))}
-    </ul>
-  </nav>
 );
 
 export default Hero;
