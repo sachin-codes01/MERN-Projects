@@ -119,7 +119,7 @@ const ProductDetail = () => {
       }
       markNewItem();
       success(`${product.name} added to cart!`);
-      navigate("/cart");
+      navigate("/cart", { state: { justAdded: true } });
     } catch (err) {
       setError(err.message);
       toastError(err.message);

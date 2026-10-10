@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useCartBadge } from "../context/CartBadgeContext";
 import { guestCart } from "../utils/guestCart";
 import MDNLoader from "../components/MDNLoader";
+import Confetti from "../components/Confetti";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 
 export default function Cart() {
@@ -16,6 +17,9 @@ export default function Cart() {
   const { success, error: toastError } = useToast();
   const { clearNewItem } = useCartBadge();
   const navigate = useNavigate();
+  const location = useLocation();
+  const confettiRef = useRef(null);
+  const celebratedRef = useRef(false);
 
   // The navbar's "new item" dot was only cleared by CLICKING the cart icon.
   // Adding to cart navigates here directly, so the dot stayed lit while the
@@ -50,6 +54,33 @@ export default function Cart() {
     loadCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, cartSyncing]);
+
+  // Add to Cart se aaye ho (state.justAdded) to cart load hone ke baad ek baar
+  // confetti chalao. Phir history state saaf kar do taaki refresh/back par dobara na chale.
+  useEffect(() => {
+    if (!location.state?.justAdded || celebratedRef.current) return;
+    if (loading || !cart?.items?.length) return;
+
+    // Brand colours: halka olive green, orange, gold, cream
+    const colors = ["#546c3c", "#3f5524", "#f97316", "#facc15", "#fdf8f1"];
+    // Thoda ruk ke fire karo taaki canvas mount + layout ho chuka ho.
+    // "celebrated" flag timer ke andar set hota hai — StrictMode (dev) me effect
+    // do baar chalta hai aur pehla timer cancel ho jata hai; bahar set karne se
+    // confetti kabhi chalta hi nahi tha.
+    const timer = setTimeout(() => {
+      if (celebratedRef.current) return;
+      celebratedRef.current = true;
+      navigate(location.pathname, { replace: true, state: null });
+      const fire = (options) =>
+        confettiRef.current?.fire({ disableForReducedMotion: true, colors, ...options });
+      // Dono side se cannon jaisa burst, beech se ek bada pop
+      fire({ particleCount: 70, angle: 60, spread: 60, origin: { x: 0, y: 0.75 } });
+      fire({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1, y: 0.75 } });
+      fire({ particleCount: 110, spread: 100, startVelocity: 40, origin: { x: 0.5, y: 0.35 } });
+    }, 150);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, cart]);
 
   const handleQuantityChange = async (itemId, quantity) => {
     if (quantity < 1) return; // never allow dropping below 1 via the stepper
@@ -125,6 +156,8 @@ export default function Cart() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      {/* Poori screen par confetti canvas — clicks ke beech nahi aata */}
+      <Confetti ref={confettiRef} className="pointer-events-none fixed inset-0 z-[60] size-full" />
       <h2 className="text-center display-xl sm:text-left">
         Your <span className="text-mdn-green">Cart</span>
       </h2>
