@@ -263,6 +263,12 @@ export const api = {
   adminPermanentlyDeleteProduct: (token, id) =>
     request(`/admin/products/${id}/permanent`, { method: "DELETE", token }), // irreversible
 
+  // ---------- CHECKOUT OTP (phone / email) ----------
+  otpStatus: (token) => request("/otp/status", { token }),
+  sendOtp: (token, channel, target) => request("/otp/send", { method: "POST", body: { channel, target }, token }),
+  verifyOtp: (token, channel, target, code) =>
+    request("/otp/verify", { method: "POST", body: { channel, target, code }, token }),
+
   // ---------- DELIVERY PINCODES ----------
   // Checkout: is pincode pe delivery hai? → { available, area }
   checkPincode: (pincode, token) => request(`/pincodes/check/${encodeURIComponent(pincode)}`, { token }),

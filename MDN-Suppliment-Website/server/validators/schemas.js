@@ -156,9 +156,18 @@ const couponBody = z.strictObject({
 
 /* ---------------- Orders / payment ---------------- */
 
+const email = z
+  .string({ error: requiredOrType("Email", "text") })
+  .trim()
+  .toLowerCase()
+  .max(254, "Email is too long")
+  .regex(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, "Enter a valid email address");
+
 const { label: _label, ...shippingFields } = addressFields;
 const createRazorpayOrderBody = z.strictObject({
   shippingAddress: z.strictObject(shippingFields, { error: requiredOrType("Delivery address", "an object") }),
+  // Receipt/contact email — Google wale se alag ho to OTP se verified hona chahiye
+  email: email.optional(),
   saveAddress: z.strictObject({ label: text("Label", { max: 30, optional: true }) }).nullable().optional(),
   addressId: objectId("Address").nullable().optional(),
 });
@@ -392,6 +401,28 @@ const enquiryStatusBody = z.strictObject({
 
 const emptyBody = z.strictObject({});
 
+/* ---------------- OTP (checkout phone/email) ---------------- */
+
+// target channel ke hisaab se: phone → 10 digits, email → lowercase
+const otpTarget = (b, ctx) => {
+  const r = (b.channel === "phone" ? phone : email).safeParse(b.target);
+  if (!r.success) ctx.addIssue({ code: "custom", path: ["target"], message: r.error.issues[0].message });
+  else b.target = r.data;
+};
+const otpSendBody = z
+  .strictObject({
+    channel: z.enum(["phone", "email"], { error: "Channel must be phone or email" }),
+    target: z.string({ error: requiredOrType("Phone or email", "text") }).max(254),
+  })
+  .superRefine(otpTarget);
+const otpVerifyBody = z
+  .strictObject({
+    channel: z.enum(["phone", "email"], { error: "Channel must be phone or email" }),
+    target: z.string({ error: requiredOrType("Phone or email", "text") }).max(254),
+    code: z.string({ error: requiredOrType("Code", "text") }).trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+  })
+  .superRefine(otpTarget);
+
 /* ---------------- Serviceable pincodes ---------------- */
 
 const pincodeParam = z.strictObject({ pincode });
@@ -438,4 +469,6 @@ module.exports = {
   emptyBody,
   pincodeParam,
   addPincodesBody,
+  otpSendBody,
+  otpVerifyBody,
 };

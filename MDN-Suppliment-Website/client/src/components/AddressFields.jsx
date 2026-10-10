@@ -48,9 +48,9 @@ export const Field = ({ id, label, optional, hideOptional = false, error, childr
 export const inputClass = (error) =>
   `input-field ${error ? "!border-mdn-danger/60 focus:!border-mdn-danger focus:!ring-mdn-danger/25" : ""}`;
 
-// `pincodeStatus` (optional): pincode ke neeche delivery ka message —
-// Checkout isse "delivery available / not available" dikhata hai.
-const AddressFields = ({ idPrefix, values, errors, onChange, onBlur, pincodeStatus = null }) => {
+// `addons` (optional): kisi field ke neeche extra cheez — Checkout isse
+// pincode ke neeche delivery message aur phone ke neeche OTP box dikhata hai.
+const AddressFields = ({ idPrefix, values, errors, onChange, onBlur, addons = {} }) => {
   const render = (f) => {
     const id = `${idPrefix}-${f.name}`;
     const error = errors[f.name];
@@ -78,7 +78,7 @@ const AddressFields = ({ idPrefix, values, errors, onChange, onBlur, pincodeStat
           aria-describedby={error ? `${id}-error` : undefined}
           className={inputClass(error)}
         />
-        {f.name === "pincode" && !error && pincodeStatus}
+        {!error && addons[f.name]}
       </Field>
     );
   };

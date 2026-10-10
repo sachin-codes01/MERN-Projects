@@ -9,6 +9,8 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import AddressFields, { Field, inputClass } from "../components/AddressFields";
 import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
 import { usePincodeDetails } from "../hooks/usePincodeDetails";
+import OtpVerify from "../components/OtpVerify";
+import { normalisePhone } from "../utils/phone";
 
 // Address ke rules + email (Razorpay prefill / receipt ke liye)
 const CHECKOUT_RULES = { ...addressRules, email: rules.email };
@@ -35,6 +37,22 @@ export default function Checkout() {
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  // OTP: kaunse channel chalu hain + is account ke verified numbers/emails
+  const [otp, setOtp] = useState({ loaded: false, phone: {}, email: {}, accountEmail: "", verifiedPhones: [], verifiedEmails: [] });
+  useEffect(() => {
+    api
+      .otpStatus(token)
+      .then((d) => setOtp({ loaded: true, ...d.data }))
+      // Status na mile to OTP UI mat dikhao — server payment se pehle khud check karta hai
+      .catch(() => setOtp((o) => ({ ...o, loaded: true })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const markVerified = (channel) => (target) =>
+    setOtp((o) => {
+      const key = channel === "phone" ? "verifiedPhones" : "verifiedEmails";
+      return { ...o, [key]: [target, ...o[key].filter((t) => t !== target)] };
+    });
+
   // User ne khud pincode badla? Tabhi city/state auto-fill — saved address
   // load hote waqt uski apni city overwrite nahi karni
   const pincodeTypedRef = useRef(false);
@@ -154,7 +172,13 @@ export default function Checkout() {
 
   // "error" (network) pe rokte nahi — server payment se pehle khud check karta hai
   const deliveryOk = delivery.status === "available" || delivery.status === "error";
-  const canPay = formValid && deliveryOk;
+  // OTP status — field sahi format ka ho tabhi OTP box dikhta hai
+  const phoneTarget = normalisePhone(form.phone);
+  const emailTarget = form.email.trim().toLowerCase();
+  const phoneVerified = !otp.phone.enabled || otp.verifiedPhones.includes(phoneTarget);
+  // Google account wala email pehle se verified
+  const emailVerified = !otp.email.enabled || emailTarget === otp.accountEmail || otp.verifiedEmails.includes(emailTarget);
+  const canPay = formValid && deliveryOk && otp.loaded && phoneVerified && emailVerified;
 
   const deliveryStatus =
     delivery.status === "checking" ? (
@@ -251,6 +275,7 @@ export default function Checkout() {
           ? { label: addresses.find((a) => a._id === selectedAddressId)?.label || "Home" }
           : null,
         addressId: selectedAddressId || null,
+        email: form.email.trim().toLowerCase(),
       });
       const rpOrder = rpOrderRes.data;
 
@@ -370,7 +395,20 @@ export default function Checkout() {
             errors={fieldErrors}
             onChange={handleChange}
             onBlur={handleBlur}
-            pincodeStatus={deliveryStatus}
+            addons={{
+              pincode: deliveryStatus,
+              phone: otp.phone.enabled && (
+                <OtpVerify
+                  channel="phone"
+                  target={phoneTarget}
+                  valid={!rules.phone(form.phone)}
+                  verified={phoneVerified}
+                  testMode={otp.phone.testMode}
+                  token={token}
+                  onVerified={markVerified("phone")}
+                />
+              ),
+            }}
           />
 
           <Field id="checkout-email" label="Email (for your receipt)" error={fieldErrors.email}>
@@ -389,6 +427,17 @@ export default function Checkout() {
               aria-describedby={fieldErrors.email ? "checkout-email-error" : undefined}
               className={inputClass(fieldErrors.email)}
             />
+            {!fieldErrors.email && otp.email.enabled && (
+              <OtpVerify
+                channel="email"
+                target={emailTarget}
+                valid={!rules.email(form.email)}
+                verified={emailVerified}
+                testMode={otp.email.testMode}
+                token={token}
+                onVerified={markVerified("email")}
+              />
+            )}
           </Field>
 
           <label className="flex items-center gap-2.5 text-sm text-mdn-gray">
@@ -523,7 +572,11 @@ export default function Checkout() {
                 ? "Fill in all required delivery details to continue."
                 : delivery.status === "unavailable"
                   ? "We don't deliver to this pincode yet. Use a different address or contact customer support."
-                  : "Checking delivery for your pincode…"}
+                  : !phoneVerified
+                    ? "Verify your mobile number with the OTP to continue."
+                    : !emailVerified
+                      ? "Verify your email with the OTP to continue."
+                      : "Checking delivery for your pincode…"}
             </p>
           )}
         </div>

@@ -88,6 +88,9 @@ const limits = {
   payment: limiter(15 * MIN, 20, "Too many payment attempts. Please wait a few minutes and try again."),
   // Pincode check (India Post lookup) — form bharte waqt kuch hi baar chahiye
   pincode: limiter(1 * MIN, 30, "Too many pincode checks. Please wait a minute."),
+  // OTP: ghante me 10 code, aur verify ki koshishen bhi seemit
+  otpSend: limiter(60 * MIN, 10, "Too many codes requested. Please try again in an hour."),
+  otpVerify: limiter(15 * MIN, 20, "Too many verification attempts. Please wait a few minutes."),
 };
 
 module.exports = { rejectMongoOperators, corsOptions, limits };

@@ -4,6 +4,8 @@ const Coupon = require("../models/Coupon");
 const Product = require("../models/Product");
 const CheckoutSession = require("../models/CheckoutSession");
 const ServiceablePincode = require("../models/ServiceablePincode");
+const User = require("../models/User");
+const { channelMode } = require("../utils/otpSender");
 const razorpay = require("../config/razorpay");
 const { calcOrderPricing } = require("../utils/orderPricing");
 const {
@@ -26,7 +28,7 @@ const ADDRESS_FIELDS = ["fullName", "phone", "line1", "city", "state", "pincode"
 // in another tab while the payment screen is open.
 exports.createRazorpayOrder = async (req, res) => {
   try {
-    const { shippingAddress, saveAddress = null, addressId = null } = req.body || {};
+    const { shippingAddress, saveAddress = null, addressId = null, email = null } = req.body || {};
     const missing = ADDRESS_FIELDS.filter((f) => !String(shippingAddress?.[f] || "").trim());
     if (missing.length) {
       return res.status(400).json({ success: false, message: "Please complete the delivery address." });
@@ -37,6 +39,19 @@ exports.createRazorpayOrder = async (req, res) => {
     if (!(await ServiceablePincode.exists({ pincode: shippingAddress.pincode }))) {
       const message = `Sorry, we don't ship to pincode ${shippingAddress.pincode} yet.`;
       return res.status(400).json({ success: false, message, errors: [{ field: "shippingAddress.pincode", message }] });
+    }
+
+    // OTP verification (jab channel chalu ho): phone hamesha, email sirf jab
+    // Google wale se alag ho. Client bhi rokta hai — asli check yahan.
+    const me = await User.findById(req.user._id).select("email verifiedPhones verifiedEmails").lean();
+    if (channelMode("phone") !== "off" && !(me.verifiedPhones || []).includes(shippingAddress.phone)) {
+      const message = "Please verify your mobile number with the OTP first.";
+      return res.status(400).json({ success: false, message, errors: [{ field: "shippingAddress.phone", message }] });
+    }
+    const contactEmail = email || me.email;
+    if (channelMode("email") !== "off" && contactEmail !== me.email && !(me.verifiedEmails || []).includes(contactEmail)) {
+      const message = "Please verify your email with the OTP first.";
+      return res.status(400).json({ success: false, message, errors: [{ field: "email", message }] });
     }
 
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
@@ -123,6 +138,7 @@ exports.createRazorpayOrder = async (req, res) => {
         state: shippingAddress.state,
         pincode: shippingAddress.pincode,
         country: shippingAddress.country || "India",
+        email: contactEmail,
       },
       saveAddress: saveAddress ? { label: saveAddress.label || "Home" } : null,
       addressId: addressId || null,

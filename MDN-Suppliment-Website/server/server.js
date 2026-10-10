@@ -15,6 +15,7 @@ const userRoutes = require("./routes/userRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const enquiryRoutes = require("./routes/enquiryRoutes");
 const pincodeRoutes = require("./routes/pincodeRoutes");
+const otpRoutes = require("./routes/otpRoutes");
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/enquiries", enquiryRoutes);
 app.use("/api/pincodes", pincodeRoutes);
+app.use("/api/otp", otpRoutes);
 
 app.get("/", (req, res) => res.send("Supplement Store API running"));
 
