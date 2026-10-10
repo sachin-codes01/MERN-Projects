@@ -21,15 +21,20 @@ const FIELDS = [
   // Pincode pehle — daalte hi city/district/state apne aap bhar jaate hain
   { name: "pincode", label: "Pincode", autoComplete: "postal-code", inputMode: "numeric", maxLength: 6, span: "place" },
   { name: "city", label: "City", autoComplete: "address-level2", maxLength: LIMITS.placeMax, span: "place" },
-  { name: "district", label: "District", optional: true, autoComplete: "address-level3", maxLength: LIMITS.placeMax, span: "place" },
+  // Optional hai par label pe "(optional)" nahi dikhate
+  { name: "district", label: "District", optional: true, hideOptional: true, autoComplete: "address-level3", maxLength: LIMITS.placeMax, span: "place" },
   { name: "state", label: "State", autoComplete: "address-level1", maxLength: LIMITS.placeMax, span: "place" },
 ];
 
-export const Field = ({ id, label, optional, error, children }) => (
+export const Field = ({ id, label, optional, hideOptional = false, error, children }) => (
   <div>
     <label htmlFor={id} className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mdn-gray">
       {label}
-      {optional ? <span className="ml-1 font-normal normal-case tracking-normal">(optional)</span> : <span className="ml-0.5 text-mdn-danger">*</span>}
+      {optional ? (
+        !hideOptional && <span className="ml-1 font-normal normal-case tracking-normal">(optional)</span>
+      ) : (
+        <span className="ml-0.5 text-mdn-danger">*</span>
+      )}
     </label>
     {children}
     {error && (
@@ -50,7 +55,7 @@ const AddressFields = ({ idPrefix, values, errors, onChange, onBlur, pincodeStat
     const id = `${idPrefix}-${f.name}`;
     const error = errors[f.name];
     return (
-      <Field key={f.name} id={id} label={f.label} optional={f.optional} error={error}>
+      <Field key={f.name} id={id} label={f.label} optional={f.optional} hideOptional={f.hideOptional} error={error}>
         <input
           id={id}
           name={f.name}
