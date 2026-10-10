@@ -94,7 +94,7 @@ const ReviewsSection = () => {
           className="no-scrollbar -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:mt-6 sm:flex-wrap sm:justify-center sm:px-0"
         >
           {TAGS.map((tag) => (
-            <button
+            <button type="button"
               key={tag}
               onClick={() => {
                 stopAutoplay();
@@ -202,7 +202,7 @@ const ReviewsSection = () => {
         {slides.length > 1 && (
           <div className="mt-3 flex justify-center gap-2">
             {slides.map((_, i) => (
-              <button
+              <button type="button"
                 key={i}
                 onClick={() => {
                   stopAutoplay();

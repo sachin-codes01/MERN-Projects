@@ -100,7 +100,7 @@ const StorySection = () => {
               {expanded ? FULL_STORY : SHORT_STORY.slice(3)}
             </p>
 
-            <button
+            <button type="button"
               onClick={() => setExpanded((e) => !e)}
               /* Underline-on-rest, not a coloured link: the accent colour
                  is spoken for by prices and CTAs, and a green text link

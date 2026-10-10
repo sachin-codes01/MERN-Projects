@@ -111,7 +111,7 @@ function ToastItem({ toast, onDismiss }) {
         {ICONS[toast.type]}
       </span>
       <p className="flex-1 pt-0.5 text-sm font-medium text-mdn-white">{toast.message}</p>
-      <button
+      <button type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
         className="shrink-0 rounded-md p-1 text-mdn-gray transition-colors hover:bg-white/5 hover:text-mdn-white"

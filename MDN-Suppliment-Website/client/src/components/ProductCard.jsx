@@ -163,7 +163,7 @@ const ProductCard = ({ product }) => {
 
         {/* mt-auto: button hamesha card ke bottom pe, chahe naam 1 line ho ya 2 */}
         <div className="mt-auto pt-3">
-          <button
+          <button type="button"
             onClick={handleAddToCart}
             disabled={adding || outOfStock}
             className="btn-shine btn-shine-loop press flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-lg bg-mdn-green py-2 font-heading text-[12px] font-semibold sm:min-h-[42px] sm:py-2.5 text-mdn-on-primary transition-colors duration-200 hover:bg-mdn-orange-solid hover:text-white active:bg-mdn-orange-hover disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"

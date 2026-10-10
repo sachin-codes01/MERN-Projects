@@ -71,7 +71,7 @@ const StickyAddToCart = ({ atcRef, product, currentSize, currentFlavor, outOfSto
             </p>
           )}
         </div>
-        <button
+        <button type="button"
           onClick={onAddToCart}
           disabled={outOfStock || adding}
           className="btn-primary shrink-0 !min-h-[40px] !px-4 !py-2 !text-[13px] sm:!min-h-[44px] sm:!px-6 sm:!text-sm"

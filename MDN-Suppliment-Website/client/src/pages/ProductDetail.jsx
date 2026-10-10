@@ -470,7 +470,7 @@ const ProductDetail = () => {
             </div>
           )}
 
-          <button
+          <button type="button"
             ref={atcRef}
             onClick={handleAddToCart}
             disabled={outOfStock || adding}

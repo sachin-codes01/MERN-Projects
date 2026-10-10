@@ -129,7 +129,7 @@ export default function SectionProducts() {
 
       {totalPages > 1 && !loading && (
         <div className="mt-8 flex items-center justify-center gap-4">
-          <button
+          <button type="button"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
             className="btn-secondary !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
@@ -139,7 +139,7 @@ export default function SectionProducts() {
           <span className="text-sm text-mdn-gray">
             Page {page} of {totalPages}
           </span>
-          <button
+          <button type="button"
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
             className="btn-secondary !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"

@@ -45,7 +45,7 @@ const FAQ = () => {
                   isOpen ? "border-mdn-border-strong shadow-xs" : "border-mdn-border"
                 }`}
               >
-                <button
+                <button type="button"
                   id={buttonId}
                   onClick={() => setOpen(isOpen ? -1 : i)}
                   aria-expanded={isOpen}

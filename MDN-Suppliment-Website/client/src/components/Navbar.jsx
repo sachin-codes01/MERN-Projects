@@ -179,7 +179,7 @@ export default function Navbar() {
       {/* xl+: grid [logo | links | icons] — links beech wale column me centre, isliye
           logo aur icons dono taraf barabar gap rehta hai (koi side khaali nahi lagti) */}
       <div className="relative z-30 mx-auto flex max-w-shell items-center gap-3 px-4 py-2.5 sm:gap-5 sm:px-6 lg:px-[34px] xl:grid xl:grid-cols-[auto_1fr_auto] xl:py-3">
-        <button
+        <button type="button"
           onClick={() => setMobileOpen((o) => !o)}
           aria-label="Toggle menu"
           className="tap-44 -ml-1.5 rounded-md p-2 text-mdn-ink transition-colors hover:bg-mdn-sand xl:hidden"

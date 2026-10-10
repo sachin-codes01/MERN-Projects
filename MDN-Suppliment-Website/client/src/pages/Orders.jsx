@@ -299,7 +299,7 @@ export default function Orders() {
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 {!NON_CANCELLABLE.includes(order.orderStatus) ? (
-                  <button
+                  <button type="button"
                     disabled={cancellingId === order._id}
                     onClick={() => openCancelModal(order)}
                     className="text-xs font-semibold text-mdn-danger transition-colors hover:text-mdn-danger disabled:opacity-50"

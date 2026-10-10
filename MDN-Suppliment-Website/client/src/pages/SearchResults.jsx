@@ -48,7 +48,7 @@ export default function SearchResults() {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
         <p className="text-lg font-semibold text-mdn-white">No search query provided.</p>
-        <button onClick={() => navigate("/")} className="btn-primary mt-4">
+        <button type="button" onClick={() => navigate("/")} className="btn-primary mt-4">
           Back to Home
         </button>
       </div>
@@ -103,7 +103,7 @@ export default function SearchResults() {
 
       {totalPages > 1 && !loading && (
         <div className="mt-8 flex items-center justify-center gap-4">
-          <button
+          <button type="button"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
             className="btn-secondary !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
@@ -113,7 +113,7 @@ export default function SearchResults() {
           <span className="text-sm text-mdn-gray">
             Page {page} of {totalPages}
           </span>
-          <button
+          <button type="button"
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
             className="btn-secondary !px-4 !py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"

@@ -72,7 +72,7 @@ export default function AdminEnquiries() {
 
       <div className="mt-6 flex flex-wrap gap-2">
         {[{ value: "", label: "All" }, ...STATUSES].map((s) => (
-          <button
+          <button type="button"
             key={s.value}
             onClick={() => setFilter(s.value)}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
