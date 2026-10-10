@@ -6,9 +6,11 @@ import { useTheme } from "../context/ThemeContext";
 import { api } from "../api/api";
 import MDNLoader from "../components/MDNLoader";
 import ThemeToggle from "../components/ThemeToggle";
+import AddressFields, { Field, inputClass } from "../components/AddressFields";
+import { useConfirm } from "../components/ConfirmDialog";
+import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
 
-const PHONE_REGEX = /^[6-9]\d{9}$/;
-const PINCODE_REGEX = /^\d{6}$/;
+const PROFILE_RULES = { ...addressRules, label: rules.label };
 
 const emptyAddressForm = {
   label: "Home", fullName: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "", country: "India",
@@ -36,6 +38,7 @@ export default function Profile() {
   // text instead of the letter-avatar badge — this tracks that failure
   // so we can swap in the fallback ourselves.
   const [avatarBroken, setAvatarBroken] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   useEffect(() => {
     setAvatarBroken(false);
@@ -70,7 +73,7 @@ export default function Profile() {
 
   const openEditForm = (addr) => {
     setEditingId(addr._id);
-    setForm({
+    const next = {
       label: addr.label || "Home",
       fullName: addr.fullName || "",
       phone: addr.phone || "",
@@ -80,8 +83,10 @@ export default function Profile() {
       state: addr.state || "",
       pincode: addr.pincode || "",
       country: addr.country || "India",
-    });
-    setFieldErrors({});
+    };
+    setForm(next);
+    // Purane address ki galtiyan edit kholte hi dikha do
+    setFieldErrors(validateFields(next, PROFILE_RULES));
     setFormOpen(true);
   };
 
@@ -92,40 +97,39 @@ export default function Profile() {
     setFieldErrors({});
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-    if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: "" }));
+  const checkField = (name, values = form) => PROFILE_RULES[name]?.(values[name], values) || "";
+
+  const handleChange = (name, value) => {
+    const next = { ...form, [name]: value };
+    setForm(next);
+    if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: checkField(name, next) }));
   };
 
+  const handleBlur = (name) => setFieldErrors((fe) => ({ ...fe, [name]: checkField(name) }));
+
   const validate = () => {
-    const errs = {};
-    if (!form.fullName.trim()) errs.fullName = "Name is required.";
-    if (!form.phone.trim()) errs.phone = "Phone number is required.";
-    else if (!PHONE_REGEX.test(form.phone.trim())) errs.phone = "Valid 10-digit mobile number daalein.";
-    if (!form.line1.trim()) errs.line1 = "Address is required.";
-    if (!form.city.trim()) errs.city = "City is required.";
-    if (!form.state.trim()) errs.state = "State is required.";
-    if (!form.pincode.trim()) errs.pincode = "Pincode is required.";
-    else if (!PINCODE_REGEX.test(form.pincode.trim())) errs.pincode = "Valid 6-digit pincode daalein.";
+    const errs = validateFields(form, PROFILE_RULES);
     setFieldErrors(errs);
-    return Object.keys(errs).length === 0;
+    return !hasErrors(errs);
   };
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
+    if (saving) return; // double submit guard
     if (!validate()) {
-      toastError("Some fields are invalid — please check the form.");
+      toastError("Some fields need fixing — please check the highlighted fields.");
       return;
     }
 
+    // Sirf address fields, trim karke — server inke alawa kuch accept nahi karta
+    const payload = { ...cleanAddress(form), label: form.label.trim() || "Home" };
     setSaving(true);
     try {
       if (editingId) {
-        await api.updateAddress(token, editingId, form);
+        await api.updateAddress(token, editingId, payload);
         success("Address updated.");
       } else {
-        await api.addAddress(token, form);
+        await api.addAddress(token, payload);
         success("Address added.");
       }
       closeForm();
@@ -137,8 +141,16 @@ export default function Profile() {
     }
   };
 
-  const handleDelete = async (addressId) => {
-    if (!window.confirm("Ye address delete karna chahte hain?")) return;
+  const handleDelete = async (addr) => {
+    if (deletingId) return;
+    const ok = await confirm({
+      title: "Delete this address?",
+      message: `${addr.label || "Address"}: ${addr.line1}, ${addr.city}. This can't be undone.`,
+      confirmLabel: "Delete address",
+      danger: true,
+    });
+    if (!ok) return;
+    const addressId = addr._id;
     setDeletingId(addressId);
     try {
       await api.deleteAddress(token, addressId);
@@ -152,6 +164,7 @@ export default function Profile() {
   };
 
   const handleSetDefault = async (addressId) => {
+    if (settingDefaultId) return;
     setSettingDefaultId(addressId);
     try {
       await api.updateAddress(token, addressId, { isDefault: true });
@@ -163,9 +176,6 @@ export default function Profile() {
       setSettingDefaultId(null);
     }
   };
-
-  const fieldClass = (name) =>
-    `input-field ${fieldErrors[name] ? "!border-mdn-danger/60 focus:!border-mdn-danger focus:!ring-mdn-danger/25" : ""}`;
 
   if (loading) {
     return <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6"><MDNLoader label="Loading profile" /></div>;
@@ -216,7 +226,7 @@ export default function Profile() {
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-base font-semibold text-mdn-ink">Saved Addresses</h3>
           {!formOpen && (
-            <button onClick={openAddForm} className="btn-primary !px-4 !py-1.5 text-xs">
+            <button type="button" onClick={openAddForm} className="btn-primary !px-4 !py-1.5 text-xs">
               + Add Address
             </button>
           )}
@@ -231,51 +241,33 @@ export default function Profile() {
               {editingId ? "Edit Address" : "New Address"}
             </h4>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="profile-label" label="Label" optional error={fieldErrors.label}>
               <input
+                id="profile-label"
                 name="label"
-                placeholder="Label (e.g. Home, Office)"
+                placeholder="e.g. Home, Office"
                 value={form.label}
-                onChange={handleChange}
-                className="input-field"
+                onChange={(e) => handleChange("label", e.target.value)}
+                onBlur={() => handleBlur("label")}
+                maxLength={LIMITS.labelMax}
+                autoComplete="off"
+                className={inputClass(fieldErrors.label)}
               />
-              <div>
-                <input name="fullName" placeholder="Full name" value={form.fullName} onChange={handleChange} className={fieldClass("fullName")} />
-                {fieldErrors.fullName && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.fullName}</p>}
-              </div>
-            </div>
+            </Field>
 
-            <div>
-              <input name="phone" placeholder="Phone number" value={form.phone} onChange={handleChange} className={fieldClass("phone")} />
-              {fieldErrors.phone && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.phone}</p>}
-            </div>
-
-            <div>
-              <input name="line1" placeholder="Address" value={form.line1} onChange={handleChange} className={`${fieldClass("line1")} w-full`} />
-              {fieldErrors.line1 && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.line1}</p>}
-            </div>
-            <input name="line2" placeholder="Address line 2 (optional)" value={form.line2} onChange={handleChange} className="input-field w-full" />
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <input name="city" placeholder="City" value={form.city} onChange={handleChange} className={fieldClass("city")} />
-                {fieldErrors.city && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.city}</p>}
-              </div>
-              <div>
-                <input name="state" placeholder="State" value={form.state} onChange={handleChange} className={fieldClass("state")} />
-                {fieldErrors.state && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.state}</p>}
-              </div>
-              <div>
-                <input name="pincode" placeholder="Pincode" value={form.pincode} onChange={handleChange} className={fieldClass("pincode")} />
-                {fieldErrors.pincode && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.pincode}</p>}
-              </div>
-            </div>
+            <AddressFields
+              idPrefix="profile"
+              values={form}
+              errors={fieldErrors}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
 
             <div className="flex gap-3">
-              <button type="submit" disabled={saving} className="btn-primary !px-6 text-sm">
+              <button type="submit" disabled={saving} className="btn-primary !px-6 text-sm disabled:cursor-not-allowed disabled:opacity-50">
                 {saving ? "Saving..." : editingId ? "Update Address" : "Save Address"}
               </button>
-              <button type="button" onClick={closeForm} className="btn-secondary !px-6 text-sm">
+              <button type="button" onClick={closeForm} disabled={saving} className="btn-secondary !px-6 text-sm">
                 Cancel
               </button>
             </div>
@@ -313,6 +305,7 @@ export default function Profile() {
                 <div className="mt-3 flex flex-wrap gap-3 pt-1">
                   {!addr.isDefault && (
                     <button
+                      type="button"
                       onClick={() => handleSetDefault(addr._id)}
                       disabled={settingDefaultId === addr._id}
                       className="text-xs font-semibold text-mdn-silver hover:underline disabled:opacity-50"
@@ -321,14 +314,18 @@ export default function Profile() {
                     </button>
                   )}
                   <button
+                    type="button"
                     onClick={() => openEditForm(addr)}
+                    aria-label={`Edit ${addr.label || "address"}`}
                     className="text-xs font-semibold text-mdn-green hover:underline"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(addr._id)}
+                    type="button"
+                    onClick={() => handleDelete(addr)}
                     disabled={deletingId === addr._id}
+                    aria-label={`Delete ${addr.label || "address"}`}
                     className="text-xs font-semibold text-mdn-danger hover:underline disabled:opacity-50"
                   >
                     {deletingId === addr._id ? "Removing..." : "Delete"}
@@ -340,9 +337,11 @@ export default function Profile() {
         )}
       </div>
 
-      <button onClick={handleLogout} className="btn-secondary mt-8 !px-6 text-mdn-danger hover:!border-mdn-danger/50">
+      <button type="button" onClick={handleLogout} className="btn-secondary mt-8 !px-6 text-mdn-danger hover:!border-mdn-danger/50">
         Logout
       </button>
+
+      {confirmDialog}
     </div>
   );
 }

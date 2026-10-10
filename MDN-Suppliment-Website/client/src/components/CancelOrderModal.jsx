@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { setScrollLocked } from "../lib/useSmoothScroll";
+import { LIMITS, rules } from "../utils/validators";
 
 const CANCEL_REASONS = [
   "Ordered by mistake",
@@ -16,7 +17,8 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
 
   const isOther = selectedReason === "Other";
   const finalReason = isOther ? otherReason.trim() : selectedReason;
-  const canSubmit = selectedReason && (!isOther || otherReason.trim().length > 0);
+  const otherError = isOther ? rules.cancelReason(otherReason) : "";
+  const canSubmit = selectedReason && !otherError;
 
   // Lenis ignores `overflow: hidden` on the body, so this modal needs
   // both the body lock AND setScrollLocked — without the latter the page
@@ -31,27 +33,39 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
     };
   }, []);
 
+  // Esc se band — cancel chal raha ho tab nahi
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape" && !cancelling) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cancelling, onClose]);
+
   const handleConfirm = () => {
-    if (!canSubmit) return;
+    if (!canSubmit || cancelling) return;
     onConfirm(finalReason);
   };
 
   return (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
+      onClick={() => !cancelling && onClose()}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cancel-order-title"
         className="card w-full max-w-md animate-fade-up rounded-b-none p-6 sm:rounded-b-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-bold text-mdn-white">Cancel Order</h3>
+        <h3 id="cancel-order-title" className="text-lg font-bold text-mdn-white">Cancel Order</h3>
         <p className="mt-1 text-sm text-mdn-gray">
           Order <span className="font-semibold text-mdn-white">{order.orderNumber}</span> — please tell us why
           you're cancelling.
         </p>
 
-        <div className="mt-5 space-y-2.5">
+        <div className="mt-5 space-y-2.5" role="radiogroup" aria-label="Reason for cancelling">
           {CANCEL_REASONS.map((reason) => (
             <label
               key={reason}
@@ -75,14 +89,29 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
         </div>
 
         {isOther && (
-          <textarea
-            value={otherReason}
-            onChange={(e) => setOtherReason(e.target.value)}
-            placeholder="Please tell us more..."
-            rows={3}
-            className="input-field mt-3 w-full resize-none"
-            autoFocus
-          />
+          <>
+            <label htmlFor="cancel-other-reason" className="sr-only">
+              Tell us more
+            </label>
+            <textarea
+              id="cancel-other-reason"
+              value={otherReason}
+              onChange={(e) => setOtherReason(e.target.value)}
+              placeholder="Please tell us more..."
+              rows={3}
+              maxLength={LIMITS.cancelReasonMax}
+              aria-invalid={!!(otherReason && otherError)}
+              aria-describedby="cancel-other-help"
+              className="input-field mt-3 w-full resize-none"
+              autoFocus
+            />
+            <div id="cancel-other-help" className="mt-1 flex justify-between gap-3 text-xs">
+              <span className="text-mdn-danger">{otherReason && otherError}</span>
+              <span className="shrink-0 tabular-nums text-mdn-gray">
+                {otherReason.trim().length}/{LIMITS.cancelReasonMax}
+              </span>
+            </div>
+          </>
         )}
 
         <p className="mt-4 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
@@ -91,13 +120,14 @@ export default function CancelOrderModal({ order, onClose, onConfirm, cancelling
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row-reverse">
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={!canSubmit || cancelling}
             className="w-full rounded-lg bg-mdn-danger/90 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-mdn-danger disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             {cancelling ? "Cancelling..." : "Cancel Order"}
           </button>
-          <button onClick={onClose} disabled={cancelling} className="btn-secondary w-full sm:w-auto">
+          <button type="button" onClick={onClose} disabled={cancelling} className="btn-secondary w-full sm:w-auto">
             Keep Order
           </button>
         </div>

@@ -12,6 +12,9 @@ export default function SearchInput({ value, onChange, placeholder = "Search..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
+        maxLength={100}
+        enterKeyHint="search"
         className="input-field pl-10 pr-10"
       />
 

@@ -1,4 +1,5 @@
 const GUEST_CART_KEY = "guestCart";
+const MAX_QTY_PER_LINE = 10;
 
 // A logged-in cart line gets a real Mongo _id (see Cart.js). A guest cart
 // has no server document to generate one, so it synthesizes a stable id
@@ -33,7 +34,8 @@ export const guestCart = {
     const _id = lineId(sizeId, flavorId);
     const existing = items.find((i) => i.productId === productId && i._id === _id);
     if (existing) {
-      existing.quantity += quantity;
+      // Ek line me 10 se zyada nahi (server bhi yahi limit lagata hai)
+      existing.quantity = Math.min(existing.quantity + quantity, MAX_QTY_PER_LINE);
     } else {
       items.push({
         _id,

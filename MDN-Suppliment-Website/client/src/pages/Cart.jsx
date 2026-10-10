@@ -8,6 +8,7 @@ import { guestCart } from "../utils/guestCart";
 import MDNLoader from "../components/MDNLoader";
 import Confetti from "../components/Confetti";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import { LIMITS } from "../utils/validators";
 
 export default function Cart() {
   const [cart, setCart] = useState(null);
@@ -20,6 +21,9 @@ export default function Cart() {
   const location = useLocation();
   const confettiRef = useRef(null);
   const celebratedRef = useRef(false);
+  // Jis line ki request chal rahi hai — tab tak uske +/− band (double click
+  // se do requests nahi jaati)
+  const [busyItemId, setBusyItemId] = useState(null);
 
   // The navbar's "new item" dot was only cleared by CLICKING the cart icon.
   // Adding to cart navigates here directly, so the dot stayed lit while the
@@ -82,8 +86,16 @@ export default function Cart() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, cart]);
 
+  // Galti (e.g. stock khatam) sirf toast me — pehle yeh `error` set karta
+  // tha jo poori cart ki jagah sirf error message dikha deta tha
   const handleQuantityChange = async (itemId, quantity) => {
-    if (quantity < 1) return; // never allow dropping below 1 via the stepper
+    if (busyItemId) return;
+    if (!Number.isInteger(quantity) || quantity < 1) return; // never allow dropping below 1 via the stepper
+    if (quantity > LIMITS.maxQtyPerLine) {
+      toastError(`You can add up to ${LIMITS.maxQtyPerLine} of this item.`);
+      return;
+    }
+    setBusyItemId(itemId);
     try {
       if (token) {
         await api.updateCartItem(token, itemId, quantity);
@@ -93,12 +105,15 @@ export default function Cart() {
         setCart(guestCart.getCart());
       }
     } catch (err) {
-      setError(err.message);
       toastError(err.message);
+    } finally {
+      setBusyItemId(null);
     }
   };
 
   const handleRemove = async (itemId) => {
+    if (busyItemId) return;
+    setBusyItemId(itemId);
     try {
       if (token) {
         await api.removeCartItem(token, itemId);
@@ -109,8 +124,9 @@ export default function Cart() {
       }
       success("Item removed from cart.");
     } catch (err) {
-      setError(err.message);
       toastError(err.message);
+    } finally {
+      setBusyItemId(null);
     }
   };
 
@@ -185,6 +201,10 @@ export default function Cart() {
           const flavor = flavorObj?.name || item.flavor;
           const weight = size?.weight || item.weight;
           const slug = item.product?.slug || item.slug;
+          // Plus button: 10 per line ya bacha hua stock, jo bhi kam ho
+          const stock = size?.stock ?? item.stock;
+          const maxQty = Math.min(LIMITS.maxQtyPerLine, Number.isFinite(stock) ? stock : LIMITS.maxQtyPerLine);
+          const busy = busyItemId === item._id;
 
           return (
           <div key={item._id} className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
@@ -235,8 +255,9 @@ export default function Cart() {
                   <button
                     type="button"
                     onClick={() => handleRemove(item._id)}
-                    aria-label="Remove item"
-                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-mdn-danger transition-colors hover:bg-mdn-sand hover:text-mdn-danger"
+                    disabled={busy}
+                    aria-label={`Remove ${name} from cart`}
+                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-mdn-danger transition-colors hover:bg-mdn-sand hover:text-mdn-danger disabled:opacity-40"
                   >
                     <DeleteOutlineRoundedIcon sx={{ fontSize: 18 }} />
                   </button>
@@ -244,20 +265,23 @@ export default function Cart() {
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
-                    aria-label="Decrease quantity"
-                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-mdn-sand"
+                    disabled={busy}
+                    aria-label={`Decrease quantity of ${name}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-l-lg text-base font-bold text-mdn-white transition-colors hover:bg-mdn-sand disabled:opacity-40"
                   >
                     −
                   </button>
                 )}
-                <span className="w-8 shrink-0 text-center text-sm font-semibold text-mdn-white">
+                <span aria-live="polite" aria-label={`Quantity ${item.quantity}`} className="w-8 shrink-0 text-center text-sm font-semibold text-mdn-white">
                   {item.quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
-                  aria-label="Increase quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded-r-lg text-base font-bold text-mdn-white transition-colors hover:bg-mdn-sand"
+                  disabled={busy || item.quantity >= maxQty}
+                  title={item.quantity >= maxQty ? `Maximum ${maxQty} per order` : undefined}
+                  aria-label={`Increase quantity of ${name}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-r-lg text-base font-bold text-mdn-white transition-colors hover:bg-mdn-sand disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   +
                 </button>
@@ -283,7 +307,7 @@ export default function Cart() {
           </h3>
           <p className="mt-0.5 text-xs text-mdn-gray">Shipping &amp; taxes calculated at checkout.</p>
         </div>
-        <button onClick={handleCheckoutClick} className="btn-primary w-full sm:w-auto">
+        <button type="button" onClick={handleCheckoutClick} className="btn-primary w-full sm:w-auto">
           Proceed to Checkout
         </button>
       </div>

@@ -10,7 +10,15 @@ import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/api";
 import FloatingInput from "./FloatingInput";
-import { normalisePhone, isValidIndianMobile } from "../utils/phone";
+import { normalisePhone } from "../utils/phone";
+import { hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
+
+const CONTACT_RULES = {
+  firstName: rules.firstName,
+  lastName: rules.lastName,
+  phone: rules.phone,
+  message: rules.message,
+};
 
 /**
  * The whole contact flow — form, then the post-submit panel with contact
@@ -105,24 +113,26 @@ export default function ContactForm({ defaultSubject = "" }) {
     if (submitted) successRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [submitted]);
 
+  const checkField = (key, values = form) => CONTACT_RULES[key]?.(values[key], values) || "";
+
+  // Galti dikh rahi ho to type karte hi re-check (theek hote hi gayab)
   const set = (key) => (value) => {
-    setForm((f) => ({ ...f, [key]: value }));
-    setErrors((e) => ({ ...e, [key]: undefined }));
+    const next = { ...form, [key]: value };
+    setForm(next);
+    setErrors((e) => (e[key] ? { ...e, [key]: checkField(key, next) } : e));
   };
 
+  const blur = (key) => () => setErrors((e) => ({ ...e, [key]: checkField(key) }));
+
   const validate = () => {
-    const next = {};
-    if (!form.firstName.trim()) next.firstName = "First name is required";
-    if (!form.phone.trim()) next.phone = "Contact number is required";
-    else if (!isValidIndianMobile(form.phone))
-      next.phone = "Enter a valid 10-digit Indian mobile number (starting 6-9)";
-    if (!form.message.trim()) next.message = "Please describe how we can help";
+    const next = validateFields(form, CONTACT_RULES);
     setErrors(next);
-    return Object.keys(next).length === 0;
+    return !hasErrors(next);
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // double submit guard
     setServerError("");
     if (!validate()) return;
 
@@ -182,15 +192,24 @@ export default function ContactForm({ defaultSubject = "" }) {
       <div className="grid gap-5 sm:grid-cols-2">
         <FloatingInput
           label="First name"
+          name="firstName"
           value={form.firstName}
           onChange={(e) => set("firstName")(e.target.value)}
+          onBlur={blur("firstName")}
           error={errors.firstName}
+          autoComplete="given-name"
+          maxLength={LIMITS.nameMax}
           required
         />
         <FloatingInput
           label="Last name"
+          name="lastName"
           value={form.lastName}
           onChange={(e) => set("lastName")(e.target.value)}
+          onBlur={blur("lastName")}
+          error={errors.lastName}
+          autoComplete="family-name"
+          maxLength={LIMITS.nameMax}
         />
       </div>
 
@@ -216,11 +235,14 @@ export default function ContactForm({ defaultSubject = "" }) {
       <div>
         <FloatingInput
           label="Contact number"
+          name="phone"
           type="tel"
           value={form.phone}
-          onChange={(e) => set("phone")(e.target.value)}
+          onChange={(e) => set("phone")(e.target.value.replace(/[^\d+\s-]/g, ""))}
+          onBlur={blur("phone")}
           error={errors.phone}
           required
+          autoComplete="tel-national"
           inputMode="numeric"
           maxLength={14}
         />
@@ -256,13 +278,26 @@ export default function ContactForm({ defaultSubject = "" }) {
         </label>
         <textarea
           id="contact-message"
+          name="message"
           rows={5}
           value={form.message}
           onChange={(e) => set("message")(e.target.value)}
+          onBlur={blur("message")}
+          maxLength={LIMITS.messageMax}
+          required
+          aria-invalid={!!errors.message}
+          aria-describedby="contact-message-help"
           placeholder="Tell us what's going on — order number, product name, anything that helps us help you."
-          className="input-field w-full resize-y"
+          className={`input-field w-full resize-y ${errors.message ? "!border-mdn-danger/60" : ""}`}
         />
-        {errors.message && <p className="mt-1.5 text-xs text-mdn-danger">{errors.message}</p>}
+        <div id="contact-message-help" className="mt-1.5 flex items-start justify-between gap-3 text-xs">
+          <span role={errors.message ? "alert" : undefined} className="text-mdn-danger">
+            {errors.message}
+          </span>
+          <span className="shrink-0 tabular-nums text-mdn-gray">
+            {form.message.trim().length}/{LIMITS.messageMax}
+          </span>
+        </div>
       </div>
 
       {serverError && (

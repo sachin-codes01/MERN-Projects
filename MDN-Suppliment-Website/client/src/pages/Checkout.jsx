@@ -4,10 +4,11 @@ import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MDNLoader from "../components/MDNLoader";
+import AddressFields, { Field, inputClass } from "../components/AddressFields";
+import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^[6-9]\d{9}$/;
-const PINCODE_REGEX = /^\d{6}$/;
+// Address ke rules + email (Razorpay prefill / receipt ke liye)
+const CHECKOUT_RULES = { ...addressRules, email: rules.email };
 
 const emptyForm = {
   fullName: "", email: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "", country: "India",
@@ -25,6 +26,8 @@ export default function Checkout() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [saveAddress, setSaveAddress] = useState(true);
   const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponBusy, setCouponBusy] = useState(false);
   const [couponMessage, setCouponMessage] = useState("");
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
@@ -52,8 +55,8 @@ export default function Checkout() {
   }, []);
 
   const applyAddressToForm = (addr) => {
-    setForm((f) => ({
-      ...f,
+    const next = {
+      ...emptyForm,
       fullName: addr?.fullName || user?.name || "",
       email: user?.email || "",
       phone: addr?.phone || "",
@@ -63,7 +66,11 @@ export default function Checkout() {
       state: addr?.state || "",
       pincode: addr?.pincode || "",
       country: addr?.country || "India",
-    }));
+    };
+    setForm(next);
+    // Purane saved address me koi galti ho (e.g. galat pincode) to turant
+    // dikhao — warna Pay button bina wajah bataye band rehta
+    setFieldErrors(validateFields(next, CHECKOUT_RULES));
   };
 
   const handleSelectAddress = (e) => {
@@ -83,53 +90,72 @@ export default function Checkout() {
     setSaveAddress(false); // address is already saved — no need to re-save
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-    if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: "" }));
+  // Ek field ki galti — blur pe dikhai jati hai, aur galti ke baad type
+  // karte hi live update hoti hai (theek hote hi gayab)
+  const checkField = (name, values = form) => CHECKOUT_RULES[name]?.(values[name], values) || "";
+
+  const handleChange = (name, value) => {
+    const next = { ...form, [name]: value };
+    setForm(next);
+    if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: checkField(name, next) }));
   };
+
+  const handleBlur = (name) => setFieldErrors((fe) => ({ ...fe, [name]: checkField(name) }));
 
   const validate = () => {
-    const errs = {};
-    if (!form.fullName.trim()) errs.fullName = "Name is required.";
-    if (!form.email.trim()) errs.email = "Email is required.";
-    else if (!EMAIL_REGEX.test(form.email.trim())) errs.email = "Valid email daalein.";
-    if (!form.phone.trim()) errs.phone = "Phone number is required.";
-    else if (!PHONE_REGEX.test(form.phone.trim())) errs.phone = "Valid 10-digit mobile number daalein.";
-    if (!form.line1.trim()) errs.line1 = "Address is required.";
-    if (!form.city.trim()) errs.city = "City is required.";
-    if (!form.state.trim()) errs.state = "State is required.";
-    if (!form.pincode.trim()) errs.pincode = "Pincode is required.";
-    else if (!PINCODE_REGEX.test(form.pincode.trim())) errs.pincode = "Valid 6-digit pincode daalein.";
+    const errs = validateFields(form, CHECKOUT_RULES);
     setFieldErrors(errs);
-    return Object.keys(errs).length === 0;
+    return !hasErrors(errs);
   };
 
+  // Pay button tabhi chalega jab saari fields sahi hon
+  const formValid = !hasErrors(validateFields(form, CHECKOUT_RULES));
+
   const handleApplyCoupon = async () => {
-    setError(""); setCouponMessage("");
-    if (!couponCode.trim()) return;
+    if (couponBusy) return;
+    setError("");
+    setCouponMessage("");
+    const code = couponCode.trim().toUpperCase();
+    const msg = rules.couponCode(code);
+    setCouponError(msg);
+    if (msg) return;
+
+    setCouponBusy(true);
     try {
-      const data = await api.applyCoupon(token, couponCode.trim());
+      const data = await api.applyCoupon(token, code);
       setCart(data.data);
       setCouponMessage("Coupon applied!");
       success("Coupon applied!");
-    } catch (err) { toastError(err.message); }
+    } catch (err) {
+      setCouponError(err.message);
+      toastError(err.message);
+    } finally {
+      setCouponBusy(false);
+    }
   };
 
   const handleRemoveCoupon = async () => {
+    if (couponBusy) return;
+    setCouponBusy(true);
     try {
       const data = await api.removeCoupon(token);
       setCart(data.data);
       setCouponCode("");
+      setCouponMessage("");
       success("Coupon removed.");
-    } catch (err) { toastError(err.message); }
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setCouponBusy(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (placing) return; // double submit guard
     setError("");
     if (!validate()) {
-      toastError("Some fields are invalid — please check the form.");
+      toastError("Some fields need fixing — please check the highlighted fields.");
       return;
     }
 
@@ -138,10 +164,8 @@ export default function Checkout() {
       return;
     }
 
-    const shippingAddress = {
-      fullName: form.fullName, phone: form.phone, line1: form.line1, line2: form.line2,
-      city: form.city, state: form.state, pincode: form.pincode, country: form.country,
-    };
+    // Trim + phone sirf 10 digits — server bhi yahi rules dobara check karta hai
+    const shippingAddress = cleanAddress(form);
 
     setPlacing(true);
     try {
@@ -162,11 +186,11 @@ export default function Checkout() {
         description: "Order Payment",
         order_id: rpOrder.razorpayOrderId,
         prefill: {
-          name: form.fullName,
-          email: form.email,
-          contact: form.phone,
+          name: shippingAddress.fullName,
+          email: form.email.trim().toLowerCase(),
+          contact: shippingAddress.phone,
         },
-        theme: { color: "#22b14c" },
+        theme: { color: "#3f5524" },
 
         handler: async function (response) {
           try {
@@ -220,9 +244,6 @@ export default function Checkout() {
     }
   };
 
-  const fieldClass = (name) =>
-    `input-field ${fieldErrors[name] ? "!border-mdn-danger/60 focus:!border-mdn-danger focus:!ring-mdn-danger/25" : ""}`;
-
   if (pageLoading) {
     return <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6"><MDNLoader label="Loading checkout" /></div>;
   }
@@ -247,10 +268,10 @@ export default function Checkout() {
 
           {addresses.length > 0 && (
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mdn-gray">
+              <label htmlFor="checkout-saved-address" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mdn-gray">
                 Choose a saved address
               </label>
-              <select value={selectedAddressId} onChange={handleSelectAddress} className="input-field w-full">
+              <select id="checkout-saved-address" value={selectedAddressId} onChange={handleSelectAddress} className="input-field w-full">
                 {addresses.map((addr) => (
                   <option key={addr._id} value={addr._id}>
                     {addr.label || "Address"} — {addr.line1}, {addr.city} {addr.isDefault ? "(Default)" : ""}
@@ -267,42 +288,31 @@ export default function Checkout() {
               : "Enter a new address — you can also save it to your profile."}
           </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <input name="fullName" placeholder="Full name" value={form.fullName} onChange={handleChange} className={fieldClass("fullName")} />
-              {fieldErrors.fullName && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.fullName}</p>}
-            </div>
-            <div>
-              <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} className={fieldClass("email")} />
-              {fieldErrors.email && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.email}</p>}
-            </div>
-          </div>
+          <AddressFields
+            idPrefix="checkout"
+            values={form}
+            errors={fieldErrors}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
 
-          <div>
-            <input name="phone" placeholder="Phone number" value={form.phone} onChange={handleChange} className={fieldClass("phone")} />
-            {fieldErrors.phone && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.phone}</p>}
-          </div>
-
-          <div>
-            <input name="line1" placeholder="Address" value={form.line1} onChange={handleChange} className={`${fieldClass("line1")} w-full`} />
-            {fieldErrors.line1 && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.line1}</p>}
-          </div>
-          <input name="line2" placeholder="Address line 2 (optional)" value={form.line2} onChange={handleChange} className="input-field w-full" />
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <input name="city" placeholder="City" value={form.city} onChange={handleChange} className={fieldClass("city")} />
-              {fieldErrors.city && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.city}</p>}
-            </div>
-            <div>
-              <input name="state" placeholder="State" value={form.state} onChange={handleChange} className={fieldClass("state")} />
-              {fieldErrors.state && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.state}</p>}
-            </div>
-            <div>
-              <input name="pincode" placeholder="Pincode" value={form.pincode} onChange={handleChange} className={fieldClass("pincode")} />
-              {fieldErrors.pincode && <p className="mt-1 text-xs text-mdn-danger">{fieldErrors.pincode}</p>}
-            </div>
-          </div>
+          <Field id="checkout-email" label="Email (for your receipt)" error={fieldErrors.email}>
+            <input
+              id="checkout-email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => handleChange("email", e.target.value)}
+              onBlur={() => handleBlur("email")}
+              autoComplete="email"
+              inputMode="email"
+              maxLength={254}
+              required
+              aria-invalid={!!fieldErrors.email}
+              aria-describedby={fieldErrors.email ? "checkout-email-error" : undefined}
+              className={inputClass(fieldErrors.email)}
+            />
+          </Field>
 
           <label className="flex items-center gap-2.5 text-sm text-mdn-gray">
             <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 shrink-0 accent-mdn-green" />
@@ -315,12 +325,57 @@ export default function Checkout() {
           {cart.couponApplied ? (
             <div className="card mt-3 flex flex-wrap items-center justify-between gap-3 p-4">
               <span className="text-sm text-mdn-green">Coupon applied — you saved ₹{cart.discount}</span>
-              <button type="button" onClick={handleRemoveCoupon} className="btn-secondary !px-4 !py-1.5 text-xs">Remove</button>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                disabled={couponBusy}
+                className="btn-secondary !px-4 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {couponBusy ? "Removing..." : "Remove"}
+              </button>
             </div>
           ) : (
-            <div className="mt-3 flex gap-3">
-              <input placeholder="Enter coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="input-field flex-1" />
-              <button type="button" onClick={handleApplyCoupon} className="btn-primary !px-5">Apply</button>
+            <div className="mt-3">
+              <label htmlFor="checkout-coupon" className="sr-only">Coupon code</label>
+              <div className="flex gap-3">
+                <input
+                  id="checkout-coupon"
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  // Sirf A-Z aur 0-9, apne aap capital
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+                    setCouponError("");
+                  }}
+                  onKeyDown={(e) => {
+                    // Enter se poora checkout form submit na ho — sirf coupon apply
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleApplyCoupon();
+                    }
+                  }}
+                  maxLength={LIMITS.couponMax}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  aria-invalid={!!couponError}
+                  aria-describedby={couponError ? "checkout-coupon-error" : undefined}
+                  className={`${inputClass(couponError)} flex-1`}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponBusy || !couponCode}
+                  className="btn-primary !px-5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {couponBusy ? "Applying..." : "Apply"}
+                </button>
+              </div>
+              {couponError && (
+                <p id="checkout-coupon-error" role="alert" className="mt-1.5 text-xs text-mdn-danger">
+                  {couponError}
+                </p>
+              )}
             </div>
           )}
           {couponMessage && <p className="mt-2 text-sm text-mdn-green">{couponMessage}</p>}
@@ -376,9 +431,21 @@ export default function Checkout() {
           )}
         </section>
 
-        <button type="submit" disabled={placing} className="btn-primary w-full sm:w-auto">
-          {placing ? "Processing..." : "Pay & Place Order"}
-        </button>
+        <div>
+          <button
+            type="submit"
+            disabled={placing || !formValid}
+            aria-describedby={!formValid ? "checkout-pay-hint" : undefined}
+            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            {placing ? "Processing..." : `Pay ₹${cart.total} & Place Order`}
+          </button>
+          {!formValid && !placing && (
+            <p id="checkout-pay-hint" className="mt-2 text-xs text-mdn-gray">
+              Fill in all required delivery details to continue.
+            </p>
+          )}
+        </div>
       </form>
     </div>
   );

@@ -176,6 +176,8 @@ export default function SearchSuggest({
           placeholder={placeholder}
           className={inputClassName}
           autoComplete="off"
+          // Server bhi 100 se lamba search reject karta hai
+          maxLength={100}
           enterKeyHint="search"
           aria-label="Search products"
           aria-expanded={showPanel}

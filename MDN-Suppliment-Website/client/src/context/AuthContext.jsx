@@ -7,7 +7,9 @@ const AuthContext = createContext(null);
 // A line the server will never accept no matter how many times we retry —
 // the product, size or flavor it points at is gone. Anything else (stock,
 // network blip, expired token) is worth keeping for another attempt.
-const isPermanentMergeFailure = (message = "") => /not found/i.test(message);
+// "not found" (product hat gaya), ya validation/limit wali galti (galat id,
+// 10 se zyada quantity) — dobara try karne se kabhi theek nahi hogi
+const isPermanentMergeFailure = (message = "") => /not found|not valid|up to|must be/i.test(message);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || null);
@@ -52,7 +54,8 @@ export function AuthProvider({ children }) {
             productId: item.productId,
             sizeId: item.sizeId,
             flavorId: item.flavorId,
-            quantity: item.quantity,
+            // Server sirf integer 1-10 leta hai
+            quantity: Math.min(Math.max(Math.trunc(Number(item.quantity)) || 1, 1), 10),
           });
         } catch (err) {
           if (!isPermanentMergeFailure(err.message)) unmerged.push(item);

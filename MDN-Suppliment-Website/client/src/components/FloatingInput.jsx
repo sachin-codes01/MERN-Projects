@@ -17,6 +17,8 @@ export default function FloatingInput({
   required = false,
   error = "",
   className = "",
+  onFocus,
+  onBlur,
   ...rest
 }) {
   const id = useId();
@@ -36,9 +38,18 @@ export default function FloatingInput({
           type={type}
           value={value}
           onChange={onChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          // Parent ke onFocus/onBlur bhi chalein (e.g. blur pe validation)
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
           required={required}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
           placeholder=" "
           className="peer w-full bg-transparent px-4 pb-2.5 pt-5 text-sm text-mdn-white outline-none"
           {...rest}
@@ -61,7 +72,11 @@ export default function FloatingInput({
           }`}
         />
       </div>
-      {error && <p className="mt-1 animate-fade-up text-xs text-mdn-danger">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="mt-1 animate-fade-up text-xs text-mdn-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

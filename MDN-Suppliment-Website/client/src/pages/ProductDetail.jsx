@@ -89,7 +89,13 @@ const ProductDetail = () => {
   const outOfStock = !currentSize || currentSize.stock <= 0;
 
   const handleAddToCart = async () => {
-    if (!currentSize) return;
+    // Size chuna na ho ya pichhli request abhi chal rahi ho (double tap)
+    if (!currentSize || adding) return;
+    // Flavour wale product me flavour bhi chahiye
+    if (flavors.length > 0 && !selectedFlavorId) {
+      toastError("Please choose a flavour first.");
+      return;
+    }
     setError("");
     try {
       setAdding(true);

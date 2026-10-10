@@ -54,7 +54,8 @@ const ProductCard = ({ product }) => {
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (outOfStock) return;
+    // Out of stock, ya pichhli request abhi chal rahi ho (double tap)
+    if (outOfStock || adding) return;
 
     try {
       setAdding(true);

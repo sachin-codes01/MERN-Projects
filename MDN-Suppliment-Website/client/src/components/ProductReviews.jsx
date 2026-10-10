@@ -3,6 +3,7 @@ import { reviewCountLabel } from "../utils/rating";
 import { Link } from "react-router-dom";
 import Button from "@mui/material/Button";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { LIMITS, rules } from "../utils/validators";
 
 const INITIAL_VISIBLE = 10;
 const PAGE_SIZE = 10;
@@ -38,7 +39,7 @@ function formatDate(dateStr) {
 // read-only <Stars> above used to display existing ratings).
 function StarPicker({ value, onChange }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1" role="radiogroup" aria-label="Your rating">
       {Array.from({ length: 5 }).map((_, i) => {
         const starValue = i + 1;
         return (
@@ -46,8 +47,10 @@ function StarPicker({ value, onChange }) {
             key={i}
             type="button"
             onClick={() => onChange(starValue)}
+            role="radio"
+            aria-checked={starValue === value}
             aria-label={`${starValue} star${starValue > 1 ? "s" : ""}`}
-            className="text-mdn-green transition-transform hover:scale-110"
+            className="rounded text-mdn-green transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mdn-green"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill={starValue <= value ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
               <path d="M12 2l2.9 6.4 7 .7-5.3 4.7 1.6 6.9L12 17.6 5.8 20.7l1.6-6.9L2.1 9.1l7-.7L12 2z" />
@@ -65,35 +68,71 @@ function WriteReviewForm({ onSubmitReview }) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const [commentError, setCommentError] = useState("");
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (rating === 0) {
-      setFormError("Please select a star rating.");
-      return;
-    }
-    setFormError("");
+    if (submitting) return; // double submit guard
+    const ratingMsg = rules.rating(rating);
+    const commentMsg = rules.reviewComment(comment);
+    setFormError(ratingMsg);
+    setCommentError(commentMsg);
+    if (ratingMsg || commentMsg) return;
+
     setSubmitting(true);
-    const ok = await onSubmitReview({ rating, comment: comment.trim() });
-    setSubmitting(false);
-    if (ok) {
-      setRating(0);
-      setComment("");
+    try {
+      const ok = await onSubmitReview({ rating, comment: comment.trim() });
+      if (ok) {
+        setRating(0);
+        setComment("");
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="card mt-6 space-y-3 p-4 sm:p-5">
       <h3 className="font-heading text-base font-bold text-mdn-ink">Write a Review</h3>
-      <StarPicker value={rating} onChange={setRating} />
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="Share your experience with this product (optional)"
-        rows={3}
-        className="input-field w-full resize-none"
+      <StarPicker
+        value={rating}
+        onChange={(v) => {
+          setRating(v);
+          setFormError("");
+        }}
       />
-      {formError && <p className="text-xs text-mdn-danger">{formError}</p>}
-      <button type="submit" disabled={submitting} className="btn-primary !px-5 !py-2 text-sm">
+      {formError && (
+        <p role="alert" className="text-xs text-mdn-danger">
+          {formError}
+        </p>
+      )}
+      <label htmlFor="review-comment" className="sr-only">
+        Your review
+      </label>
+      <textarea
+        id="review-comment"
+        value={comment}
+        onChange={(e) => {
+          setComment(e.target.value);
+          if (commentError) setCommentError(rules.reviewComment(e.target.value));
+        }}
+        onBlur={() => setCommentError(rules.reviewComment(comment))}
+        maxLength={LIMITS.reviewMax}
+        placeholder={`Share your experience with this product (optional, ${LIMITS.reviewMin}+ characters)`}
+        rows={3}
+        aria-invalid={!!commentError}
+        aria-describedby="review-comment-help"
+        className={`input-field w-full resize-none ${commentError ? "!border-mdn-danger/60" : ""}`}
+      />
+      <div id="review-comment-help" className="flex items-start justify-between gap-3 text-xs">
+        <span role={commentError ? "alert" : undefined} className="text-mdn-danger">
+          {commentError}
+        </span>
+        <span className="shrink-0 tabular-nums text-mdn-gray">
+          {comment.trim().length}/{LIMITS.reviewMax}
+        </span>
+      </div>
+      <button type="submit" disabled={submitting} className="btn-primary !px-5 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50">
         {submitting ? "Submitting..." : "Submit Review"}
       </button>
     </form>
