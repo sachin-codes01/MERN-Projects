@@ -18,6 +18,10 @@ const QUICK_LINKS = [
   { label: "Blogs", to: "/blogs" },
 ];
 
+// Mobile drawer ka order: Home, (Shop), phir yeh — desktop row alag hai
+const DRAWER_AFTER_SHOP = ["Build Your Bundle", "Wholesale", "Blogs", "Customer Support"];
+const quickLink = (label) => QUICK_LINKS.find((l) => l.label === label);
+
 // The mega-menu header already has a "View All" button, so the card row
 // itself skips the "All Products" entry to avoid showing it twice.
 const SHOP_ROW_CATEGORIES = SHOP_CATEGORIES.filter((c) => c.label !== "All Products");
@@ -431,16 +435,14 @@ export default function Navbar() {
           {/* Search ab mobile pe apni row me aur tablet pe row 1 me hai — drawer me dobara nahi chahiye */}
 
           <p className="eyebrow mb-1 mt-1">Explore</p>
-          {QUICK_LINKS.map((l) => (
-            <Link
-              key={l.label}
-              to={l.to}
-              onClick={() => setMobileOpen(false)}
-              className="rounded-md px-2 py-2.5 text-mdn-ink hover:bg-mdn-sand"
-            >
-              {l.label}
-            </Link>
-          ))}
+          {/* Order: Home → Shop → Build Your Bundle → Wholesale → Blogs → Customer Support */}
+          <Link
+            to={quickLink("Home").to}
+            onClick={() => setMobileOpen(false)}
+            className="rounded-md px-2 py-2.5 text-mdn-ink hover:bg-mdn-sand"
+          >
+            Home
+          </Link>
 
           <button
             type="button"
@@ -495,6 +497,17 @@ export default function Navbar() {
               </div>
             </div>
           </div>
+
+          {DRAWER_AFTER_SHOP.map(quickLink).map((l) => (
+            <Link
+              key={l.label}
+              to={l.to}
+              onClick={() => setMobileOpen(false)}
+              className="rounded-md px-2 py-2.5 text-mdn-ink hover:bg-mdn-sand"
+            >
+              {l.label}
+            </Link>
+          ))}
 
           <p className="eyebrow mb-1 mt-3">Account</p>
 
