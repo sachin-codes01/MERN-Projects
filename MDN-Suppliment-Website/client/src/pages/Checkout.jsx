@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -8,6 +8,7 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import AddressFields, { Field, inputClass } from "../components/AddressFields";
 import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
+import { usePincodeDetails } from "../hooks/usePincodeDetails";
 
 // Address ke rules + email (Razorpay prefill / receipt ke liye)
 const CHECKOUT_RULES = { ...addressRules, email: rules.email };
@@ -34,8 +35,9 @@ export default function Checkout() {
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  // Pincode pe delivery: idle | checking | available | unavailable | error
-  const [delivery, setDelivery] = useState({ status: "idle", pincode: "", area: "" });
+  // User ne khud pincode badla? Tabhi city/state auto-fill — saved address
+  // load hote waqt uski apni city overwrite nahi karni
+  const pincodeTypedRef = useRef(false);
 
   useEffect(() => {
     Promise.all([api.getCart(token), api.getMyAddresses(token)])
@@ -99,6 +101,7 @@ export default function Checkout() {
   const checkField = (name, values = form) => CHECKOUT_RULES[name]?.(values[name], values) || "";
 
   const handleChange = (name, value) => {
+    if (name === "pincode") pincodeTypedRef.current = true;
     const next = { ...form, [name]: value };
     setForm(next);
     if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: checkField(name, next) }));
@@ -115,33 +118,28 @@ export default function Checkout() {
   // Pay button tabhi chalega jab saari fields sahi hon
   const formValid = !hasErrors(validateFields(form, CHECKOUT_RULES));
 
-  // Pincode 6 sahi digits ka hote hi (thoda ruk ke) check — admin panel me
-  // add kiye pincodes pe hi delivery hoti hai
-  const pincode = form.pincode.trim();
-  const pincodeValid = !rules.pincode(pincode);
+  // Pincode 6 sahi digits ka hote hi check: delivery list me hai ya nahi
+  // (admin panel), aur city/state auto-fill
+  const pincodeInfo = usePincodeDetails(form.pincode, token);
+  const delivery = {
+    pincode: pincodeInfo.pincode,
+    area: pincodeInfo.area,
+    status:
+      pincodeInfo.status === "done" ? (pincodeInfo.available ? "available" : "unavailable") : pincodeInfo.status,
+  };
+
   useEffect(() => {
-    if (!pincodeValid) {
-      setDelivery({ status: "idle", pincode: "", area: "" });
-      return;
-    }
-    let cancelled = false;
-    setDelivery({ status: "checking", pincode, area: "" });
-    const timer = setTimeout(() => {
-      api
-        .checkPincode(pincode, token)
-        .then((d) => {
-          if (!cancelled) setDelivery({ status: d.data.available ? "available" : "unavailable", pincode, area: d.data.area || "" });
-        })
-        .catch(() => {
-          if (!cancelled) setDelivery({ status: "error", pincode, area: "" });
-        });
-    }, 350);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    if (pincodeInfo.status !== "done" || !pincodeTypedRef.current) return;
+    pincodeTypedRef.current = false;
+    if (!pincodeInfo.city && !pincodeInfo.state) return;
+    setForm((f) => {
+      const next = { ...f, city: pincodeInfo.city || f.city, state: pincodeInfo.state || f.state };
+      // Purani "City can only contain letters" jaisi galti hatao
+      setFieldErrors((fe) => ({ ...fe, city: checkField("city", next), state: checkField("state", next) }));
+      return next;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pincode, pincodeValid]);
+  }, [pincodeInfo]);
 
   // "error" (network) pe rokte nahi — server payment se pehle khud check karta hai
   const deliveryOk = delivery.status === "available" || delivery.status === "error";
@@ -155,13 +153,22 @@ export default function Checkout() {
     ) : delivery.status === "available" ? (
       <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-mdn-green" aria-live="polite">
         <CheckCircleRoundedIcon sx={{ fontSize: 14 }} aria-hidden="true" />
-        Delivery available{delivery.area ? ` in ${delivery.area}` : ""}
+        Delivery available{delivery.area ? ` in ${delivery.area}` : pincodeInfo.city ? ` in ${pincodeInfo.city}` : ""}
       </p>
     ) : delivery.status === "unavailable" ? (
-      <p id="checkout-pincode-error" role="alert" className="mt-1 flex items-center gap-1 text-xs font-semibold text-mdn-danger">
-        <LocalShippingOutlinedIcon sx={{ fontSize: 14 }} aria-hidden="true" />
-        Shipping not available in this pincode
-      </p>
+      <div id="checkout-pincode-error" role="alert" className="mt-1 text-xs">
+        <p className="flex items-center gap-1 font-semibold text-mdn-danger">
+          <LocalShippingOutlinedIcon sx={{ fontSize: 14 }} aria-hidden="true" />
+          Shipping not available in this pincode
+        </p>
+        {/* Delivery nahi hai to customer support se baat karne ka seedha rasta */}
+        <Link
+          to="/support?topic=shipping#contact-form"
+          className="mt-0.5 inline-block font-semibold text-mdn-green underline-offset-2 hover:underline"
+        >
+          Contact customer support →
+        </Link>
+      </div>
     ) : null;
 
   const handleApplyCoupon = async () => {
@@ -504,7 +511,7 @@ export default function Checkout() {
               {!formValid
                 ? "Fill in all required delivery details to continue."
                 : delivery.status === "unavailable"
-                  ? "We don't deliver to this pincode yet. Please use a different delivery address."
+                  ? "We don't deliver to this pincode yet. Use a different address or contact customer support."
                   : "Checking delivery for your pincode…"}
             </p>
           )}

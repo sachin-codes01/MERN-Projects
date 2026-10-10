@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -9,6 +9,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import AddressFields, { Field, inputClass } from "../components/AddressFields";
 import { useConfirm } from "../components/ConfirmDialog";
 import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
+import { usePincodeDetails } from "../hooks/usePincodeDetails";
 
 const PROFILE_RULES = { ...addressRules, label: rules.label };
 
@@ -39,6 +40,24 @@ export default function Profile() {
   // so we can swap in the fallback ourselves.
   const [avatarBroken, setAvatarBroken] = useState(false);
   const [confirm, confirmDialog] = useConfirm();
+  // Pincode type karte hi city/state bhar do (edit kholte waqt nahi)
+  const pincodeTypedRef = useRef(false);
+  const pincodeInfo = usePincodeDetails(formOpen ? form.pincode : "", token);
+
+  useEffect(() => {
+    if (pincodeInfo.status !== "done" || !pincodeTypedRef.current) return;
+    pincodeTypedRef.current = false;
+    if (!pincodeInfo.city && !pincodeInfo.state) return;
+    setForm((f) => {
+      const next = { ...f, city: pincodeInfo.city || f.city, state: pincodeInfo.state || f.state };
+      setFieldErrors((fe) => ({
+        ...fe,
+        city: PROFILE_RULES.city(next.city, next),
+        state: PROFILE_RULES.state(next.state, next),
+      }));
+      return next;
+    });
+  }, [pincodeInfo]);
 
   useEffect(() => {
     setAvatarBroken(false);
@@ -100,6 +119,7 @@ export default function Profile() {
   const checkField = (name, values = form) => PROFILE_RULES[name]?.(values[name], values) || "";
 
   const handleChange = (name, value) => {
+    if (name === "pincode") pincodeTypedRef.current = true;
     const next = { ...form, [name]: value };
     setForm(next);
     if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: checkField(name, next) }));

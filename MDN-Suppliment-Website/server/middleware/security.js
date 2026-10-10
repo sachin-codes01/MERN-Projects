@@ -86,6 +86,8 @@ const limits = {
   // Coupon codes guess karne se rokne ke liye
   coupon: limiter(15 * MIN, 15, "Too many coupon attempts. Please wait a few minutes."),
   payment: limiter(15 * MIN, 20, "Too many payment attempts. Please wait a few minutes and try again."),
+  // Pincode check (India Post lookup) — form bharte waqt kuch hi baar chahiye
+  pincode: limiter(1 * MIN, 30, "Too many pincode checks. Please wait a minute."),
 };
 
 module.exports = { rejectMongoOperators, corsOptions, limits };
