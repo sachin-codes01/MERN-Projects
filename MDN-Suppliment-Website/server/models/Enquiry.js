@@ -11,8 +11,8 @@ const enquirySchema = new mongoose.Schema(
     // field in the form.
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, trim: true, default: "" }, // optional by design
+    firstName: { type: String, required: true, trim: true, maxlength: 50 },
+    lastName: { type: String, trim: true, default: "", maxlength: 50 }, // optional by design
 
     // Copied from the logged-in account at submit time rather than taken
     // from the request body — the form renders it read-only, and trusting

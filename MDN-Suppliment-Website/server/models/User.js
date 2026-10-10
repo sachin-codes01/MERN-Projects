@@ -1,15 +1,20 @@
 const mongoose = require("mongoose");
 
+// Aakhri line of defence: format ke strict rules (pincode pattern, min
+// length) request schema (validators/schemas.js) me hain. Yahan sirf
+// generous caps — login pe user.save() saare purane addresses dobara
+// validate karta hai, strict rule lagate hi purane data wale users ka
+// login toot jata.
 const addressSchema = new mongoose.Schema(
   {
-    label: { type: String, default: "Home" },
-    fullName: { type: String, required: true },
-    phone: { type: String, required: true },
-    line1: { type: String, required: true },
-    line2: { type: String },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: { type: String, required: true },
+    label: { type: String, default: "Home", trim: true, maxlength: 30 },
+    fullName: { type: String, required: true, trim: true, maxlength: 100 },
+    phone: { type: String, required: true, trim: true, maxlength: 15 },
+    line1: { type: String, required: true, trim: true, maxlength: 300 },
+    line2: { type: String, trim: true, maxlength: 300 },
+    city: { type: String, required: true, trim: true, maxlength: 100 },
+    state: { type: String, required: true, trim: true, maxlength: 100 },
+    pincode: { type: String, required: true, trim: true, maxlength: 10 },
     country: { type: String, default: "India" },
     isDefault: { type: Boolean, default: false },
   },
@@ -18,7 +23,7 @@ const addressSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true, maxlength: 100 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     googleId: { type: String, required: true, unique: true },
     avatar: { type: String },

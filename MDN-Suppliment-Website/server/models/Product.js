@@ -7,10 +7,10 @@ const mongoose = require("mongoose");
 // shared stock pool per size across every flavor.
 const sizeSchema = new mongoose.Schema(
   {
-    weight: { type: String, required: true }, // e.g. "1kg", "500g", "60 capsules"
-    price: { type: Number, required: true },
-    discountPrice: { type: Number },
-    stock: { type: Number, required: true, default: 0 },
+    weight: { type: String, required: true, trim: true, maxlength: 40 }, // e.g. "1kg", "500g", "60 capsules"
+    price: { type: Number, required: true, min: [0, "Price can't be negative"] },
+    discountPrice: { type: Number, min: [0, "Selling price can't be negative"] },
+    stock: { type: Number, required: true, default: 0, min: [0, "Stock can't be negative"] },
     // Uniqueness is enforced per-product client-side (AdminProducts.jsx
     // validateSizes) — NOT `unique: true` here. Mongoose turns a
     // unique:true on a field inside an embedded array into a
@@ -99,7 +99,7 @@ const reviewSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String },
+    comment: { type: String, trim: true, maxlength: 2000 },
     images: [{ type: String }],
     verifiedPurchase: { type: Boolean, default: false },
   },
@@ -108,7 +108,7 @@ const reviewSchema = new mongoose.Schema(
 
 const productSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true, maxlength: 120 },
     // Custom setter (not just `lowercase`/`trim`) so a slug typed with spaces
     // or mixed case in the admin form always lands as a clean, URL-safe
     // "mdn-collagen" — not "mdn collagen " — which would 404 on the storefront

@@ -2,6 +2,7 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
 const { calcOrderPricing, FREE_SHIPPING_ABOVE, TAX_RATE } = require("../utils/orderPricing");
+const { MAX_QTY_PER_LINE } = require("../validators/schemas");
 
 const calcCartTotals = async (cart) => {
   const subtotal = cart.items.reduce((sum, i) => sum + i.priceAtAddition * i.quantity, 0);
@@ -70,9 +71,10 @@ exports.getCart = async (req, res) => {
 };
 
 // POST /api/cart/items
+// Body validate() se aata hai: ids ObjectId, quantity integer 1-10.
 exports.addItem = async (req, res) => {
   try {
-    const { productId, sizeId, flavorId = null, quantity = 1 } = req.body;
+    const { productId, sizeId, flavorId = null, quantity } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
@@ -92,6 +94,10 @@ exports.addItem = async (req, res) => {
         i.sizeId.toString() === sizeId &&
         (i.flavorId ? i.flavorId.toString() : null) === (flavorId || null)
     );
+
+    if ((existingItem?.quantity || 0) + quantity > MAX_QTY_PER_LINE) {
+      return res.status(400).json({ success: false, message: `You can add up to ${MAX_QTY_PER_LINE} of this item` });
+    }
 
     const alreadyInCart = quantityOfSizeInCart(cart, sizeId, existingItem?._id);
     const totalRequested = alreadyInCart + (existingItem?.quantity || 0) + quantity;
@@ -130,7 +136,8 @@ exports.updateItemQuantity = async (req, res) => {
     const item = cart.items.id(req.params.itemId);
     if (!item) return res.status(404).json({ success: false, message: "Item not in cart" });
 
-    if (quantity <= 0) {
+    // quantity validate() se integer 0-10 hai; 0 = line hata do
+    if (quantity === 0) {
       cart.items.pull(req.params.itemId);
     } else {
       const product = await Product.findById(item.product);
@@ -177,10 +184,9 @@ exports.clearCart = async (req, res) => {
 // POST /api/cart/coupon   { code }
 exports.applyCoupon = async (req, res) => {
   try {
+    // validate(): trimmed, uppercase, A-Z0-9 3-20
     const { code } = req.body;
-    if (!code) return res.status(400).json({ success: false, message: "Coupon code required" });
-
-    const coupon = await Coupon.findOne({ code: code.toUpperCase().trim(), isActive: true });
+    const coupon = await Coupon.findOne({ code, isActive: true });
     if (!coupon) return res.status(404).json({ success: false, message: "Invalid or inactive coupon" });
     if (coupon.expiresAt && coupon.expiresAt < new Date()) {
       return res.status(400).json({ success: false, message: "This coupon has expired" });

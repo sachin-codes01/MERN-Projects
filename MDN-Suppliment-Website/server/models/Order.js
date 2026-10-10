@@ -7,19 +7,19 @@ const orderItemSchema = new mongoose.Schema({
   flavor: String,
   weight: String,
   image: String,
-  price: Number,
-  quantity: Number,
+  price: { type: Number, min: 0 },
+  quantity: { type: Number, min: 1 },
 });
 
 const shippingAddressSchema = new mongoose.Schema(
   {
-    fullName: String,
-    phone: String,
-    line1: String,
-    line2: String,
-    city: String,
-    state: String,
-    pincode: String,
+    fullName: { type: String, trim: true, maxlength: 100 },
+    phone: { type: String, trim: true, maxlength: 15 },
+    line1: { type: String, trim: true, maxlength: 300 },
+    line2: { type: String, trim: true, maxlength: 300 },
+    city: { type: String, trim: true, maxlength: 100 },
+    state: { type: String, trim: true, maxlength: 100 },
+    pincode: { type: String, trim: true, maxlength: 10 },
     country: { type: String, default: "India" },
   },
   { _id: false }
@@ -28,7 +28,7 @@ const shippingAddressSchema = new mongoose.Schema(
 const statusHistorySchema = new mongoose.Schema(
   {
     status: String,
-    note: String,
+    note: { type: String, maxlength: 1000 },
     updatedAt: { type: Date, default: Date.now },
   },
   { _id: false }
@@ -83,11 +83,11 @@ const orderSchema = new mongoose.Schema(
       default: "placed",
     },
 
-    trackingNumber: String,
-    courierPartner: String,
+    trackingNumber: { type: String, trim: true, maxlength: 60 },
+    courierPartner: { type: String, trim: true, maxlength: 60 },
     estimatedDelivery: Date,
     deliveredAt: Date,
-    cancelReason: String,
+    cancelReason: { type: String, trim: true, maxlength: 300 },
 
     statusHistory: [statusHistorySchema],
   },
