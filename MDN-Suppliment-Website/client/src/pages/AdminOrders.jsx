@@ -312,7 +312,8 @@ export default function AdminOrders() {
                             {o.shippingAddress.line1}
                             {o.shippingAddress.line2 ? `, ${o.shippingAddress.line2}` : ""}
                             <br />
-                            {o.shippingAddress.city}, {o.shippingAddress.state} {o.shippingAddress.pincode}
+                            {[o.shippingAddress.city, o.shippingAddress.district, o.shippingAddress.state].filter(Boolean).join(", ")}{" "}
+                            {o.shippingAddress.pincode}
                           </p>
 
                           {o.orderStatus === "cancelled" || o.orderStatus === "returned" ? (

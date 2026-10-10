@@ -228,7 +228,7 @@ export const downloadReceipt = async (order) => {
   setText(doc, { size: 9.5, color: MUTED });
   const addr = [
     [a.line1, a.line2].filter(Boolean).join(", "),
-    `${[a.city, a.state].filter(Boolean).join(", ")}${a.pincode ? ` - ${a.pincode}` : ""}`,
+    `${[a.city, a.district, a.state].filter(Boolean).join(", ")}${a.pincode ? ` - ${a.pincode}` : ""}`,
     a.country || "India",
     a.phone ? `Phone: ${a.phone}` : "",
   ].filter((l) => l && l.trim());

@@ -84,6 +84,8 @@ export const rules = {
   line1: lengthRule("Address", LIMITS.addressMin, LIMITS.addressMax),
   line2: lengthRule("Address line 2", 0, LIMITS.addressMax, { optional: true }),
   city: placeRule("City"),
+  // Optional — purane addresses me nahi hai; pincode se apne aap bharta hai
+  district: (value) => (str(value) ? placeRule("District")(value) : ""),
   state: placeRule("State"),
 
   couponCode: (value) => {
@@ -131,6 +133,7 @@ export const addressRules = {
   line1: rules.line1,
   line2: rules.line2,
   city: rules.city,
+  district: rules.district,
   state: rules.state,
   pincode: rules.pincode,
 };
@@ -142,6 +145,7 @@ export const cleanAddress = (form) => ({
   line1: str(form.line1),
   line2: str(form.line2),
   city: str(form.city),
+  district: str(form.district),
   state: str(form.state),
   pincode: str(form.pincode),
   country: "India",

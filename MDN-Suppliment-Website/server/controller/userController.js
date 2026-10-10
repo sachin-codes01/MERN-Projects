@@ -4,7 +4,7 @@ const User = require("../models/User");
 // addressBody) — sirf whitelisted, trimmed, checked fields aate hain.
 // Fir bhi yahan naam se field uthaye jate hain, taaki schema me kabhi
 // koi field jud bhi jaye to woh seedha address me na likh jaye.
-const ADDRESS_KEYS = ["label", "fullName", "phone", "line1", "line2", "city", "state", "pincode", "country"];
+const ADDRESS_KEYS = ["label", "fullName", "phone", "line1", "line2", "city", "district", "state", "pincode", "country"];
 const pickAddress = (body) =>
   Object.fromEntries(ADDRESS_KEYS.filter((k) => body[k] !== undefined).map((k) => [k, body[k]]));
 

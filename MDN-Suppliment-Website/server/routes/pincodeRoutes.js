@@ -7,8 +7,8 @@ const { lookupPincode } = require("../utils/pincodeLookup");
 
 // Public — address form me pincode daalte hi:
 //   available: admin ki delivery list me hai ya nahi
-//   city/state: auto-fill ke liye (India Post se; na mile to "")
-// GET /api/pincodes/check/110001 → { available, area, city, state }
+//   city/district/state: auto-fill ke liye (India Post se; na mile to "")
+// GET /api/pincodes/check/110001 → { available, area, city, district, state }
 router.get("/check/:pincode", limits.pincode, validate({ params: pincodeParam }), async (req, res) => {
   const { pincode } = req.params;
   const [found, place] = await Promise.all([
@@ -22,6 +22,7 @@ router.get("/check/:pincode", limits.pincode, validate({ params: pincodeParam })
       available: !!found,
       area: found?.area || "",
       city: place?.city || "",
+      district: place?.district || "",
       state: place?.state || "",
     },
   });

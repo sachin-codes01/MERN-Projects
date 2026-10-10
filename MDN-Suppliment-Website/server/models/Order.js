@@ -18,6 +18,7 @@ const shippingAddressSchema = new mongoose.Schema(
     line1: { type: String, trim: true, maxlength: 300 },
     line2: { type: String, trim: true, maxlength: 300 },
     city: { type: String, trim: true, maxlength: 100 },
+    district: { type: String, trim: true, maxlength: 100, default: "" },
     state: { type: String, trim: true, maxlength: 100 },
     pincode: { type: String, trim: true, maxlength: 10 },
     country: { type: String, default: "India" },

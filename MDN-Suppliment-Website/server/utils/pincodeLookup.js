@@ -2,8 +2,9 @@
 // Server pe isliye: browser kisi third party ko call na kare, aur ek pincode
 // baar-baar maange to cache se jawab mile.
 //
-// City = post offices me sabse zyada aane wala District ("Mumbai",
-// "Ghaziabad", "Bangalore") — Block kai jagah "NA" ya chhota area hota hai.
+// District = post offices me sabse zyada aane wala District ("Ghaziabad").
+// City = Block (asli shehar/area — "Noida", "Modinagar"); Block "NA" ho to
+// District hi city maan lo.
 
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 1 din
 const MAX_CACHE = 5000;
@@ -23,7 +24,7 @@ const mostCommon = (list) => {
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
 };
 
-// { city, state } ya null (pincode nahi mila / API down). Kabhi throw nahi karta.
+// { city, district, state } ya null (pincode nahi mila / API down). Kabhi throw nahi karta.
 const lookupPincode = async (pincode) => {
   const hit = cache.get(pincode);
   if (hit && Date.now() - hit.at < CACHE_TTL) return hit.value;
@@ -34,9 +35,10 @@ const lookupPincode = async (pincode) => {
     const [data] = await res.json();
     const offices = data?.Status === "Success" ? data.PostOffice || [] : [];
     if (offices.length) {
-      const city = cleanPlace(mostCommon(offices.map((o) => o.District)));
+      const district = cleanPlace(mostCommon(offices.map((o) => o.District)));
+      const block = cleanPlace(mostCommon(offices.map((o) => (/^n\.?a\.?$/i.test(o.Block || "") ? "" : o.Block))));
       const state = cleanPlace(mostCommon(offices.map((o) => o.State)));
-      if (city && state) value = { city, state };
+      if (district && state) value = { city: block || district, district, state };
     }
   } catch {
     // Timeout/network — cache nahi karte, agli baar dobara koshish

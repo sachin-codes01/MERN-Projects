@@ -18,10 +18,11 @@ const FIELDS = [
   },
   { name: "line1", label: "Address", autoComplete: "address-line1", maxLength: LIMITS.addressMax, placeholder: "House no., street, area", span: "full" },
   { name: "line2", label: "Address line 2", optional: true, autoComplete: "address-line2", maxLength: LIMITS.addressMax, placeholder: "Landmark, apartment (optional)", span: "full" },
-  // Pincode pehle — daalte hi city/state apne aap bhar jaate hain
-  { name: "pincode", label: "Pincode", autoComplete: "postal-code", inputMode: "numeric", maxLength: 6, span: "third" },
-  { name: "city", label: "City", autoComplete: "address-level2", maxLength: LIMITS.placeMax, span: "third" },
-  { name: "state", label: "State", autoComplete: "address-level1", maxLength: LIMITS.placeMax, span: "third" },
+  // Pincode pehle — daalte hi city/district/state apne aap bhar jaate hain
+  { name: "pincode", label: "Pincode", autoComplete: "postal-code", inputMode: "numeric", maxLength: 6, span: "place" },
+  { name: "city", label: "City", autoComplete: "address-level2", maxLength: LIMITS.placeMax, span: "place" },
+  { name: "district", label: "District", optional: true, autoComplete: "address-level3", maxLength: LIMITS.placeMax, span: "place" },
+  { name: "state", label: "State", autoComplete: "address-level1", maxLength: LIMITS.placeMax, span: "place" },
 ];
 
 export const Field = ({ id, label, optional, error, children }) => (
@@ -83,7 +84,7 @@ const AddressFields = ({ idPrefix, values, errors, onChange, onBlur, pincodeStat
     <>
       <div className="grid gap-4 sm:grid-cols-2">{by("half")}</div>
       {by("full")}
-      <div className="grid gap-4 sm:grid-cols-3">{by("third")}</div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{by("place")}</div>
     </>
   );
 };

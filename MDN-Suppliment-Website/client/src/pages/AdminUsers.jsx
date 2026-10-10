@@ -288,7 +288,7 @@ export default function AdminUsers() {
                                   {addr.line2 ? `, ${addr.line2}` : ""}
                                 </p>
                                 <p>
-                                  {addr.city}, {addr.state} {addr.pincode}, {addr.country}
+                                  {[addr.city, addr.district, addr.state].filter(Boolean).join(", ")} {addr.pincode}, {addr.country}
                                 </p>
                               </div>
                             ))}

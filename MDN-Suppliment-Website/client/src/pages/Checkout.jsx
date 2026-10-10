@@ -14,7 +14,7 @@ import { usePincodeDetails } from "../hooks/usePincodeDetails";
 const CHECKOUT_RULES = { ...addressRules, email: rules.email };
 
 const emptyForm = {
-  fullName: "", email: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "", country: "India",
+  fullName: "", email: "", phone: "", line1: "", line2: "", city: "", district: "", state: "", pincode: "", country: "India",
 };
 
 export default function Checkout() {
@@ -69,6 +69,7 @@ export default function Checkout() {
       line1: addr?.line1 || "",
       line2: addr?.line2 || "",
       city: addr?.city || "",
+      district: addr?.district || "",
       state: addr?.state || "",
       pincode: addr?.pincode || "",
       country: addr?.country || "India",
@@ -133,9 +134,19 @@ export default function Checkout() {
     pincodeTypedRef.current = false;
     if (!pincodeInfo.city && !pincodeInfo.state) return;
     setForm((f) => {
-      const next = { ...f, city: pincodeInfo.city || f.city, state: pincodeInfo.state || f.state };
+      const next = {
+        ...f,
+        city: pincodeInfo.city || f.city,
+        district: pincodeInfo.district || f.district,
+        state: pincodeInfo.state || f.state,
+      };
       // Purani "City can only contain letters" jaisi galti hatao
-      setFieldErrors((fe) => ({ ...fe, city: checkField("city", next), state: checkField("state", next) }));
+      setFieldErrors((fe) => ({
+        ...fe,
+        city: checkField("city", next),
+        district: checkField("district", next),
+        state: checkField("state", next),
+      }));
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

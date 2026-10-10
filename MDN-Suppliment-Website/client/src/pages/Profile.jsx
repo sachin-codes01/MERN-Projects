@@ -14,7 +14,7 @@ import { usePincodeDetails } from "../hooks/usePincodeDetails";
 const PROFILE_RULES = { ...addressRules, label: rules.label };
 
 const emptyAddressForm = {
-  label: "Home", fullName: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "", country: "India",
+  label: "Home", fullName: "", phone: "", line1: "", line2: "", city: "", district: "", state: "", pincode: "", country: "India",
 };
 
 export default function Profile() {
@@ -49,10 +49,16 @@ export default function Profile() {
     pincodeTypedRef.current = false;
     if (!pincodeInfo.city && !pincodeInfo.state) return;
     setForm((f) => {
-      const next = { ...f, city: pincodeInfo.city || f.city, state: pincodeInfo.state || f.state };
+      const next = {
+        ...f,
+        city: pincodeInfo.city || f.city,
+        district: pincodeInfo.district || f.district,
+        state: pincodeInfo.state || f.state,
+      };
       setFieldErrors((fe) => ({
         ...fe,
         city: PROFILE_RULES.city(next.city, next),
+        district: PROFILE_RULES.district(next.district, next),
         state: PROFILE_RULES.state(next.state, next),
       }));
       return next;
@@ -99,6 +105,7 @@ export default function Profile() {
       line1: addr.line1 || "",
       line2: addr.line2 || "",
       city: addr.city || "",
+      district: addr.district || "",
       state: addr.state || "",
       pincode: addr.pincode || "",
       country: addr.country || "India",
@@ -318,7 +325,7 @@ export default function Profile() {
                   {addr.line2 ? `, ${addr.line2}` : ""}
                 </p>
                 <p className="text-sm text-mdn-gray">
-                  {addr.city}, {addr.state} - {addr.pincode}
+                  {[addr.city, addr.district, addr.state].filter(Boolean).join(", ")} - {addr.pincode}
                 </p>
                 <p className="text-sm text-mdn-gray">{addr.country}</p>
 

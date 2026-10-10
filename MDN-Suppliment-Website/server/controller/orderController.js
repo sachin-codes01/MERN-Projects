@@ -119,6 +119,7 @@ exports.createRazorpayOrder = async (req, res) => {
         line1: shippingAddress.line1,
         line2: shippingAddress.line2 || "",
         city: shippingAddress.city,
+        district: shippingAddress.district || "",
         state: shippingAddress.state,
         pincode: shippingAddress.pincode,
         country: shippingAddress.country || "India",

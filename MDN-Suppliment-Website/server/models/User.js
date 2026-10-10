@@ -13,6 +13,7 @@ const addressSchema = new mongoose.Schema(
     line1: { type: String, required: true, trim: true, maxlength: 300 },
     line2: { type: String, trim: true, maxlength: 300 },
     city: { type: String, required: true, trim: true, maxlength: 100 },
+    district: { type: String, trim: true, maxlength: 100, default: "" },
     state: { type: String, required: true, trim: true, maxlength: 100 },
     pincode: { type: String, required: true, trim: true, maxlength: 10 },
     country: { type: String, default: "India" },

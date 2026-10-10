@@ -121,6 +121,8 @@ const addressFields = {
   line1: text("Address", { min: 5, max: 200 }),
   line2: text("Address line 2", { max: 200, optional: true }),
   city: text("City", { min: 2, max: 50, pattern: PLACE_RE, patternMessage: "City can only contain letters" }),
+  // Optional — purane saved addresses me district nahi hai
+  district: text("District", { min: 2, max: 50, pattern: PLACE_RE, patternMessage: "District can only contain letters", optional: true }),
   state: text("State", { min: 2, max: 50, pattern: PLACE_RE, patternMessage: "State can only contain letters" }),
   pincode,
   country: z.literal("India", { error: "Only Indian addresses are supported" }).optional(),
