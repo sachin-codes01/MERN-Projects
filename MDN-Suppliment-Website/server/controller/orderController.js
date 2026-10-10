@@ -3,6 +3,7 @@ const Cart = require("../models/Cart");
 const Coupon = require("../models/Coupon");
 const Product = require("../models/Product");
 const CheckoutSession = require("../models/CheckoutSession");
+const ServiceablePincode = require("../models/ServiceablePincode");
 const razorpay = require("../config/razorpay");
 const { calcOrderPricing } = require("../utils/orderPricing");
 const {
@@ -29,6 +30,13 @@ exports.createRazorpayOrder = async (req, res) => {
     const missing = ADDRESS_FIELDS.filter((f) => !String(shippingAddress?.[f] || "").trim());
     if (missing.length) {
       return res.status(400).json({ success: false, message: "Please complete the delivery address." });
+    }
+
+    // Delivery sirf admin ke add kiye pincodes pe — client bhi check karta
+    // hai, par asli rok yahin hai (payment banne se pehle)
+    if (!(await ServiceablePincode.exists({ pincode: shippingAddress.pincode }))) {
+      const message = `Sorry, we don't ship to pincode ${shippingAddress.pincode} yet.`;
+      return res.status(400).json({ success: false, message, errors: [{ field: "shippingAddress.pincode", message }] });
     }
 
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");

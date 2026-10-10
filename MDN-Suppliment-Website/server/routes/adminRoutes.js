@@ -11,6 +11,7 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const SiteSettings = require("../models/SiteSettings");
 const FlavorPreset = require("../models/FlavorPreset");
+const ServiceablePincode = require("../models/ServiceablePincode");
 const { refundOrder } = require("../utils/payments");
 const validate = require("../middleware/validate");
 const S = require("../validators/schemas");
@@ -93,6 +94,31 @@ router.delete("/flavors/:id", byId("Flavour"), async (req, res) => {
   const flavor = await FlavorPreset.findByIdAndDelete(req.params.id);
   if (!flavor) return res.status(404).json({ success: false, message: "Flavour not found" });
   res.json({ success: true, message: "Flavour removed from library" });
+});
+
+/* ---------- SERVICEABLE PINCODES (delivery areas) ---------- */
+router.get("/pincodes", async (req, res) => {
+  const pincodes = await ServiceablePincode.find().sort({ pincode: 1 }).lean();
+  res.json({ success: true, data: pincodes });
+});
+
+// Kai pincodes ek saath — jo pehle se list me hain unhe chhod do (error nahi)
+router.post("/pincodes", validate({ body: S.addPincodesBody }), async (req, res) => {
+  const unique = [...new Set(req.body.pincodes)];
+  const existing = await ServiceablePincode.find({ pincode: { $in: unique } }).select("pincode").lean();
+  const have = new Set(existing.map((p) => p.pincode));
+  const fresh = unique.filter((p) => !have.has(p));
+
+  if (fresh.length) {
+    await ServiceablePincode.insertMany(fresh.map((pincode) => ({ pincode, area: req.body.area || "" })), { ordered: false });
+  }
+  res.status(201).json({ success: true, data: { added: fresh, skipped: [...have] } });
+});
+
+router.delete("/pincodes/:id", byId("Pincode"), async (req, res) => {
+  const removed = await ServiceablePincode.findByIdAndDelete(req.params.id);
+  if (!removed) return res.status(404).json({ success: false, message: "Pincode not found" });
+  res.json({ success: true, message: `${removed.pincode} removed` });
 });
 
 /* ---------- COUPONS ---------- */

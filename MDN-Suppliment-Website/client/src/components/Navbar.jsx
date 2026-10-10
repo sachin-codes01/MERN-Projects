@@ -550,6 +550,7 @@ export default function Navbar() {
             ["/admin/orders", "Orders"],
             ["/admin/users", "Users"],
             ["/admin/coupons", "Coupons"],
+            ["/admin/pincodes", "Pincodes"],
             ["/admin/enquiries", "Enquiries"],
             ["/admin/settings", "Settings"],
           ].map(([to, label]) => (

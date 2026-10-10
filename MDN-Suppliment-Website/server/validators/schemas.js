@@ -390,6 +390,18 @@ const enquiryStatusBody = z.strictObject({
 
 const emptyBody = z.strictObject({});
 
+/* ---------------- Serviceable pincodes ---------------- */
+
+const pincodeParam = z.strictObject({ pincode });
+// Admin ek saath kai pincodes paste kar sakta hai (max 500 ek baar me)
+const addPincodesBody = z.strictObject({
+  pincodes: z
+    .array(pincode, { error: requiredOrType("Pincodes", "a list") })
+    .min(1, "Add at least one pincode")
+    .max(500, "Add at most 500 pincodes at a time"),
+  area: text("Area", { max: 80, optional: true }),
+});
+
 module.exports = {
   MAX_QTY_PER_LINE,
   idParam,
@@ -422,4 +434,6 @@ module.exports = {
   orderStatusBody,
   enquiryStatusBody,
   emptyBody,
+  pincodeParam,
+  addPincodesBody,
 };

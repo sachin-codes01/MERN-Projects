@@ -4,6 +4,8 @@ import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import MDNLoader from "../components/MDNLoader";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import AddressFields, { Field, inputClass } from "../components/AddressFields";
 import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
 
@@ -32,6 +34,8 @@ export default function Checkout() {
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  // Pincode pe delivery: idle | checking | available | unavailable | error
+  const [delivery, setDelivery] = useState({ status: "idle", pincode: "", area: "" });
 
   useEffect(() => {
     Promise.all([api.getCart(token), api.getMyAddresses(token)])
@@ -111,6 +115,55 @@ export default function Checkout() {
   // Pay button tabhi chalega jab saari fields sahi hon
   const formValid = !hasErrors(validateFields(form, CHECKOUT_RULES));
 
+  // Pincode 6 sahi digits ka hote hi (thoda ruk ke) check — admin panel me
+  // add kiye pincodes pe hi delivery hoti hai
+  const pincode = form.pincode.trim();
+  const pincodeValid = !rules.pincode(pincode);
+  useEffect(() => {
+    if (!pincodeValid) {
+      setDelivery({ status: "idle", pincode: "", area: "" });
+      return;
+    }
+    let cancelled = false;
+    setDelivery({ status: "checking", pincode, area: "" });
+    const timer = setTimeout(() => {
+      api
+        .checkPincode(pincode, token)
+        .then((d) => {
+          if (!cancelled) setDelivery({ status: d.data.available ? "available" : "unavailable", pincode, area: d.data.area || "" });
+        })
+        .catch(() => {
+          if (!cancelled) setDelivery({ status: "error", pincode, area: "" });
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pincode, pincodeValid]);
+
+  // "error" (network) pe rokte nahi — server payment se pehle khud check karta hai
+  const deliveryOk = delivery.status === "available" || delivery.status === "error";
+  const canPay = formValid && deliveryOk;
+
+  const deliveryStatus =
+    delivery.status === "checking" ? (
+      <p className="mt-1 text-xs text-mdn-gray" aria-live="polite">
+        Checking delivery for {delivery.pincode}…
+      </p>
+    ) : delivery.status === "available" ? (
+      <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-mdn-green" aria-live="polite">
+        <CheckCircleRoundedIcon sx={{ fontSize: 14 }} aria-hidden="true" />
+        Delivery available{delivery.area ? ` in ${delivery.area}` : ""}
+      </p>
+    ) : delivery.status === "unavailable" ? (
+      <p id="checkout-pincode-error" role="alert" className="mt-1 flex items-center gap-1 text-xs font-semibold text-mdn-danger">
+        <LocalShippingOutlinedIcon sx={{ fontSize: 14 }} aria-hidden="true" />
+        Shipping not available in this pincode
+      </p>
+    ) : null;
+
   const handleApplyCoupon = async () => {
     if (couponBusy) return;
     setError("");
@@ -158,6 +211,11 @@ export default function Checkout() {
       toastError("Some fields need fixing — please check the highlighted fields.");
       return;
     }
+    if (delivery.status === "unavailable") {
+      toastError(`Sorry, we don't ship to pincode ${delivery.pincode} yet.`);
+      return;
+    }
+    if (delivery.status === "checking") return; // check pura hone do
 
     if (!window.Razorpay) {
       toastError("The payment system failed to load. Please refresh the page and try again.");
@@ -294,6 +352,7 @@ export default function Checkout() {
             errors={fieldErrors}
             onChange={handleChange}
             onBlur={handleBlur}
+            pincodeStatus={deliveryStatus}
           />
 
           <Field id="checkout-email" label="Email (for your receipt)" error={fieldErrors.email}>
@@ -434,15 +493,19 @@ export default function Checkout() {
         <div>
           <button
             type="submit"
-            disabled={placing || !formValid}
-            aria-describedby={!formValid ? "checkout-pay-hint" : undefined}
+            disabled={placing || !canPay}
+            aria-describedby={!canPay ? "checkout-pay-hint" : undefined}
             className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {placing ? "Processing..." : `Pay ₹${cart.total} & Place Order`}
           </button>
-          {!formValid && !placing && (
+          {!canPay && !placing && (
             <p id="checkout-pay-hint" className="mt-2 text-xs text-mdn-gray">
-              Fill in all required delivery details to continue.
+              {!formValid
+                ? "Fill in all required delivery details to continue."
+                : delivery.status === "unavailable"
+                  ? "We don't deliver to this pincode yet. Please use a different delivery address."
+                  : "Checking delivery for your pincode…"}
             </p>
           )}
         </div>

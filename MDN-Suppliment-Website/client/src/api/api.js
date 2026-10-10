@@ -40,7 +40,9 @@ const isCacheable = (path, method, token) =>
   method === "GET" &&
   !token &&
   !path.startsWith("/admin") &&
-  !path.startsWith("/products/suggest");
+  !path.startsWith("/products/suggest") &&
+  // Admin naya pincode add kare to checkout pe turant dikhe — cache nahi
+  !path.startsWith("/pincodes");
 
 // Session expired/invalid on the server (401) while we sent a token —
 // force a clean logout instead of leaving the UI stuck on a broken
@@ -260,6 +262,14 @@ export const api = {
     request(`/admin/products/${id}`, { method: "DELETE", token }), // soft — sets isActive:false
   adminPermanentlyDeleteProduct: (token, id) =>
     request(`/admin/products/${id}/permanent`, { method: "DELETE", token }), // irreversible
+
+  // ---------- DELIVERY PINCODES ----------
+  // Checkout: is pincode pe delivery hai? → { available, area }
+  checkPincode: (pincode, token) => request(`/pincodes/check/${encodeURIComponent(pincode)}`, { token }),
+  adminGetPincodes: (token) => request("/admin/pincodes", { token }),
+  // payload: { pincodes: ["110001", ...], area? } → { added, skipped }
+  adminAddPincodes: (token, payload) => request("/admin/pincodes", { method: "POST", body: payload, token }),
+  adminDeletePincode: (token, id) => request(`/admin/pincodes/${id}`, { method: "DELETE", token }),
 
   // ---------- ADMIN: COUPONS ----------
   adminGetCoupons: (token) => request("/admin/coupons", { token }),

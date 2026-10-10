@@ -24,6 +24,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const AdminProducts = lazy(() => import("./pages/AdminProducts"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminCoupons = lazy(() => import("./pages/AdminCoupons"));
+const AdminPincodes = lazy(() => import("./pages/AdminPincodes"));
 const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
@@ -152,6 +153,14 @@ export default function App() {
                   element={
                     <AdminRoute>
                       <AdminCoupons />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/pincodes"
+                  element={
+                    <AdminRoute>
+                      <AdminPincodes />
                     </AdminRoute>
                   }
                 />
