@@ -8,6 +8,38 @@ import { BENEFIT_ICONS, BENEFIT_ICON_KEYS, MAX_BENEFITS } from "../components/Pr
 // Same source the product page labels these with, so the checkboxes can
 // only offer values the storefront knows how to render.
 import { GOAL_LABELS, DIET_LABELS } from "../components/ProductFacts";
+import { useConfirm } from "../components/ConfirmDialog";
+import { blockNonIntegerKeys, blockNonPriceKeys, numberRule } from "../utils/validators";
+
+// Product form ke rules — server (validators/schemas.js productBody) bhi yahi lagata hai
+const textRule = (label, min, max) => (v) => {
+  const t = String(v ?? "").trim();
+  if (!t) return `${label} is required`;
+  if (t.length < min) return `${label} must be at least ${min} characters`;
+  return t.length > max ? `${label} must be at most ${max} characters` : "";
+};
+const PRODUCT_RULES = {
+  name: textRule("Product name", 2, 120),
+  slug: (v) => textRule("Slug", 2, 140)(v) || (/^[a-z0-9 -]+$/i.test(String(v).trim()) ? "" : "Slug can only use letters, numbers and -"),
+  description: textRule("Description", 1, 10000),
+  brand: textRule("Brand", 1, 60),
+  category: (v) => (v ? "" : "Pick a category"),
+  productType: textRule("Product type", 1, 60),
+  manualRating: numberRule("Display rating", { min: 0, max: 5, optional: true }),
+};
+const CATEGORY_RULES = {
+  name: textRule("Category name", 2, 50),
+  slug: (v) => textRule("Slug", 2, 60)(v) || (/^[a-z0-9 -]+$/i.test(String(v).trim()) ? "" : "Slug can only use letters, numbers and -"),
+};
+const sizeRules = {
+  weight: textRule("Weight", 1, 40),
+  price: numberRule("Price (MRP)", { gt: 0, max: 1000000 }),
+  discountPrice: numberRule("Selling price", { gt: 0, max: 1000000, optional: true }),
+  stock: numberRule("Stock", { min: 0, max: 1000000, int: true }),
+  sku: textRule("SKU", 1, 60),
+  servings: numberRule("Servings", { min: 1, max: 10000, int: true, optional: true }),
+};
+const firstError = (errs) => Object.values(errs).find(Boolean) || "";
 
 // Fixed gallery slots — image #1 is always what customers see first in the
 // product-page carousel AND doubles as the product's thumbnail (listing
@@ -131,6 +163,7 @@ export default function AdminProducts() {
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [catEditingId, setCatEditingId] = useState(null);
   const [catSaving, setCatSaving] = useState(false);
+  const [catErrors, setCatErrors] = useState({});
 
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
@@ -140,6 +173,10 @@ export default function AdminProducts() {
   // failed validation, so the exact input can get a red border instead of
   // just a generic message at the top of the page.
   const [sizeErrors, setSizeErrors] = useState({});
+  // Main fields (name, slug, …) ki inline galtiyan
+  const [productErrors, setProductErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
   const [thumbnailMissing, setThumbnailMissing] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
@@ -167,8 +204,33 @@ export default function AdminProducts() {
     return <p className="mx-auto max-w-3xl px-4 py-10 text-red-400">Admin access only.</p>;
   }
 
-  const handleCatChange = (e) => setCatForm({ ...catForm, [e.target.name]: e.target.value });
-  const handleFormChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleCatChange = (e) => {
+    const { name, value } = e.target;
+    setCatForm({ ...catForm, [name]: value });
+    if (catErrors[name]) setCatErrors((ce) => ({ ...ce, [name]: CATEGORY_RULES[name](value) }));
+  };
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    // Galti dikh rahi ho to type karte hi re-check
+    if (productErrors[name] && PRODUCT_RULES[name]) setProductErrors((pe) => ({ ...pe, [name]: PRODUCT_RULES[name](value) }));
+  };
+  const handleProductBlur = (e) => {
+    const { name, value } = e.target;
+    if (PRODUCT_RULES[name]) setProductErrors((pe) => ({ ...pe, [name]: PRODUCT_RULES[name](value) }));
+  };
+  const productFieldClass = (name, extra = "") =>
+    `input-field ${extra} ${productErrors[name] ? "!border-red-500/60 focus:!border-red-500 focus:!ring-red-500/25" : ""}`;
+  const productFieldError = (name) =>
+    productErrors[name] ? (
+      <p id={`product-${name}-error`} role="alert" className="mt-1 text-xs text-red-400">
+        {productErrors[name]}
+      </p>
+    ) : null;
+  const productAria = (name) => ({
+    "aria-invalid": !!productErrors[name],
+    "aria-describedby": productErrors[name] ? `product-${name}-error` : undefined,
+  });
 
   const sizeFieldClass = (index, field) =>
     `input-field ${sizeErrors[index]?.[field] ? "!border-red-500/60 focus:!border-red-500 focus:!ring-red-500/25" : ""}`;
@@ -206,7 +268,7 @@ export default function AdminProducts() {
     setSizeErrors((prev) => {
       if (!prev[index]?.[name]) return prev;
       const rowErrors = { ...prev[index] };
-      delete rowErrors[name];
+      delete rowErrors[name]; // edit karte hi us field ki galti hatao
       return { ...prev, [index]: rowErrors };
     });
   };
@@ -297,7 +359,13 @@ export default function AdminProducts() {
   };
 
   const deleteLibraryFlavor = async (flavor) => {
-    if (!window.confirm(`Remove "${flavor.name}" from the flavour library? Products already using it keep their photo.`)) return;
+    const ok = await confirm({
+      title: `Remove "${flavor.name}" from the library?`,
+      message: "Products already using it keep their photo.",
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api.adminDeleteFlavor(token, flavor._id);
       setLibraryFlavors((list) => list.filter((f) => f._id !== flavor._id));
@@ -473,16 +541,24 @@ export default function AdminProducts() {
 
   const handleSaveCategory = async (e) => {
     e.preventDefault();
+    if (catSaving) return; // double submit guard
     setError("");
     setMessage("");
+    const errs = { name: CATEGORY_RULES.name(catForm.name), slug: CATEGORY_RULES.slug(catForm.slug) };
+    setCatErrors(errs);
+    if (firstError(errs)) {
+      toastError(firstError(errs));
+      return;
+    }
+    const payload = { name: catForm.name.trim(), slug: catForm.slug.trim() };
     setCatSaving(true);
     try {
       if (catEditingId) {
-        await api.adminUpdateCategory(token, catEditingId, catForm);
+        await api.adminUpdateCategory(token, catEditingId, payload);
         setMessage("Category updated.");
         success("Category updated successfully.");
       } else {
-        await api.adminCreateCategory(token, catForm);
+        await api.adminCreateCategory(token, payload);
         setMessage("Category created.");
         success("Category created successfully.");
       }
@@ -498,18 +574,26 @@ export default function AdminProducts() {
   };
 
   const startEditCategory = (cat) => {
+    setCatErrors({});
     setCatForm({ name: cat.name || "", slug: cat.slug || "" });
     setCatEditingId(cat._id);
   };
 
   const cancelEditCategory = () => {
+    setCatErrors({});
     setCatForm({ name: "", slug: "" });
     setCatEditingId(null);
   };
 
   const handleToggleCategoryActive = async (cat) => {
     const action = cat.isActive ? "Deactivate" : "Reactivate";
-    if (!window.confirm(`${action} the "${cat.name}" category?`)) return;
+    const ok = await confirm({
+      title: `${action} the "${cat.name}" category?`,
+      message: cat.isActive ? "Its products stay in the catalogue, but the category is hidden." : undefined,
+      confirmLabel: action,
+      danger: cat.isActive,
+    });
+    if (!ok) return;
     try {
       if (cat.isActive) {
         await api.adminDeleteCategory(token, cat._id); // soft delete (sets isActive: false)
@@ -527,12 +611,16 @@ export default function AdminProducts() {
     setForm(emptyForm);
     setEditingId(null);
     setSizeErrors({});
+    setProductErrors({});
     setThumbnailMissing(false);
   };
 
   const startEdit = (product) => {
     const sizes = product.sizes?.length
       ? product.sizes.map((s) => ({
+          // _id rakhna zaroori — save pe size ka id badla to customers ki
+          // cart lines "size no longer exists" ho jati thi
+          _id: s._id,
           weight: s.weight || "",
           price: s.price ?? "",
           discountPrice: s.discountPrice ?? "",
@@ -544,6 +632,7 @@ export default function AdminProducts() {
       : [{ ...emptySize }];
 
     const flavors = (product.flavors || []).map((f) => ({
+      _id: f._id,
       name: f.name || "",
       image: f.image || "",
       priceAdjustment: f.priceAdjustment ?? "",
@@ -603,12 +692,12 @@ export default function AdminProducts() {
   };
 
   const buildPayload = () => ({
-    name: form.name,
-    slug: form.slug,
-    description: form.description,
-    brand: form.brand,
+    name: form.name.trim(),
+    slug: form.slug.trim(),
+    description: form.description.trim(),
+    brand: form.brand.trim(),
     category: form.category,
-    productType: form.productType,
+    productType: form.productType.trim(),
     tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
     thumbnail: form.images[0] || "", // slot 1 doubles as the thumbnail
     images: form.images.filter(Boolean), // drop empty slots, keep the fixed order
@@ -641,19 +730,21 @@ export default function AdminProducts() {
     goal: form.goal,
     dietaryTags: form.dietaryTags,
     sizes: form.sizes.map((s) => ({
-      weight: s.weight,
+      ...(s._id ? { _id: s._id } : {}),
+      weight: s.weight.trim(),
       price: Number(s.price),
-      discountPrice: s.discountPrice ? Number(s.discountPrice) : undefined,
+      discountPrice: s.discountPrice !== "" && s.discountPrice !== null ? Number(s.discountPrice) : undefined,
       stock: Number(s.stock),
-      sku: s.sku,
-      servings: s.servings ? Number(s.servings) : undefined,
-      supplyLabel: s.supplyLabel,
+      sku: s.sku.trim(),
+      servings: s.servings !== "" && s.servings !== null ? Number(s.servings) : undefined,
+      supplyLabel: (s.supplyLabel || "").trim(),
     })),
     // Flavors are optional — a row left with no name is just an unused
     // blank row, not a real flavor, so it's dropped rather than saved.
     flavors: unflavouredFirst(form.flavors)
       .filter((f) => f.name.trim())
       .map((f) => ({
+        ...(f._id ? { _id: f._id } : {}),
         name: f.name.trim(),
         image: f.image,
         priceAdjustment: f.priceAdjustment ? Number(f.priceAdjustment) : 0,
@@ -672,10 +763,14 @@ export default function AdminProducts() {
     const errors = {};
     form.sizes.forEach((s, i) => {
       const rowErrors = {};
-      if (!s.weight) rowErrors.weight = true;
-      if (s.price === "") rowErrors.price = true;
-      if (s.stock === "") rowErrors.stock = true;
-      if (!s.sku) rowErrors.sku = true;
+      Object.entries(sizeRules).forEach(([field, rule]) => {
+        const msg = rule(s[field]);
+        if (msg) rowErrors[field] = msg;
+      });
+      // Selling price MRP se zyada nahi
+      if (!rowErrors.price && !rowErrors.discountPrice && s.discountPrice !== "" && Number(s.discountPrice) > Number(s.price)) {
+        rowErrors.discountPrice = "Selling price can't be more than the MRP";
+      }
       if (Object.keys(rowErrors).length) errors[i] = rowErrors;
     });
 
@@ -691,7 +786,7 @@ export default function AdminProducts() {
       if (indices.length > 1) {
         hasDuplicates = true;
         indices.forEach((i) => {
-          errors[i] = { ...errors[i], sku: true };
+          errors[i] = { ...errors[i], sku: "This SKU is used by another size — SKUs must be unique." };
         });
       }
     });
@@ -704,8 +799,27 @@ export default function AdminProducts() {
 
   const handleSubmitProduct = async (e) => {
     e.preventDefault();
+    if (saving) return; // double submit guard
     setError("");
     setMessage("");
+
+    const mainErrors = Object.fromEntries(Object.entries(PRODUCT_RULES).map(([k, rule]) => [k, rule(form[k])]));
+    setProductErrors(mainErrors);
+    if (firstError(mainErrors)) {
+      setError(firstError(mainErrors));
+      toastError(firstError(mainErrors));
+      return;
+    }
+
+    const badFlavor = form.flavors.find(
+      (f) => f.name.trim() && f.priceAdjustment !== "" && !Number.isFinite(Number(f.priceAdjustment))
+    );
+    if (badFlavor) {
+      const msg = `Price change for "${badFlavor.name}" must be a number.`;
+      setError(msg);
+      toastError(msg);
+      return;
+    }
 
     setThumbnailMissing(!form.images[0]);
     if (!form.images[0]) {
@@ -721,11 +835,12 @@ export default function AdminProducts() {
       return;
     }
     if (!sizesValid) {
-      setError("Please fill in weight, price, stock, and SKU for every size.");
-      toastError("Please fill in weight, price, stock, and SKU for every size.");
+      setError("Some sizes need fixing — check the highlighted fields.");
+      toastError("Some sizes need fixing — check the highlighted fields.");
       return;
     }
 
+    setSaving(true);
     try {
       if (editingId) {
         await api.adminUpdateProduct(token, editingId, buildPayload());
@@ -741,6 +856,8 @@ export default function AdminProducts() {
     } catch (err) {
       setError(err.message);
       toastError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -749,17 +866,15 @@ export default function AdminProducts() {
   // orders keep their own snapshot of the item and are unaffected; the
   // server also pulls the product out of any live carts.
   const handlePermanentDeleteProduct = async (p) => {
-    const typed = window.prompt(
-      `PERMANENTLY DELETE "${p.name}"?\n\n` +
-        `This cannot be undone. The product is removed from the database and from any customer carts. ` +
-        `Past orders are not affected.\n\n` +
-        `To confirm, type the product name exactly:`
-    );
-    if (typed === null) return; // cancelled
-    if (typed.trim() !== p.name.trim()) {
-      toastError("Name didn't match — nothing was deleted.");
-      return;
-    }
+    const ok = await confirm({
+      title: `Permanently delete "${p.name}"?`,
+      message:
+        "This cannot be undone. The product is removed from the database and from any customer carts. Past orders are not affected.",
+      confirmLabel: "Delete forever",
+      danger: true,
+      requireText: p.name,
+    });
+    if (!ok) return;
 
     setError("");
     setMessage("");
@@ -777,7 +892,13 @@ export default function AdminProducts() {
 
   const handleToggleProductActive = async (p) => {
     const action = p.isActive ? "Deactivate" : "Reactivate";
-    if (!window.confirm(`${action} the "${p.name}" product?`)) return;
+    const ok = await confirm({
+      title: `${action} "${p.name}"?`,
+      message: p.isActive ? "It will be hidden from the store until you reactivate it." : "It will be visible in the store again.",
+      confirmLabel: action,
+      danger: p.isActive,
+    });
+    if (!ok) return;
     setError("");
     setMessage("");
     try {
@@ -809,23 +930,37 @@ export default function AdminProducts() {
       {/* Categories */}
       <div className="card mt-8 p-6">
         <h3 className="text-lg font-bold text-mdn-white">{catEditingId ? "Edit Category" : "Create Category"}</h3>
-        <form onSubmit={handleSaveCategory} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <input
-            name="name"
-            placeholder="Category name"
-            value={catForm.name}
-            onChange={handleCatChange}
-            required
-            className="input-field"
-          />
-          <input
-            name="slug"
-            placeholder="Slug (e.g. protein)"
-            value={catForm.slug}
-            onChange={handleCatChange}
-            required
-            className="input-field"
-          />
+        <form onSubmit={handleSaveCategory} noValidate className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <input
+              name="name"
+              placeholder="Category name"
+              aria-label="Category name"
+              value={catForm.name}
+              onChange={handleCatChange}
+              maxLength={50}
+              required
+              aria-invalid={!!catErrors.name}
+              className={`input-field ${catErrors.name ? "!border-red-500/60" : ""}`}
+            />
+            {catErrors.name && <p role="alert" className="mt-1 text-xs text-red-400">{catErrors.name}</p>}
+          </div>
+          <div>
+            <input
+              name="slug"
+              placeholder="Slug (e.g. protein)"
+              aria-label="Category slug"
+              value={catForm.slug}
+              onChange={handleCatChange}
+              maxLength={60}
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              aria-invalid={!!catErrors.slug}
+              className={`input-field ${catErrors.slug ? "!border-red-500/60" : ""}`}
+            />
+            {catErrors.slug && <p role="alert" className="mt-1 text-xs text-red-400">{catErrors.slug}</p>}
+          </div>
           <div className="flex gap-3 sm:col-span-2">
             <button type="submit" disabled={catSaving} className="btn-primary w-full disabled:opacity-50 sm:w-auto">
               {catSaving ? "Saving..." : catEditingId ? "Save Changes" : "Create Category"}
@@ -857,10 +992,11 @@ export default function AdminProducts() {
                     <td className="px-4 py-3 text-mdn-gray">{c.isActive ? "Active" : "Inactive"}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button onClick={() => startEditCategory(c)} className="btn-secondary !px-3 !py-1 text-xs">
+                        <button type="button" onClick={() => startEditCategory(c)} aria-label={`Edit category ${c.name}`} className="btn-secondary !px-3 !py-1 text-xs">
                           Edit
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleToggleCategoryActive(c)}
                           className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
                             c.isActive
@@ -883,25 +1019,42 @@ export default function AdminProducts() {
       {/* Create / Edit Product */}
       <div className="card mt-8 p-6">
         <h3 className="text-lg font-bold text-mdn-white">{editingId ? "Edit Product" : "Create Product"}</h3>
-        <form onSubmit={handleSubmitProduct} className="mt-4 space-y-4">
+        <form onSubmit={handleSubmitProduct} noValidate className="mt-4 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <input name="name" placeholder="Product name" value={form.name} onChange={handleFormChange} required className="input-field" />
-            <input name="slug" placeholder="Slug (e.g. gold-whey-protein)" value={form.slug} onChange={handleFormChange} required className="input-field" />
+            <div>
+              <input name="name" placeholder="Product name" aria-label="Product name" value={form.name} onChange={handleFormChange} onBlur={handleProductBlur} maxLength={120} required {...productAria("name")} className={productFieldClass("name")} />
+              {productFieldError("name")}
+            </div>
+            <div>
+              <input name="slug" placeholder="Slug (e.g. gold-whey-protein)" aria-label="Slug" value={form.slug} onChange={handleFormChange} onBlur={handleProductBlur} maxLength={140} autoCapitalize="none" spellCheck={false} required {...productAria("slug")} className={productFieldClass("slug")} />
+              {productFieldError("slug")}
+            </div>
           </div>
 
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleFormChange}
-            required
-            rows={4}
-            className="input-field w-full resize-y"
-          />
+          <div>
+            <textarea
+              name="description"
+              placeholder="Description"
+              aria-label="Description"
+              value={form.description}
+              onChange={handleFormChange}
+              onBlur={handleProductBlur}
+              maxLength={10000}
+              required
+              rows={4}
+              {...productAria("description")}
+              className={productFieldClass("description", "w-full resize-y")}
+            />
+            {productFieldError("description")}
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <input name="brand" placeholder="Brand" value={form.brand} onChange={handleFormChange} required className="input-field" />
-            <select name="category" value={form.category} onChange={handleFormChange} required className="input-field">
+            <div>
+              <input name="brand" placeholder="Brand" aria-label="Brand" value={form.brand} onChange={handleFormChange} onBlur={handleProductBlur} maxLength={60} required {...productAria("brand")} className={productFieldClass("brand")} />
+              {productFieldError("brand")}
+            </div>
+            <div>
+            <select name="category" aria-label="Category" value={form.category} onChange={handleFormChange} onBlur={handleProductBlur} required {...productAria("category")} className={productFieldClass("category")}>
               <option value="">Select category</option>
               {categories
                 .filter((c) => c.isActive || c._id === form.category)
@@ -912,16 +1065,25 @@ export default function AdminProducts() {
                   </option>
                 ))}
             </select>
+            {productFieldError("category")}
+            </div>
           </div>
 
-          <input
-            name="productType"
-            placeholder="Product type (e.g. Whey Protein)"
-            value={form.productType}
-            onChange={handleFormChange}
-            required
-            className="input-field w-full"
-          />
+          <div>
+            <input
+              name="productType"
+              placeholder="Product type (e.g. Whey Protein)"
+              aria-label="Product type"
+              value={form.productType}
+              onChange={handleFormChange}
+              onBlur={handleProductBlur}
+              maxLength={60}
+              required
+              {...productAria("productType")}
+              className={productFieldClass("productType", "w-full")}
+            />
+            {productFieldError("productType")}
+          </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-mdn-white">
@@ -1013,14 +1175,20 @@ export default function AdminProducts() {
                 <input
                   type="number"
                   name="manualRating"
+                  aria-label="Rating value"
                   value={form.manualRating}
                   onChange={handleFormChange}
+                  onBlur={handleProductBlur}
+                  onKeyDown={blockNonPriceKeys}
+                  inputMode="decimal"
                   min="0"
                   max="5"
                   step="0.1"
                   placeholder="Use review average"
-                  className="input-field"
+                  {...productAria("manualRating")}
+                  className={productFieldClass("manualRating")}
                 />
+                {productFieldError("manualRating")}
               </div>
             </div>
             <p className="mt-2 text-xs text-mdn-gray">
@@ -1109,76 +1277,112 @@ export default function AdminProducts() {
                   <input
                     name="weight"
                     placeholder="Weight (e.g. 1kg)"
+                    aria-label={`Size ${i + 1} weight`}
                     value={s.weight}
                     onChange={(e) => handleSizeChange(i, e)}
+                    maxLength={40}
                     required
+                    aria-invalid={!!sizeErrors[i]?.weight}
                     className={`${sizeFieldClass(i, "weight")} mt-3 w-full`}
                   />
-                  {sizeErrors[i]?.weight && <p className="mt-1 text-xs text-red-400">Weight is required.</p>}
+                  {sizeErrors[i]?.weight && <p role="alert" className="mt-1 text-xs text-red-400">{sizeErrors[i].weight}</p>}
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     <div>
                       <input
                         name="price"
                         type="number"
-                        placeholder="Price"
+                        placeholder="Price (MRP)"
+                        aria-label={`Size ${i + 1} price (MRP)`}
                         value={s.price}
                         onChange={(e) => handleSizeChange(i, e)}
+                        onKeyDown={blockNonPriceKeys}
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
                         required
+                        aria-invalid={!!sizeErrors[i]?.price}
                         className={sizeFieldClass(i, "price")}
                       />
-                      {sizeErrors[i]?.price && <p className="mt-1 text-xs text-red-400">Price is required.</p>}
+                      {sizeErrors[i]?.price && <p role="alert" className="mt-1 text-xs text-red-400">{sizeErrors[i].price}</p>}
                     </div>
-                    <input
-                      name="discountPrice"
-                      type="number"
-                      placeholder="Discount price (optional)"
-                      value={s.discountPrice}
-                      onChange={(e) => handleSizeChange(i, e)}
-                      className="input-field"
-                    />
+                    <div>
+                      <input
+                        name="discountPrice"
+                        type="number"
+                        placeholder="Selling price (optional)"
+                        aria-label={`Size ${i + 1} selling price`}
+                        value={s.discountPrice}
+                        onChange={(e) => handleSizeChange(i, e)}
+                        onKeyDown={blockNonPriceKeys}
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        aria-invalid={!!sizeErrors[i]?.discountPrice}
+                        className={sizeFieldClass(i, "discountPrice")}
+                      />
+                      {sizeErrors[i]?.discountPrice && <p role="alert" className="mt-1 text-xs text-red-400">{sizeErrors[i].discountPrice}</p>}
+                    </div>
                     <div>
                       <input
                         name="stock"
                         type="number"
                         placeholder="Stock (admin only)"
+                        aria-label={`Size ${i + 1} stock`}
                         value={s.stock}
                         onChange={(e) => handleSizeChange(i, e)}
+                        onKeyDown={blockNonIntegerKeys}
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
                         required
+                        aria-invalid={!!sizeErrors[i]?.stock}
                         className={sizeFieldClass(i, "stock")}
                       />
-                      {sizeErrors[i]?.stock && <p className="mt-1 text-xs text-red-400">Stock is required.</p>}
+                      {sizeErrors[i]?.stock && <p role="alert" className="mt-1 text-xs text-red-400">{sizeErrors[i].stock}</p>}
                     </div>
                   </div>
 
                   <input
                     name="sku"
                     placeholder="SKU (unique code)"
+                    aria-label={`Size ${i + 1} SKU`}
                     value={s.sku}
                     onChange={(e) => handleSizeChange(i, e)}
+                    maxLength={60}
+                    autoCapitalize="characters"
+                    spellCheck={false}
                     required
+                    aria-invalid={!!sizeErrors[i]?.sku}
                     className={`${sizeFieldClass(i, "sku")} mt-4 w-full`}
                   />
-                  {sizeErrors[i]?.sku && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {!s.sku ? "SKU is required." : "This SKU is used by another size — SKUs must be unique."}
-                    </p>
-                  )}
+                  {sizeErrors[i]?.sku && <p role="alert" className="mt-1 text-xs text-red-400">{sizeErrors[i].sku}</p>}
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <input
-                      name="servings"
-                      type="number"
-                      placeholder="Servings (optional)"
-                      value={s.servings}
-                      onChange={(e) => handleSizeChange(i, e)}
-                      className="input-field"
-                    />
+                    <div>
+                      <input
+                        name="servings"
+                        type="number"
+                        placeholder="Servings (optional)"
+                        aria-label={`Size ${i + 1} servings`}
+                        value={s.servings}
+                        onChange={(e) => handleSizeChange(i, e)}
+                        onKeyDown={blockNonIntegerKeys}
+                        inputMode="numeric"
+                        min="1"
+                        step="1"
+                        aria-invalid={!!sizeErrors[i]?.servings}
+                        className={sizeFieldClass(i, "servings")}
+                      />
+                      {sizeErrors[i]?.servings && <p role="alert" className="mt-1 text-xs text-red-400">{sizeErrors[i].servings}</p>}
+                    </div>
                     <input
                       name="supplyLabel"
                       placeholder="Supply label (e.g. 2-month supply)"
+                      aria-label={`Size ${i + 1} supply label`}
                       value={s.supplyLabel}
                       onChange={(e) => handleSizeChange(i, e)}
+                      maxLength={60}
                       className="input-field"
                     />
                   </div>
@@ -1322,6 +1526,12 @@ export default function AdminProducts() {
                       placeholder="e.g. 50, or -20 (leave blank or 0 for no change)"
                       value={f.priceAdjustment}
                       onChange={(e) => handleFlavorChange(i, e)}
+                      // Yahan minus chalega (sasta flavour), bas "e"/"+" nahi
+                      onKeyDown={(e) => ["e", "E", "+", ","].includes(e.key) && e.preventDefault()}
+                      inputMode="decimal"
+                      step="any"
+                      min="-100000"
+                      max="100000"
                       className="input-field w-full sm:w-1/3"
                     />
                   </div>
@@ -1643,11 +1853,11 @@ export default function AdminProducts() {
           </div>
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <button type="submit" disabled={uploading} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
-              {editingId ? "Save Changes" : "Create Product"}
+            <button type="submit" disabled={uploading || saving} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+              {saving ? "Saving..." : editingId ? "Save Changes" : "Create Product"}
             </button>
             {editingId && (
-              <button type="button" className="btn-secondary w-full sm:w-auto" onClick={resetForm}>
+              <button type="button" disabled={saving} className="btn-secondary w-full sm:w-auto" onClick={resetForm}>
                 Cancel Edit
               </button>
             )}
@@ -1699,10 +1909,10 @@ export default function AdminProducts() {
                   <td className="px-4 py-3 text-mdn-gray">{p.isActive ? "Active" : "Inactive"}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button onClick={() => startEdit(p)} className="btn-secondary !px-3 !py-1 text-xs">
+                      <button type="button" onClick={() => startEdit(p)} className="btn-secondary !px-3 !py-1 text-xs">
                         Edit
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleToggleProductActive(p)}
                         className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
                           p.isActive
@@ -1715,7 +1925,7 @@ export default function AdminProducts() {
                       {/* Visually distinct from Deactivate (solid red, not
                           tinted) because it destroys the record rather than
                           hiding it. */}
-                      <button
+                      <button type="button"
                         onClick={() => handlePermanentDeleteProduct(p)}
                         title="Permanently delete this product — cannot be undone"
                         className="rounded-md border border-red-600 bg-red-600/90 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-600"
@@ -1737,6 +1947,7 @@ export default function AdminProducts() {
           </table>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }

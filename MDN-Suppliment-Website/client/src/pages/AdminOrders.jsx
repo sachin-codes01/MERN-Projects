@@ -4,6 +4,8 @@ import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
 import SearchInput from "../components/SearchInput";
 import MDNLoader from "../components/MDNLoader";
+import { useConfirm } from "../components/ConfirmDialog";
+import { hasErrors, rules } from "../utils/validators";
 
 const STATUS_OPTIONS = [
   "placed",
@@ -15,6 +17,35 @@ const STATUS_OPTIONS = [
   "cancelled",
   "returned",
 ];
+
+// Status ke hisaab se zaroori fields — server (orderStatusBody) bhi yahi maangta hai
+const NEEDS_TRACKING = ["shipped", "out_for_delivery"];
+const dayStart = (d) => new Date(new Date(d).toDateString());
+
+const validateStatusForm = (form, order) => {
+  const errs = {};
+  if (NEEDS_TRACKING.includes(form.status)) {
+    errs.trackingNumber = rules.trackingNumber(form.trackingNumber);
+    errs.courierPartner = rules.courierPartner(form.courierPartner);
+  } else {
+    // Optional, par diya ho to format sahi ho
+    if (form.trackingNumber.trim()) errs.trackingNumber = rules.trackingNumber(form.trackingNumber);
+    if (form.courierPartner.trim()) errs.courierPartner = rules.courierPartner(form.courierPartner);
+  }
+  if (form.status === "confirmed" && !form.estimatedDelivery) {
+    errs.estimatedDelivery = "Estimated delivery date is required to confirm an order";
+  } else if (form.status === "confirmed" && dayStart(form.estimatedDelivery) < dayStart(order.createdAt)) {
+    errs.estimatedDelivery = "Estimated delivery can't be before the order date";
+  }
+  if (form.status === "delivered" && form.deliveredAt) {
+    if (dayStart(form.deliveredAt) < dayStart(order.createdAt)) errs.deliveredAt = "Delivered date can't be before the order date";
+    else if (dayStart(form.deliveredAt) > dayStart(Date.now())) errs.deliveredAt = "Delivered date can't be in the future";
+  }
+  if (form.note.trim().length > 300) errs.note = "Note must be at most 300 characters";
+  return Object.fromEntries(Object.entries(errs).filter(([, v]) => v));
+};
+
+const todayInput = () => new Date().toISOString().slice(0, 10);
 
 export default function AdminOrders() {
   const { token, user } = useAuth();
@@ -35,6 +66,9 @@ export default function AdminOrders() {
     estimatedDelivery: "",
     deliveredAt: "",
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const loadOrders = () => {
     setLoading(true);
@@ -76,33 +110,76 @@ export default function AdminOrders() {
       estimatedDelivery: toDateInputValue(order.estimatedDelivery),
       deliveredAt: toDateInputValue(order.deliveredAt),
     });
+    setFormErrors({});
     setError("");
     setMessage("");
   };
 
-  const handleFormChange = (e) => setUpdateForm({ ...updateForm, [e.target.name]: e.target.value });
+  const handleFormChange = (e) => {
+    const next = { ...updateForm, [e.target.name]: e.target.value };
+    setUpdateForm(next);
+    // Galtiyan dikh rahi hon to type karte hi dobara check
+    const order = orders.find((o) => o._id === expandedId);
+    if (order && hasErrors(formErrors)) setFormErrors(validateStatusForm(next, order));
+  };
 
-  const handleUpdateStatus = async (id) => {
+  const handleUpdateStatus = async (order) => {
+    if (saving) return; // double submit guard
     setError("");
     setMessage("");
 
-    if (updateForm.status === "confirmed" && !updateForm.estimatedDelivery) {
-      const msg = "Estimated delivery date is required when marking an order as confirmed.";
-      setError(msg);
-      toastError(msg);
+    const errs = validateStatusForm(updateForm, order);
+    setFormErrors(errs);
+    if (hasErrors(errs)) {
+      toastError(Object.values(errs)[0]);
       return;
     }
 
+    // Admin cancel = paid order ka refund bhi — pehle confirm
+    if (updateForm.status === "cancelled" && order.orderStatus !== "cancelled") {
+      const ok = await confirm({
+        title: `Cancel order ${order.orderNumber}?`,
+        message:
+          order.payment?.status === "paid"
+            ? `The customer will be refunded ₹${order.pricing.total} through Razorpay. This can't be undone.`
+            : "This can't be undone.",
+        confirmLabel: "Cancel order",
+        cancelLabel: "Keep order",
+        danger: true,
+      });
+      if (!ok) return;
+    }
+
+    setSaving(true);
     try {
-      await api.adminUpdateOrderStatus(token, id, updateForm);
+      await api.adminUpdateOrderStatus(token, order._id, {
+        ...updateForm,
+        trackingNumber: updateForm.trackingNumber.trim(),
+        courierPartner: updateForm.courierPartner.trim(),
+        note: updateForm.note.trim(),
+      });
       setMessage("Order status updated.");
       success("Order status updated.");
       loadOrders();
     } catch (err) {
       setError(err.message);
       toastError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
+
+  const fieldError = (name) =>
+    formErrors[name] ? (
+      <p id={`order-${name}-error`} role="alert" className="mt-1 text-xs text-mdn-danger">
+        {formErrors[name]}
+      </p>
+    ) : null;
+  const fieldAria = (name) => ({
+    "aria-invalid": !!formErrors[name],
+    "aria-describedby": formErrors[name] ? `order-${name}-error` : undefined,
+  });
+  const needsTracking = NEEDS_TRACKING.includes(updateForm.status);
 
   const filteredOrders = orders.filter((o) => {
     const q = search.trim().toLowerCase();
@@ -141,8 +218,9 @@ export default function AdminOrders() {
           className="sm:max-w-xs"
         />
         <div className="flex items-center gap-2">
-          <label className="whitespace-nowrap text-sm font-medium text-mdn-white">Filter by status:</label>
+          <label htmlFor="order-status-filter" className="whitespace-nowrap text-sm font-medium text-mdn-white">Filter by status:</label>
           <select
+            id="order-status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="input-field w-full sm:w-56"
@@ -199,7 +277,10 @@ export default function AdminOrders() {
                   <td className="px-4 py-3 text-mdn-gray">{new Date(o.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <button
+                      type="button"
                       onClick={() => toggleExpand(o)}
+                      aria-expanded={expandedId === o._id}
+                      aria-label={`${expandedId === o._id ? "Close" : "Manage"} order ${o.orderNumber}`}
                       className={expandedId === o._id ? "btn-secondary !px-3 !py-1.5 text-xs" : "btn-primary !px-3 !py-1.5 text-xs"}
                     >
                       {expandedId === o._id ? "Close" : "Manage"}
@@ -283,8 +364,9 @@ export default function AdminOrders() {
                           <h4 className="text-sm font-bold uppercase tracking-wide text-mdn-white">Update status</h4>
                           <div className="mt-3 space-y-3">
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-mdn-gray">Status</label>
+                              <label htmlFor="order-status" className="mb-1 block text-xs font-medium text-mdn-gray">Status</label>
                               <select
+                                id="order-status"
                                 name="status"
                                 value={updateForm.status}
                                 onChange={handleFormChange}
@@ -299,79 +381,111 @@ export default function AdminOrders() {
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-mdn-gray">Tracking number</label>
+                              <label htmlFor="order-tracking" className="mb-1 block text-xs font-medium text-mdn-gray">
+                                Tracking number {needsTracking && <span className="text-red-400">*</span>}
+                              </label>
                               <input
+                                id="order-tracking"
                                 name="trackingNumber"
                                 placeholder="e.g. AWB1234567890"
                                 value={updateForm.trackingNumber}
                                 onChange={handleFormChange}
-                                className="input-field w-full"
+                                maxLength={60}
+                                autoComplete="off"
+                                spellCheck={false}
+                                required={needsTracking}
+                                {...fieldAria("trackingNumber")}
+                                className={`input-field w-full ${formErrors.trackingNumber ? "!border-red-500/60" : ""}`}
                               />
+                              {fieldError("trackingNumber")}
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-mdn-gray">Courier partner</label>
+                              <label htmlFor="order-courier" className="mb-1 block text-xs font-medium text-mdn-gray">
+                                Courier partner {needsTracking && <span className="text-red-400">*</span>}
+                              </label>
                               <input
+                                id="order-courier"
                                 name="courierPartner"
                                 placeholder="e.g. Delhivery, Bluedart"
                                 value={updateForm.courierPartner}
                                 onChange={handleFormChange}
-                                className="input-field w-full"
+                                maxLength={60}
+                                required={needsTracking}
+                                {...fieldAria("courierPartner")}
+                                className={`input-field w-full ${formErrors.courierPartner ? "!border-red-500/60" : ""}`}
                               />
+                              {fieldError("courierPartner")}
                             </div>
 
                             {updateForm.status === "confirmed" && (
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-mdn-gray">
+                                <label htmlFor="order-eta" className="mb-1 block text-xs font-medium text-mdn-gray">
                                   Estimated delivery date <span className="text-red-400">*</span>
                                 </label>
                                 <input
+                                  id="order-eta"
                                   type="date"
                                   name="estimatedDelivery"
+                                  min={toDateInputValue(o.createdAt)}
                                   value={updateForm.estimatedDelivery}
                                   onChange={handleFormChange}
                                   required
+                                  {...fieldAria("estimatedDelivery")}
                                   className={`input-field w-full ${
                                     !updateForm.estimatedDelivery ? "border-red-500/50" : ""
                                   }`}
                                 />
-                                <p className="mt-1 text-xs text-mdn-gray/70">
-                                  The date the delivery partner is expected to arrive. Required to confirm this order.
-                                </p>
+                                {fieldError("estimatedDelivery") || (
+                                  <p className="mt-1 text-xs text-mdn-gray/70">
+                                    The date the delivery partner is expected to arrive. Required to confirm this order.
+                                  </p>
+                                )}
                               </div>
                             )}
 
                             {updateForm.status === "delivered" && (
                               <div>
-                                <label className="mb-1 block text-xs font-medium text-mdn-gray">Delivered date</label>
+                                <label htmlFor="order-delivered" className="mb-1 block text-xs font-medium text-mdn-gray">Delivered date</label>
                                 <input
+                                  id="order-delivered"
                                   type="date"
                                   name="deliveredAt"
+                                  min={toDateInputValue(o.createdAt)}
+                                  max={todayInput()}
                                   value={updateForm.deliveredAt}
                                   onChange={handleFormChange}
-                                  className="input-field w-full"
+                                  {...fieldAria("deliveredAt")}
+                                  className={`input-field w-full ${formErrors.deliveredAt ? "!border-red-500/60" : ""}`}
                                 />
-                                <p className="mt-1 text-xs text-mdn-gray/70">Leave blank to use today's date.</p>
+                                {fieldError("deliveredAt") || (
+                                  <p className="mt-1 text-xs text-mdn-gray/70">Leave blank to use today's date.</p>
+                                )}
                               </div>
                             )}
 
                             <div>
-                              <label className="mb-1 block text-xs font-medium text-mdn-gray">Note (optional)</label>
+                              <label htmlFor="order-note" className="mb-1 block text-xs font-medium text-mdn-gray">Note (optional)</label>
                               <input
+                                id="order-note"
                                 name="note"
                                 placeholder="Internal note for this status change"
                                 value={updateForm.note}
                                 onChange={handleFormChange}
+                                maxLength={300}
+                                {...fieldAria("note")}
                                 className="input-field w-full"
                               />
+                              {fieldError("note")}
                             </div>
 
                             <button
-                              onClick={() => handleUpdateStatus(o._id)}
-                              disabled={updateForm.status === "confirmed" && !updateForm.estimatedDelivery}
+                              type="button"
+                              onClick={() => handleUpdateStatus(o)}
+                              disabled={saving || (updateForm.status === "confirmed" && !updateForm.estimatedDelivery)}
                               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                             >
-                              Save Update
+                              {saving ? "Saving..." : "Save Update"}
                             </button>
                           </div>
                         </div>
@@ -391,6 +505,7 @@ export default function AdminOrders() {
           </tbody>
         </table>
       </div>
+      {confirmDialog}
     </div>
   );
 }

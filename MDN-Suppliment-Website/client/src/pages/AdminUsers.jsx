@@ -4,6 +4,7 @@ import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
 import SearchInput from "../components/SearchInput";
 import MDNLoader from "../components/MDNLoader";
+import { useConfirm } from "../components/ConfirmDialog";
 
 export default function AdminUsers() {
   const { token, user } = useAuth();
@@ -20,6 +21,9 @@ export default function AdminUsers() {
   const [userDetails, setUserDetails] = useState(null);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  // Block/unblock chal raha ho to us user ke buttons band
+  const [busyUserId, setBusyUserId] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const loadUsers = () => {
     setLoading(true);
@@ -39,32 +43,46 @@ export default function AdminUsers() {
     return <p className="mx-auto max-w-3xl px-4 py-10 text-red-400">Admin access only.</p>;
   }
 
-  const handleBlock = async (id) => {
-    if (!window.confirm("Block this user? They won't be able to log in or place orders until unblocked.")) return;
+  const handleBlock = async (u) => {
+    if (busyUserId) return;
+    const ok = await confirm({
+      title: `Block ${u.name || u.email}?`,
+      message: "They won't be able to log in or place orders until you unblock them.",
+      confirmLabel: "Block user",
+      danger: true,
+    });
+    if (!ok) return;
     setError("");
     setMessage("");
+    setBusyUserId(u._id);
     try {
-      await api.adminBlockUser(token, id);
+      await api.adminBlockUser(token, u._id);
       setMessage("User blocked.");
       success("User blocked.");
       loadUsers();
     } catch (err) {
       setError(err.message);
       toastError(err.message);
+    } finally {
+      setBusyUserId(null);
     }
   };
 
-  const handleUnblock = async (id) => {
+  const handleUnblock = async (u) => {
+    if (busyUserId) return;
     setError("");
     setMessage("");
+    setBusyUserId(u._id);
     try {
-      await api.adminUnblockUser(token, id);
+      await api.adminUnblockUser(token, u._id);
       setMessage("User unblocked.");
       success("User unblocked.");
       loadUsers();
     } catch (err) {
       setError(err.message);
       toastError(err.message);
+    } finally {
+      setBusyUserId(null);
     }
   };
 
@@ -198,18 +216,20 @@ export default function AdminUsers() {
                       {u.isBlocked ? (
                         <button
                           type="button"
-                          onClick={() => handleUnblock(u._id)}
-                          className="btn-secondary !px-2.5 !py-1 text-xs"
+                          onClick={() => handleUnblock(u)}
+                          disabled={busyUserId === u._id}
+                          className="btn-secondary !px-2.5 !py-1 text-xs disabled:opacity-50"
                         >
-                          Unblock
+                          {busyUserId === u._id ? "Unblocking..." : "Unblock"}
                         </button>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleBlock(u._id)}
-                          className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+                          onClick={() => handleBlock(u)}
+                          disabled={busyUserId === u._id}
+                          className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
                         >
-                          Block
+                          {busyUserId === u._id ? "Blocking..." : "Block"}
                         </button>
                       )}
                     </div>
@@ -349,6 +369,7 @@ export default function AdminUsers() {
           </tbody>
         </table>
       </div>
+      {confirmDialog}
     </div>
   );
 }

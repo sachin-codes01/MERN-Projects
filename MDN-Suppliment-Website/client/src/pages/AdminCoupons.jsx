@@ -2,6 +2,27 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/api";
 import { useToast } from "../context/ToastContext";
+import { useConfirm } from "../components/ConfirmDialog";
+import { blockNonPriceKeys, hasErrors, LIMITS, numberRule, rules, validateFields } from "../utils/validators";
+
+// Coupon form ke rules — server (couponCreateBody) bhi yahi check karta hai
+const COUPON_RULES = {
+  code: rules.couponCode,
+  discountValue: (v, f) =>
+    numberRule(f.discountType === "percentage" ? "Discount %" : "Discount amount", {
+      gt: 0,
+      max: f.discountType === "percentage" ? 100 : 100000,
+    })(v),
+  minOrderValue: numberRule("Minimum order value", { min: 0, max: 1000000, optional: true }),
+  maxDiscount: (v, f) => (f.discountType === "percentage" ? numberRule("Max discount", { gt: 0, max: 1000000, optional: true })(v) : ""),
+  expiresAt: (v, f) => {
+    if (!v) return "";
+    if (Number.isNaN(Date.parse(v))) return "Pick a valid date";
+    // Naya coupon pehle se expired nahi ho sakta (purane edit karte waqt chhoot)
+    const today = new Date().toISOString().slice(0, 10);
+    return !f._editing && v < today ? "Expiry date can't be in the past" : "";
+  },
+};
 
 const emptyForm = {
   code: "",
@@ -22,6 +43,10 @@ export default function AdminCoupons() {
 
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [deactivatingId, setDeactivatingId] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const loadCoupons = () => {
     setLoading(true);
@@ -41,11 +66,27 @@ export default function AdminCoupons() {
     return <p className="mx-auto max-w-3xl px-4 py-10 text-red-400">Admin access only.</p>;
   }
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const values = { ...form, _editing: !!editingId };
+  const checkField = (name, v = values) => COUPON_RULES[name]?.(v[name], v) || "";
+
+  const handleChange = (e) => {
+    const { name } = e.target;
+    // Code: sirf A-Z 0-9, apne aap capital
+    const value = name === "code" ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") : e.target.value;
+    const next = { ...form, [name]: value };
+    setForm(next);
+    if (fieldErrors[name]) setFieldErrors((fe) => ({ ...fe, [name]: checkField(name, { ...next, _editing: !!editingId }) }));
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setFieldErrors((fe) => ({ ...fe, [name]: checkField(name) }));
+  };
 
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setFieldErrors({});
   };
 
   const startEdit = (coupon) => {
@@ -58,24 +99,34 @@ export default function AdminCoupons() {
       expiresAt: coupon.expiresAt ? coupon.expiresAt.slice(0, 10) : "",
     });
     setEditingId(coupon._id);
+    setFieldErrors({});
     setError("");
     setMessage("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return; // double submit guard
     setError("");
     setMessage("");
+
+    const errs = validateFields(values, COUPON_RULES);
+    setFieldErrors(errs);
+    if (hasErrors(errs)) {
+      toastError("Some fields need fixing — please check the form.");
+      return;
+    }
 
     const payload = {
       code: form.code.toUpperCase().trim(),
       discountType: form.discountType,
       discountValue: Number(form.discountValue),
       minOrderValue: form.minOrderValue ? Number(form.minOrderValue) : 0,
-      maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : undefined,
+      maxDiscount: form.discountType === "percentage" && form.maxDiscount ? Number(form.maxDiscount) : undefined,
       expiresAt: form.expiresAt || undefined,
     };
 
+    setSaving(true);
     try {
       if (editingId) {
         await api.adminUpdateCoupon(token, editingId, payload);
@@ -91,13 +142,24 @@ export default function AdminCoupons() {
     } catch (err) {
       setError(err.message);
       toastError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeactivate = async (id) => {
-    if (!window.confirm("Deactivate this coupon? Customers will no longer be able to apply it.")) return;
+  const handleDeactivate = async (coupon) => {
+    if (deactivatingId) return;
+    const ok = await confirm({
+      title: `Deactivate ${coupon.code}?`,
+      message: "Customers will no longer be able to apply this coupon.",
+      confirmLabel: "Deactivate",
+      danger: true,
+    });
+    if (!ok) return;
+    const id = coupon._id;
     setError("");
     setMessage("");
+    setDeactivatingId(id);
     try {
       await api.adminDeleteCoupon(token, id);
       setMessage("Coupon deactivated.");
@@ -106,8 +168,20 @@ export default function AdminCoupons() {
     } catch (err) {
       setError(err.message);
       toastError(err.message);
+    } finally {
+      setDeactivatingId(null);
     }
   };
+
+  const err = (name) =>
+    fieldErrors[name] ? (
+      <p id={`coupon-${name}-error`} role="alert" className="mt-1 text-xs text-mdn-danger">
+        {fieldErrors[name]}
+      </p>
+    ) : null;
+  const errClass = (name) => (fieldErrors[name] ? "!border-mdn-danger/60" : "");
+  const describedBy = (name) => (fieldErrors[name] ? `coupon-${name}-error` : undefined);
+  const labelClass = "mb-1 block text-xs font-semibold uppercase tracking-wide text-mdn-gray";
 
   if (loading) {
     return (
@@ -129,70 +203,143 @@ export default function AdminCoupons() {
 
       <div className="card mt-8 p-6">
         <h3 className="text-lg font-bold text-mdn-white">{editingId ? "Edit Coupon" : "Create Coupon"}</h3>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <input
-            name="code"
-            placeholder="Coupon code (e.g. WELCOME10)"
-            value={form.code}
-            onChange={handleChange}
-            required
-            className="input-field w-full"
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <select name="discountType" value={form.discountType} onChange={handleChange} className="input-field">
-              <option value="percentage">Percentage off</option>
-              <option value="flat">Flat amount off</option>
-            </select>
+        <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="coupon-code" className={labelClass}>
+              Coupon code <span className="text-mdn-danger">*</span>
+            </label>
             <input
-              name="discountValue"
-              type="number"
-              placeholder={form.discountType === "percentage" ? "Discount %" : "Discount amount (₹)"}
-              value={form.discountValue}
+              id="coupon-code"
+              name="code"
+              placeholder="e.g. WELCOME10"
+              value={form.code}
               onChange={handleChange}
+              onBlur={handleBlur}
+              maxLength={LIMITS.couponMax}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
               required
-              className="input-field"
+              aria-invalid={!!fieldErrors.code}
+              aria-describedby={describedBy("code")}
+              className={`input-field w-full ${errClass("code")}`}
             />
+            {err("code")}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <input
-              name="minOrderValue"
-              type="number"
-              placeholder="Minimum order value (optional)"
-              value={form.minOrderValue}
-              onChange={handleChange}
-              className="input-field"
-            />
-            {form.discountType === "percentage" && (
-              <input
-                name="maxDiscount"
-                type="number"
-                placeholder="Max discount cap (optional)"
-                value={form.maxDiscount}
+            <div>
+              <label htmlFor="coupon-type" className={labelClass}>
+                Discount type
+              </label>
+              <select
+                id="coupon-type"
+                name="discountType"
+                value={form.discountType}
                 onChange={handleChange}
                 className="input-field"
+              >
+                <option value="percentage">Percentage off</option>
+                <option value="flat">Flat amount off</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="coupon-value" className={labelClass}>
+                {form.discountType === "percentage" ? "Discount % (1-100)" : "Discount amount (₹)"} <span className="text-mdn-danger">*</span>
+              </label>
+              <input
+                id="coupon-value"
+                name="discountValue"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                max={form.discountType === "percentage" ? 100 : undefined}
+                step="any"
+                value={form.discountValue}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                onKeyDown={blockNonPriceKeys}
+                required
+                aria-invalid={!!fieldErrors.discountValue}
+                aria-describedby={describedBy("discountValue")}
+                className={`input-field ${errClass("discountValue")}`}
               />
+              {err("discountValue")}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="coupon-min" className={labelClass}>
+                Minimum order value (₹, optional)
+              </label>
+              <input
+                id="coupon-min"
+                name="minOrderValue"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                value={form.minOrderValue}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                onKeyDown={blockNonPriceKeys}
+                aria-invalid={!!fieldErrors.minOrderValue}
+                aria-describedby={describedBy("minOrderValue")}
+                className={`input-field ${errClass("minOrderValue")}`}
+              />
+              {err("minOrderValue")}
+            </div>
+            {form.discountType === "percentage" && (
+              <div>
+                <label htmlFor="coupon-max" className={labelClass}>
+                  Max discount cap (₹, optional)
+                </label>
+                <input
+                  id="coupon-max"
+                  name="maxDiscount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="any"
+                  value={form.maxDiscount}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onKeyDown={blockNonPriceKeys}
+                  aria-invalid={!!fieldErrors.maxDiscount}
+                  aria-describedby={describedBy("maxDiscount")}
+                  className={`input-field ${errClass("maxDiscount")}`}
+                />
+                {err("maxDiscount")}
+              </div>
             )}
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-mdn-white">Expiry date (optional)</label>
+            <label htmlFor="coupon-expiry" className={labelClass}>
+              Expiry date (optional)
+            </label>
             <input
+              id="coupon-expiry"
               name="expiresAt"
               type="date"
+              min={editingId ? undefined : new Date().toISOString().slice(0, 10)}
               value={form.expiresAt}
               onChange={handleChange}
-              className="input-field w-full sm:w-auto"
+              onBlur={handleBlur}
+              aria-invalid={!!fieldErrors.expiresAt}
+              aria-describedby={describedBy("expiresAt")}
+              className={`input-field w-full sm:w-auto ${errClass("expiresAt")}`}
             />
+            {err("expiresAt")}
           </div>
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <button type="submit" className="btn-primary w-full sm:w-auto">
-              {editingId ? "Save Changes" : "Create Coupon"}
+            <button type="submit" disabled={saving} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+              {saving ? "Saving..." : editingId ? "Save Changes" : "Create Coupon"}
             </button>
             {editingId && (
-              <button type="button" className="btn-secondary w-full sm:w-auto" onClick={resetForm}>
+              <button type="button" disabled={saving} className="btn-secondary w-full sm:w-auto" onClick={resetForm}>
                 Cancel Edit
               </button>
             )}
@@ -228,15 +375,18 @@ export default function AdminCoupons() {
                   <td className="px-4 py-3 text-mdn-gray">{c.isActive ? "Active" : "Inactive"}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button onClick={() => startEdit(c)} className="btn-secondary !px-3 !py-1 text-xs">
+                      <button type="button" onClick={() => startEdit(c)} aria-label={`Edit coupon ${c.code}`} className="btn-secondary !px-3 !py-1 text-xs">
                         Edit
                       </button>
                       {c.isActive && (
                         <button
-                          onClick={() => handleDeactivate(c._id)}
-                          className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+                          type="button"
+                          onClick={() => handleDeactivate(c)}
+                          disabled={deactivatingId === c._id}
+                          aria-label={`Deactivate coupon ${c.code}`}
+                          className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
                         >
-                          Deactivate
+                          {deactivatingId === c._id ? "Deactivating..." : "Deactivate"}
                         </button>
                       )}
                     </div>
@@ -254,6 +404,7 @@ export default function AdminCoupons() {
           </table>
         </div>
       </div>
+      {confirmDialog}
     </div>
   );
 }
