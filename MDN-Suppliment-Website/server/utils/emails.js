@@ -1,16 +1,41 @@
 // Customer ko jaane wale saare notification emails. Har function background
 // me bhejta hai (sendInBackground) — email fail ho jaye to bhi login/order
 // ka kaam nahi rukta, galti sirf server log me.
+//
+// Copy saadi aur insaani rakhi hai — "Hi Sachin," se shuru, koi emoji nahi.
 
 const User = require("../models/User");
-const { sendMail, sendInBackground, esc, button, infoBox, paragraph, C, SITE_URL } = require("./mailer");
+const {
+  sendMail,
+  sendInBackground,
+  esc,
+  rupee,
+  paragraph,
+  heading,
+  button,
+  box,
+  detailRows,
+  itemList,
+  summary,
+  C,
+  SITE_URL,
+} = require("./mailer");
 const { buildReceiptPdf } = require("./receiptPdf");
 
-const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-const firstName = (name = "") => esc(String(name).trim().split(/\s+/)[0] || "there");
+// "sachin kumar" → "Sachin Kumar" (log naam chhote akshar me bhi likhte hain)
+const titleName = (name = "") =>
+  String(name)
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+const firstName = (name = "") => esc(titleName(name).split(" ")[0] || "there");
+const hi = (name) => paragraph(`Hi ${firstName(name)},`);
+
 const istTime = (d = new Date()) =>
   new Date(d).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
-const istDate = (d) => new Date(d).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium" });
+const istDate = (d) =>
+  new Date(d).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
 
 // Order ka email kahan bheje: checkout pe diya (verified) email, warna account email
 const orderRecipient = async (order) => {
@@ -19,95 +44,89 @@ const orderRecipient = async (order) => {
   return user?.email;
 };
 
-/* ---------- Order ke chhote hisse ---------- */
+const orderInfo = (order, extra = []) =>
+  box(detailRows([["Order number", `<strong>${esc(order.orderNumber)}</strong>`], ["Order date", istDate(order.createdAt || Date.now())], ...extra]));
 
-const itemsTable = (order) => {
-  const rows = order.items
-    .map(
-      (i) => `<tr>
-        <td style="padding:10px 0;border-bottom:1px solid ${C.border};font-size:13.5px;color:${C.ink};text-align:left">
-          <strong>${esc(i.name)}</strong>${i.flavor ? ` <span style="color:${C.muted}">(${esc(i.flavor)})</span>` : ""}
-          <div style="font-size:12px;color:${C.muted}">${esc(i.weight || "")} × ${i.quantity}</div>
-        </td>
-        <td style="padding:10px 0;border-bottom:1px solid ${C.border};font-size:13.5px;color:${C.ink};text-align:right;white-space:nowrap">${rupee(i.price * i.quantity)}</td>
-      </tr>`
-    )
-    .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px">${rows}</table>`;
-};
+const shippingAddress = (a = {}) =>
+  `${heading("Shipping address")}
+   <p style="margin:0;font-size:14px;line-height:1.6;color:${C.body}">
+     ${esc(titleName(a.fullName))}<br>
+     ${esc([a.line1, a.line2].filter(Boolean).join(", "))}<br>
+     ${esc([a.city, a.district, a.state].filter(Boolean).join(", "))} ${esc(a.pincode)}<br>
+     Phone: ${esc(a.phone)}
+   </p>`;
 
-const totalsTable = (order) => {
-  const p = order.pricing || {};
-  const line = (label, value, strong = false) => `<tr>
-    <td style="padding:4px 0;font-size:${strong ? 15 : 13}px;color:${strong ? C.ink : C.muted};text-align:left${strong ? ";font-weight:700" : ""}">${label}</td>
-    <td style="padding:4px 0;font-size:${strong ? 17 : 13}px;color:${C.ink};text-align:right${strong ? ";font-weight:700" : ""}">${value}</td>
-  </tr>`;
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px">
-    ${line("Subtotal", rupee(p.subtotal))}
-    ${p.discount > 0 ? line(`Discount${p.couponCode ? ` (${esc(p.couponCode)})` : ""}`, `-${rupee(p.discount)}`) : ""}
-    ${line("Shipping", p.shippingFee > 0 ? rupee(p.shippingFee) : "FREE")}
-    ${line("GST (included)", rupee(p.tax))}
-    <tr><td colspan="2" style="border-top:1px solid ${C.border};padding-top:6px"></td></tr>
-    ${line(order.payment?.status === "paid" ? "Total paid" : "Order total", rupee(p.total), true)}
-  </table>`;
-};
+const ORDER_FOOTER = "You're receiving this email because you placed an order on the MDN website.";
+const ACCOUNT_FOOTER = "You're receiving this email about your MDN account.";
 
-const addressBlock = (a = {}) =>
-  infoBox(`<strong style="color:${C.ink}">Delivering to</strong><br>
-    ${esc(a.fullName)} · ${esc(a.phone)}<br>
-    ${esc([a.line1, a.line2].filter(Boolean).join(", "))}<br>
-    ${esc([a.city, a.district, a.state].filter(Boolean).join(", "))} – ${esc(a.pincode)}`);
-
-const orderHeader = (order) =>
-  `<div style="display:inline-block;margin-bottom:6px;padding:6px 14px;border-radius:999px;background:${C.cream};border:1px solid ${C.border};font-size:12.5px;color:${C.ink}">
-    Order <strong>#${esc(order.orderNumber)}</strong> · ${istDate(order.createdAt || Date.now())}
-  </div>`;
-
-/* ---------- Account ---------- */
+/* ================= Account ================= */
 
 // Pehli baar Google se sign-in
 const sendWelcomeEmail = (user) =>
   sendInBackground("welcome", () =>
     sendMail({
       to: user.email,
-      subject: "Welcome to MDN – My Daily Nutrition",
-      text: `Hi ${user.name}, welcome to MDN! Your account is ready. Shop: ${SITE_URL}`,
-      preheader: "Your MDN account is ready.",
-      eyebrow: "WELCOME",
-      title: `Welcome to MDN, ${firstName(user.name)}!`,
-      body: `${paragraph("Your account is ready. Clean, lab-tested supplements — whey, creatine, pre-workout and more — delivered to your door.")}
-        ${button(SITE_URL + "/products", "Start shopping")}
-        ${infoBox("✔ Lab tested every batch &nbsp;·&nbsp; 🚚 Same-day dispatch &nbsp;·&nbsp; 🔒 Secure payments")}`,
+      subject: "Welcome to MDN",
+      text: `Hi ${firstName(user.name)}, thanks for creating an MDN account. Start shopping: ${SITE_URL}/products`,
+      preheader: "Thanks for creating your account.",
+      title: "Welcome to MDN",
+      footerNote: ACCOUNT_FOOTER,
+      body: `${hi(user.name)}
+        ${paragraph("Thanks for creating an account with MDN – My Daily Nutrition. You can now check out faster, track your orders and save your addresses.")}
+        ${paragraph("Every MDN product is lab tested, and orders placed before 1 PM ship the same day.")}
+        ${button(SITE_URL + "/products", "Browse products")}`,
     })
   );
+
+// User-agent se "Chrome on Windows" jaisa
+const describeDevice = (ua = "") => {
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /OPR\//.test(ua)
+      ? "Opera"
+      : /Chrome\//.test(ua)
+        ? "Chrome"
+        : /Firefox\//.test(ua)
+          ? "Firefox"
+          : /Safari\//.test(ua)
+            ? "Safari"
+            : "a browser";
+  const os = /Android/.test(ua)
+    ? "Android"
+    : /iPhone|iPad/.test(ua)
+      ? "iPhone/iPad"
+      : /Windows/.test(ua)
+        ? "Windows"
+        : /Mac OS X/.test(ua)
+          ? "Mac"
+          : /Linux/.test(ua)
+            ? "Linux"
+            : "an unknown device";
+  return `${browser} on ${os}`;
+};
 
 // Har baad wale sign-in pe — security alert
 const sendLoginAlertEmail = (user, { userAgent = "" } = {}) => {
   const device = describeDevice(userAgent);
+  const when = istTime();
   return sendInBackground("login alert", () =>
     sendMail({
       to: user.email,
       subject: "New sign-in to your MDN account",
-      text: `New sign-in to your MDN account on ${istTime()} (${device}). If this wasn't you, contact support: ${SITE_URL}/support`,
-      preheader: `Signed in on ${istTime()}`,
-      eyebrow: "SECURITY ALERT",
+      text: `Hi ${firstName(user.name)}, your MDN account was signed in on ${when} IST (${device}). If this wasn't you, contact support: ${SITE_URL}/support`,
+      preheader: `${device}, ${when} IST`,
       title: "New sign-in to your account",
-      body: `${paragraph(`Hi ${firstName(user.name)}, your MDN account was just signed in with Google.`)}
-        ${infoBox(`<strong style="color:${C.ink}">When:</strong> ${istTime()} (IST)<br><strong style="color:${C.ink}">Device:</strong> ${esc(device)}`)}
-        ${paragraph("<br>If this was you, there's nothing to do. If you don't recognise it, sign out of your Google account on other devices and contact us.")}
+      footerNote: ACCOUNT_FOOTER,
+      body: `${hi(user.name)}
+        ${paragraph("Your MDN account was just signed in with Google.")}
+        ${box(detailRows([["Device", esc(device)], ["Time", `${when} IST`]]))}
+        ${paragraph("<br>If this was you, you don't need to do anything. If you don't recognise this sign-in, please contact us.")}
         ${button(SITE_URL + "/support", "Contact support")}`,
     })
   );
 };
 
-// User-agent se "Chrome on Windows" jaisa
-const describeDevice = (ua = "") => {
-  const browser = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "a browser";
-  const os = /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iPhone/iPad" : /Windows/.test(ua) ? "Windows" : /Mac OS X/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "an unknown device";
-  return `${browser} on ${os}`;
-};
-
-/* ---------- Orders ---------- */
+/* ================= Orders ================= */
 
 // Payment ke baad — PDF invoice attach
 const sendOrderPlacedEmail = (order) =>
@@ -119,56 +138,58 @@ const sendOrderPlacedEmail = (order) =>
     });
     await sendMail({
       to,
-      subject: `Order confirmed – #${order.orderNumber}`,
-      text: `Thanks for your order #${order.orderNumber}. Total paid ${rupee(order.pricing?.total)}. Track it: ${SITE_URL}/orders`,
-      preheader: `We've received your order #${order.orderNumber}. Your receipt is attached.`,
-      eyebrow: "ORDER CONFIRMED",
-      title: `Thank you, ${firstName(order.shippingAddress?.fullName)}! 🎉`,
-      body: `${orderHeader(order)}
-        ${paragraph("We've received your payment and your order is being prepared. Your receipt is attached to this email as a PDF.")}
-        ${itemsTable(order)}
-        ${totalsTable(order)}
-        ${addressBlock(order.shippingAddress)}
-        ${button(SITE_URL + "/orders", "Track your order")}`,
+      subject: `Your MDN order ${order.orderNumber} is confirmed`,
+      text: `Thanks for your order ${order.orderNumber}. Total paid ${rupee(order.pricing?.total)}. Track it: ${SITE_URL}/orders`,
+      preheader: `Thanks for your order. Total paid ${rupee(order.pricing?.total)}.`,
+      title: "Thanks for your order",
+      footerNote: ORDER_FOOTER,
+      body: `${hi(order.shippingAddress?.fullName)}
+        ${paragraph(`We've received your payment and your order is being prepared. We'll email you again when it ships.${pdf ? " Your invoice is attached to this email." : ""}`)}
+        ${orderInfo(order, [["Payment", "Paid online"]])}
+        ${heading("Items in this order")}
+        ${itemList(order.items)}
+        ${summary(order.pricing, { paid: true })}
+        ${shippingAddress(order.shippingAddress)}
+        ${button(SITE_URL + "/orders", "View order")}`,
       attachments: pdf ? [{ filename: `MDN-Invoice-${order.orderNumber}.pdf`, content: pdf, contentType: "application/pdf" }] : [],
     });
   });
 
 // Admin ne status badla
 const STATUS_COPY = {
-  confirmed: { eyebrow: "ORDER CONFIRMED", title: "Your order is confirmed", text: "We've confirmed your order and are getting it ready." },
-  processing: { eyebrow: "BEING PACKED", title: "Your order is being packed", text: "Our team is packing your order right now." },
-  shipped: { eyebrow: "SHIPPED", title: "Your order is on its way 🚚", text: "Your order has left our warehouse." },
-  out_for_delivery: { eyebrow: "OUT FOR DELIVERY", title: "Arriving today", text: "Your order is out for delivery — keep your phone handy." },
-  delivered: { eyebrow: "DELIVERED", title: "Your order was delivered ✅", text: "We hope you love it! Tell other customers what you think by leaving a review." },
-  returned: { eyebrow: "RETURNED", title: "Your return is complete", text: "We've received your returned order. Any refund due will be processed shortly." },
+  confirmed: { subject: "has been confirmed", title: "Your order is confirmed", text: "We've confirmed your order and are getting it ready to ship." },
+  processing: { subject: "is being packed", title: "Your order is being packed", text: "We're packing your order now. We'll email you as soon as it ships." },
+  shipped: { subject: "has shipped", title: "Your order has shipped", text: "Good news — your order is on its way." },
+  out_for_delivery: { subject: "is out for delivery", title: "Your order is out for delivery", text: "Your order will reach you today. Please keep your phone nearby in case the courier calls." },
+  delivered: { subject: "has been delivered", title: "Your order has been delivered", text: "Your order has been delivered. We hope you enjoy it — if you have a minute, a review helps other customers a lot." },
+  returned: { subject: "return is complete", title: "We've received your return", text: "Your returned order has reached us. Any refund due will be processed shortly." },
 };
 
 const sendOrderStatusEmail = (order) => {
   const copy = STATUS_COPY[order.orderStatus];
   if (!copy) return;
   return sendInBackground(`order ${order.orderStatus}`, async () => {
-    const details = [];
+    const extra = [];
     if (order.estimatedDelivery && !["delivered", "returned"].includes(order.orderStatus)) {
-      details.push(`<strong style="color:${C.ink}">Expected delivery:</strong> ${istDate(order.estimatedDelivery)}`);
+      extra.push(["Expected delivery", istDate(order.estimatedDelivery)]);
     }
-    if (order.courierPartner) details.push(`<strong style="color:${C.ink}">Courier:</strong> ${esc(order.courierPartner)}`);
-    if (order.trackingNumber) details.push(`<strong style="color:${C.ink}">Tracking number:</strong> ${esc(order.trackingNumber)}`);
-    if (order.orderStatus === "delivered" && order.deliveredAt) {
-      details.push(`<strong style="color:${C.ink}">Delivered on:</strong> ${istDate(order.deliveredAt)}`);
-    }
+    if (order.courierPartner) extra.push(["Courier", esc(order.courierPartner)]);
+    if (order.trackingNumber) extra.push(["Tracking number", `<strong>${esc(order.trackingNumber)}</strong>`]);
+    if (order.orderStatus === "delivered" && order.deliveredAt) extra.push(["Delivered on", istDate(order.deliveredAt)]);
+
     await sendMail({
       to: await orderRecipient(order),
-      subject: `${copy.title.replace(/[^\w\s'’-]/g, "").trim()} – #${order.orderNumber}`,
-      text: `${copy.text} Order #${order.orderNumber}. ${SITE_URL}/orders`,
-      preheader: `${copy.text} Order #${order.orderNumber}.`,
-      eyebrow: copy.eyebrow,
+      subject: `Your MDN order ${order.orderNumber} ${copy.subject}`,
+      text: `${copy.text} Order ${order.orderNumber}. ${SITE_URL}/orders`,
+      preheader: copy.text,
       title: copy.title,
-      body: `${orderHeader(order)}
+      footerNote: ORDER_FOOTER,
+      body: `${hi(order.shippingAddress?.fullName)}
         ${paragraph(copy.text)}
-        ${details.length ? infoBox(details.join("<br>")) : ""}
-        ${itemsTable(order)}
-        ${button(SITE_URL + "/orders", order.orderStatus === "delivered" ? "Leave a review" : "Track your order")}`,
+        ${orderInfo(order, extra)}
+        ${heading("Items in this order")}
+        ${itemList(order.items)}
+        ${button(SITE_URL + "/orders", order.orderStatus === "delivered" ? "Write a review" : "Track order")}`,
     });
   });
 };
@@ -176,21 +197,23 @@ const sendOrderStatusEmail = (order) => {
 // Cancel (customer / admin / stock khatam) — refund ki jaankari ke saath
 const sendOrderCancelledEmail = (order, { refunded = false, byCustomer = false } = {}) =>
   sendInBackground("order cancelled", async () => {
-    const refundText = refunded
-      ? `A full refund of <strong style="color:${C.ink}">${rupee(order.payment?.refundedAmount || order.pricing?.total)}</strong> has been started to your original payment method. It usually reaches your account in 5–7 working days.`
+    const amount = rupee(order.payment?.refundedAmount || order.pricing?.total);
+    const refundLine = refunded
+      ? `We've started a full refund of <strong>${amount}</strong> to your original payment method. It usually takes 5–7 working days to reach your account.`
       : "No payment was taken for this order.";
     await sendMail({
       to: await orderRecipient(order),
-      subject: `Order cancelled – #${order.orderNumber}`,
-      text: `Your order #${order.orderNumber} was cancelled. ${refunded ? "A full refund has been started (5-7 working days)." : ""}`,
-      preheader: `Order #${order.orderNumber} has been cancelled.`,
-      eyebrow: "ORDER CANCELLED",
-      title: byCustomer ? "Your order has been cancelled" : "We've had to cancel your order",
-      body: `${orderHeader(order)}
-        ${paragraph(byCustomer ? "As requested, we've cancelled your order." : "We're sorry — we couldn't complete this order.")}
-        ${order.cancelReason ? infoBox(`<strong style="color:${C.ink}">Reason:</strong> ${esc(order.cancelReason)}`) : ""}
-        ${infoBox(`💸 ${refundText}`)}
-        ${itemsTable(order)}
+      subject: `Your MDN order ${order.orderNumber} has been cancelled`,
+      text: `Your order ${order.orderNumber} has been cancelled. ${refunded ? `A full refund of ${amount} has been started (5-7 working days).` : ""}`,
+      preheader: refunded ? `Your refund of ${amount} has been started.` : "Your order has been cancelled.",
+      title: "Your order has been cancelled",
+      footerNote: ORDER_FOOTER,
+      body: `${hi(order.shippingAddress?.fullName)}
+        ${paragraph(byCustomer ? "As requested, we've cancelled your order." : "We're sorry, but we've had to cancel your order.")}
+        ${paragraph(refundLine)}
+        ${orderInfo(order, order.cancelReason ? [["Reason", esc(order.cancelReason)]] : [])}
+        ${heading("Cancelled items")}
+        ${itemList(order.items)}
         ${button(SITE_URL + "/products", "Continue shopping")}`,
     });
   });
@@ -200,32 +223,35 @@ const sendRefundProcessedEmail = (order, amount) =>
   sendInBackground("refund processed", async () =>
     sendMail({
       to: await orderRecipient(order),
-      subject: `Refund processed – #${order.orderNumber}`,
-      text: `A refund of ${rupee(amount)} for order #${order.orderNumber} has been processed.`,
-      preheader: `${rupee(amount)} is on its way back to you.`,
-      eyebrow: "REFUND PROCESSED",
-      title: "Your refund is on its way",
-      body: `${orderHeader(order)}
-        ${paragraph(`We've refunded <strong style="color:${C.ink}">${rupee(amount)}</strong> to your original payment method. Depending on your bank it can take 5–7 working days to show up.`)}
+      subject: `Refund of ${rupee(amount)} processed for order ${order.orderNumber}`,
+      text: `A refund of ${rupee(amount)} for order ${order.orderNumber} has been processed.`,
+      preheader: `${rupee(amount)} has been refunded to your original payment method.`,
+      title: "Your refund has been processed",
+      footerNote: ORDER_FOOTER,
+      body: `${hi(order.shippingAddress?.fullName)}
+        ${paragraph(`We've refunded <strong>${rupee(amount)}</strong> to your original payment method. Depending on your bank, it can take 5–7 working days to show in your account.`)}
+        ${orderInfo(order, [["Refund amount", rupee(amount)]])}
         ${button(SITE_URL + "/orders", "View your orders")}`,
     })
   );
 
-/* ---------- Contact form ---------- */
+/* ================= Contact form ================= */
 
 const sendEnquiryReceivedEmail = (enquiry) =>
   sendInBackground("enquiry received", () =>
     sendMail({
       to: enquiry.email,
-      subject: "We've received your message – MDN support",
-      text: `Hi ${enquiry.firstName}, thanks for contacting MDN. We usually reply within 24 hours on working days.`,
+      subject: "We've received your message",
+      text: `Hi ${firstName(enquiry.firstName)}, thanks for contacting MDN. We usually reply within 24 hours on working days.`,
       preheader: "We usually reply within 24 hours on working days.",
-      eyebrow: "CUSTOMER SUPPORT",
-      title: `Thanks, ${firstName(enquiry.firstName)} — we've got your message`,
-      body: `${paragraph("Our team usually replies within 24 hours on working days (Mon–Sat, 10 AM – 7 PM IST).")}
-        ${infoBox(`<strong style="color:${C.ink}">Your message</strong><br>${esc(enquiry.message).replace(/\n/g, "<br>")}`)}
-        ${paragraph("<br>Need a faster answer? Message us on WhatsApp from the support page.")}
-        ${button(SITE_URL + "/support", "Open support")}`,
+      title: "We've received your message",
+      footerNote: "You're receiving this email because you contacted MDN support.",
+      body: `${hi(enquiry.firstName)}
+        ${paragraph("Thanks for getting in touch. Our team usually replies within 24 hours on working days (Monday to Saturday, 10 AM – 7 PM IST).")}
+        ${heading("Your message")}
+        <p style="margin:0;font-size:14px;line-height:1.6;color:${C.body};font-style:italic">"${esc(enquiry.message).replace(/\n/g, "<br>")}"</p>
+        ${paragraph("<br>For a quicker reply, you can also message us on WhatsApp from the support page.")}
+        ${button(SITE_URL + "/support", "Go to Customer Support")}`,
     })
   );
 

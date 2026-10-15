@@ -2,8 +2,13 @@ const path = require("path");
 const nodemailer = require("nodemailer");
 
 // Saare emails (OTP, login, order…) yahin se jate hain — ek transporter,
-// ek branded layout. SMTP (Gmail App Password) .env me na ho to email
-// chupchaap skip, site ka koi kaam nahi rukta.
+// ek layout. Design jaan-boojh ke saada rakha hai, jaise asli store emails
+// (Amazon/Nykaa): logo, left-aligned text, simple tables, ek button.
+//
+// Email clients (Gmail, Outlook) me modern CSS nahi chalta — isliye sab
+// tables + inline styles, aur system fonts.
+//
+// SMTP (Gmail App Password) .env me na ho to email chupchaap skip.
 
 const isMailConfigured = () => !!(process.env.SMTP_USER && process.env.SMTP_PASS);
 
@@ -26,17 +31,18 @@ const LOGO_PATH = path.join(__dirname, "..", "assets", "mdn-logo-email.png");
 const LOGO_CID = "mdn-logo@mdn";
 const SITE_URL = (process.env.CLIENT_URL || "https://mdn-my-daily-nutrition.vercel.app").replace(/\/$/, "");
 
-// Brand colours (website jaise): cream, olive green, orange
 const C = {
-  cream: "#fdf8f1",
-  sand: "#f3ece0",
+  page: "#f5f2ec",
+  card: "#ffffff",
   green: "#3f5524",
-  greenDark: "#2c3a14",
-  orange: "#c2410c",
-  ink: "#1f2a12",
-  muted: "#6b6458",
-  border: "#e8dfcf",
+  ink: "#1f2418",
+  body: "#3d4236",
+  muted: "#7b7d74",
+  border: "#e6e1d6",
+  soft: "#f8f6f1",
+  red: "#a3271b",
 };
+const FONT = "Arial,Helvetica,sans-serif";
 
 // User ka likha text (naam, address, product name) HTML me safe
 const esc = (v) =>
@@ -47,53 +53,122 @@ const esc = (v) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-/* ---------- Chhote building blocks (templates inhe jodte hain) ---------- */
+const rupee = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
+/* ================= Building blocks ================= */
+
+const paragraph = (html) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${C.body}">${html}</p>`;
+
+// Section ka chhota bold heading ("Items in this order")
+const heading = (text) =>
+  `<p style="margin:28px 0 10px;font-size:15px;font-weight:bold;color:${C.ink}">${esc(text)}</p>`;
 
 const button = (href, label) => `
-  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px auto 4px"><tr>
-    <td style="background:${C.green};border-radius:999px">
-      <a href="${href}" style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px">${label}</a>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 4px"><tr>
+    <td style="background:${C.green};border-radius:6px">
+      <a href="${href}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none">${label}</a>
     </td>
   </tr></table>`;
 
-const infoBox = (html) => `
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;background:${C.cream};border:1px solid ${C.border};border-radius:12px">
-    <tr><td style="padding:14px 16px;font-size:13px;line-height:1.6;color:${C.muted};text-align:left">${html}</td></tr>
-  </table>`;
+// Details ka hissa — bina box/background ke, sirf thodi jagah (saada text jaisa)
+const box = (html) => `<div style="margin:4px 0 0">${html}</div>`;
 
-const paragraph = (html) => `<p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:${C.muted}">${html}</p>`;
+// Label / value ki lines
+const detailRows = (rows) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows
+    .filter(Boolean)
+    .map(
+      ([label, value]) => `<tr>
+        <td style="padding:3px 0;font-size:14px;color:${C.muted};width:150px;vertical-align:top">${label}:</td>
+        <td style="padding:3px 0;font-size:14px;color:${C.ink}">${value}</td>
+      </tr>`
+    )
+    .join("")}</table>`;
 
-/* ---------- Poora email: header (logo) + body + footer ---------- */
+// Product photo ka public URL: Cloudinary (chhota karke) ya website ka path
+const imageUrl = (src) => {
+  if (!src) return "";
+  if (/res\.cloudinary\.com\/.+\/upload\//.test(src)) return src.replace("/upload/", "/upload/w_120,h_120,c_pad,b_white,f_jpg/");
+  if (/^https?:\/\//i.test(src)) return src;
+  return src.startsWith("/") ? `${SITE_URL}${src}` : "";
+};
 
-const layout = ({ preheader = "", eyebrow = "", title = "", body = "" }) => `<!doctype html>
-<html><body style="margin:0;padding:0;background:${C.sand}">
-  <div style="display:none;max-height:0;overflow:hidden">${esc(preheader)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.sand};padding:32px 12px;font-family:Poppins,Segoe UI,Arial,sans-serif">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid ${C.border};box-shadow:0 6px 24px rgba(44,58,20,0.08)">
-        <tr><td align="center" style="background:${C.cream};padding:28px 24px 18px;border-bottom:3px solid ${C.green}">
+// Items: photo + naam + flavour/size + qty, daayein price
+const itemList = (items = []) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${C.border}">${items
+    .map((it) => {
+      const img = imageUrl(it.product?.thumbnail || it.image);
+      const meta = [it.flavor, it.weight].filter(Boolean).map(esc).join(", ");
+      return `<tr>
+        <td width="64" valign="top" style="padding:14px 0;border-bottom:1px solid ${C.border}">
+          ${img ? `<img src="${img}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;border:1px solid ${C.border};border-radius:4px">` : ""}
+        </td>
+        <td valign="top" style="padding:14px 10px;border-bottom:1px solid ${C.border}">
+          <div style="font-size:14px;color:${C.ink};line-height:1.4">${esc(it.name)}</div>
+          <div style="margin-top:3px;font-size:13px;color:${C.muted}">${meta}${meta ? " · " : ""}Qty ${it.quantity || 1}</div>
+        </td>
+        <td valign="top" align="right" style="padding:14px 0;border-bottom:1px solid ${C.border};font-size:14px;color:${C.ink};white-space:nowrap">${
+          it.price !== undefined ? rupee(it.price * (it.quantity || 1)) : ""
+        }</td>
+      </tr>`;
+    })
+    .join("")}</table>`;
+
+// Bill: subtotal, discount, shipping, GST, total (daayein side)
+const summary = (pricing = {}, { paid = true } = {}) => {
+  const row = (label, value, strong) => `<tr>
+    <td align="right" style="padding:3px 16px 3px 0;font-size:14px;color:${strong ? C.ink : C.muted}${strong ? ";font-weight:bold" : ""}">${label}</td>
+    <td align="right" style="padding:3px 0;font-size:14px;color:${C.ink};white-space:nowrap${strong ? ";font-weight:bold" : ""}">${value}</td>
+  </tr>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" align="right" style="margin-top:12px">
+    ${row("Subtotal", rupee(pricing.subtotal))}
+    ${pricing.discount > 0 ? row(`Discount${pricing.couponCode ? ` (${esc(pricing.couponCode)})` : ""}`, `-${rupee(pricing.discount)}`) : ""}
+    ${row("Shipping", pricing.shippingFee > 0 ? rupee(pricing.shippingFee) : "Free")}
+    ${row("GST (included)", rupee(pricing.tax))}
+    ${row(paid ? "Total paid" : "Order total", rupee(pricing.total), true)}
+  </table>
+  <div style="clear:both"></div>`;
+};
+
+/* ================= Poora email ================= */
+
+// title: bada headline; body: baaki sab (paragraphs, boxes, tables)
+const layout = ({ preheader = "", title = "", body = "", footerNote = "" }) => `<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <title>MDN – My Daily Nutrition</title>
+</head>
+<body style="margin:0;padding:0;background:${C.page}">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};font-family:${FONT}">
+    <tr><td align="center" style="padding:24px 12px 32px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border:1px solid ${C.border};border-radius:8px">
+        <tr><td style="padding:22px 32px;border-bottom:1px solid ${C.border}">
+          <!-- Logo + daayein website ka poora naam -->
           <a href="${SITE_URL}" style="text-decoration:none">
-            <img src="cid:${LOGO_CID}" width="120" alt="MDN" style="display:block;width:120px;height:auto;border:0">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td valign="middle" style="padding-right:14px"><img src="cid:${LOGO_CID}" width="84" alt="MDN" style="display:block;width:84px;height:auto;border:0"></td>
+              <td valign="middle" style="padding-left:14px;border-left:1px solid ${C.border}">
+                <div style="font-size:17px;font-weight:bold;color:${C.ink};line-height:1.2">My Daily Nutrition</div>
+                <div style="margin-top:2px;font-size:12px;color:${C.muted}">Clean, lab-tested supplements</div>
+              </td>
+            </tr></table>
           </a>
-          <div style="margin-top:8px;font-size:11px;letter-spacing:3px;font-weight:700;color:${C.greenDark}">MY DAILY NUTRITION</div>
         </td></tr>
-        <tr><td style="padding:30px 28px 28px" align="center">
-          ${eyebrow ? `<div style="font-size:11px;letter-spacing:2.5px;font-weight:700;color:${C.orange}">${esc(eyebrow)}</div>` : ""}
-          ${title ? `<h1 style="margin:8px 0 14px;font-size:22px;line-height:1.3;color:${C.ink}">${title}</h1>` : ""}
+        <tr><td style="padding:30px 32px 32px">
+          ${title ? `<h1 style="margin:0 0 18px;font-size:22px;line-height:1.3;font-weight:bold;color:${C.ink}">${title}</h1>` : ""}
           ${body}
-        </td></tr>
-        <tr><td align="center" style="background:${C.green};padding:18px 24px">
-          <div style="font-size:13px;font-weight:700;color:#ffffff">Clean, tested supplements for every stage of your training.</div>
-          <div style="margin-top:8px;font-size:12px">
-            <a href="${SITE_URL}" style="color:#fdf8f1;text-decoration:underline">Visit store</a>
-            <span style="color:#a8b590">&nbsp;·&nbsp;</span>
-            <a href="${SITE_URL}/orders" style="color:#fdf8f1;text-decoration:underline">Your orders</a>
-            <span style="color:#a8b590">&nbsp;·&nbsp;</span>
-            <a href="${SITE_URL}/support" style="color:#fdf8f1;text-decoration:underline">Customer support</a>
-          </div>
+          <p style="margin:28px 0 0;font-size:15px;line-height:1.6;color:${C.body}">Team MDN</p>
         </td></tr>
       </table>
-      <div style="margin-top:14px;font-size:11px;color:${C.muted};font-family:Arial,sans-serif">© ${new Date().getFullYear()} MDN – My Daily Nutrition</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
+        <tr><td style="padding:18px 32px 0;font-size:12px;line-height:1.7;color:${C.muted}">
+          ${footerNote ? `${footerNote}<br>` : ""}
+          Need help? Visit <a href="${SITE_URL}/support" style="color:${C.muted}">Customer Support</a>.<br>
+          MDN – My Daily Nutrition, India
+        </td></tr>
+      </table>
     </td></tr>
   </table>
 </body></html>`;
@@ -121,4 +196,20 @@ const sendInBackground = (label, buildAndSend) => {
     .catch((err) => console.error(`[email] ${label} failed:`, err.message));
 };
 
-module.exports = { sendMail, sendInBackground, isMailConfigured, layout, esc, button, infoBox, paragraph, C, SITE_URL };
+module.exports = {
+  sendMail,
+  sendInBackground,
+  isMailConfigured,
+  layout,
+  esc,
+  rupee,
+  paragraph,
+  heading,
+  button,
+  box,
+  detailRows,
+  itemList,
+  summary,
+  C,
+  SITE_URL,
+};
