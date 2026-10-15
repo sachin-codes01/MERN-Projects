@@ -1,4 +1,5 @@
 const Enquiry = require("../models/Enquiry");
+const { sendEnquiryReceivedEmail } = require("../utils/emails");
 
 // Normalises whatever the visitor typed into the bare 10 digits the model
 // stores. Accepts "+91 98765 43210", "091-98765-43210", "9876543210" etc,
@@ -27,6 +28,7 @@ exports.createEnquiry = async (req, res) => {
       message,
     });
 
+    sendEnquiryReceivedEmail(enquiry);
     res.status(201).json({ success: true, data: enquiry });
   } catch (err) {
     // Mongoose validation errors (bad phone, missing message) are the

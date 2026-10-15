@@ -13,6 +13,7 @@ const SiteSettings = require("../models/SiteSettings");
 const FlavorPreset = require("../models/FlavorPreset");
 const ServiceablePincode = require("../models/ServiceablePincode");
 const { refundOrder } = require("../utils/payments");
+const { sendOrderStatusEmail, sendOrderCancelledEmail } = require("../utils/emails");
 const validate = require("../middleware/validate");
 const S = require("../validators/schemas");
 
@@ -205,6 +206,9 @@ router.put("/orders/:id/status", byId("Order"), validate({ body: S.orderStatusBo
       return res.status(400).json({ success: false, message, errors: [{ field: "deliveredAt", message }] });
     }
 
+    const previousStatus = order.orderStatus;
+    let refunded = false;
+
     // Cancelling a paid order from the admin panel refunds the customer.
     // Done before the status changes so a failed refund leaves the order
     // untouched. (Returns are refunded manually once the goods are back.)
@@ -212,7 +216,10 @@ router.put("/orders/:id/status", byId("Order"), validate({ body: S.orderStatusBo
       try {
         if (!order.cancelReason) order.cancelReason = note || "Cancelled by store";
         const refund = await refundOrder(order, order.cancelReason);
-        if (refund) note = `${note ? note + ". " : ""}Refund ${refund.id} issued.`;
+        if (refund) {
+          refunded = true;
+          note = `${note ? note + ". " : ""}Refund ${refund.id} issued.`;
+        }
       } catch (err) {
         return res.status(502).json({ success: false, message: `Refund failed, order not cancelled: ${err.message}` });
       }
@@ -235,6 +242,11 @@ router.put("/orders/:id/status", byId("Order"), validate({ body: S.orderStatusBo
     order.statusHistory.push({ status, note });
 
     await order.save();
+    // Customer ko email sirf jab status sach me badla (tracking edit pe nahi)
+    if (status !== previousStatus) {
+      if (status === "cancelled") sendOrderCancelledEmail(order, { refunded });
+      else sendOrderStatusEmail(order);
+    }
     res.json({ success: true, data: order });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

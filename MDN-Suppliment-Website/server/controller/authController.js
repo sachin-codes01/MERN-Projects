@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
+const { sendWelcomeEmail, sendLoginAlertEmail } = require("../utils/emails");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -32,12 +33,17 @@ exports.googleLogin = async (req, res) => {
     }
 
     if (user.isBlocked) return res.status(403).json({ success: false, message: "Account is blocked" });
+    // Naya account → welcome email, purana → sign-in alert (save ke baad)
+    const isNewAccount = user.isNew;
 
     const accessToken = signAccessToken(user._id);
     const refreshToken = signRefreshToken(user._id);
     user.refreshToken = refreshToken;
     user.lastLogin = new Date();
     await user.save();
+
+    if (isNewAccount) sendWelcomeEmail(user);
+    else sendLoginAlertEmail(user, { userAgent: req.get("user-agent") });
 
     res.json({
       success: true,

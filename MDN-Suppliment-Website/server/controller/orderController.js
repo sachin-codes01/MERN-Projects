@@ -6,6 +6,7 @@ const CheckoutSession = require("../models/CheckoutSession");
 const ServiceablePincode = require("../models/ServiceablePincode");
 const User = require("../models/User");
 const { channelMode } = require("../utils/otpSender");
+const { sendOrderCancelledEmail } = require("../utils/emails");
 const razorpay = require("../config/razorpay");
 const { calcOrderPricing } = require("../utils/orderPricing");
 const {
@@ -300,6 +301,7 @@ exports.cancelOrder = async (req, res) => {
       note: refund ? `${reason}. Refund ${refund.id} issued.` : reason,
     });
     await order.save();
+    sendOrderCancelledEmail(order, { refunded: !!refund, byCustomer: true });
 
     res.json({
       success: true,

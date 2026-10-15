@@ -5,6 +5,8 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const CheckoutSession = require("../models/CheckoutSession");
+// Lazy require — emails.js → receiptPdf → … circular import se bachne ke liye
+const emails = () => require("./emails");
 
 // Constant-time string compare for HMAC signatures, so the check itself
 // can't leak how many leading characters were right.
@@ -174,6 +176,7 @@ const finalizePayment = async (razorpayOrderId, paymentId) => {
       session.status = "refunded";
       session.order = order._id;
       await session.save();
+      emails().sendOrderCancelledEmail(order, { refunded: true });
       return { order, refunded: true };
     }
 
@@ -200,6 +203,9 @@ const finalizePayment = async (razorpayOrderId, paymentId) => {
     // Housekeeping after the order exists — a failure here must not undo it.
     await Cart.updateOne({ user: session.user }, { $set: { items: [], couponApplied: null } }).catch(() => {});
     await saveAddressForUser(session).catch(() => {});
+    // Order confirmation + PDF receipt — sirf yahan, jahan order sach me bana
+    // (browser aur webhook dono aayein to bhi lock ki wajah se ek hi baar)
+    emails().sendOrderPlacedEmail(order);
 
     return { order, refunded: false };
   } catch (err) {
@@ -279,6 +285,10 @@ const syncRefundFromRazorpay = async (paymentId, refund, event) => {
   order.statusHistory.push({ status: order.orderStatus, note });
 
   await order.save();
+  // Paisa sach me wapas gaya (Razorpay dashboard se kiya refund bhi)
+  if (event === "refund.processed" && refundedPaise > 0) {
+    emails().sendRefundProcessedEmail(order, refund?.amount ? rupees(refund.amount) : refundedAmount);
+  }
   return order;
 };
 
