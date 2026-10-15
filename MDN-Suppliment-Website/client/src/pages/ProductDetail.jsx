@@ -233,7 +233,11 @@ const ProductDetail = () => {
         <div className="relative min-w-0 animate-fade-up lg:sticky lg:top-[calc(var(--nav-h,79px)+16px)] lg:self-start">
           {/* Admin ka sale star — photo ke daayein upar */}
           {product.saleBadge && (
-            <SaleBadge text={product.saleBadge} size={76} className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4" />
+            <SaleBadge
+              text={product.saleBadge}
+              size={null}
+              className="absolute right-3 top-3 z-10 [--sale-size:92px] sm:right-4 sm:top-4 sm:[--sale-size:112px]"
+            />
           )}
           {/* Koi box/frame nahi. Phone/tablet pe image row ki poori width (edge to edge)
               aur phone pe 9:10 frame (tablet 4:5) — poori photo frame me fit (object-fill, kuch crop nahi).

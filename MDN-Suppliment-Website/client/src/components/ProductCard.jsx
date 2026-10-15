@@ -120,7 +120,11 @@ const ProductCard = ({ product }) => {
         )}
         {/* Admin ka sale star — daayein upar kone me */}
         {product.saleBadge && !outOfStock && (
-          <SaleBadge text={product.saleBadge} size={52} className="absolute right-1.5 top-1.5 sm:right-2.5 sm:top-2.5" />
+          <SaleBadge
+            text={product.saleBadge}
+            size={null}
+            className="absolute right-1 top-1 [--sale-size:66px] sm:right-2 sm:top-2 sm:[--sale-size:80px]"
+          />
         )}
         {outOfStock && (
           <span className="absolute left-2 top-2 rounded-md bg-mdn-charcoal/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-mdn-danger shadow-xs sm:left-2.5 sm:top-2.5">
