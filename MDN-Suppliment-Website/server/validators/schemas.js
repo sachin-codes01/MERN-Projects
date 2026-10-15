@@ -328,6 +328,8 @@ const productBody = z.strictObject({
   flavors: z.array(flavorSchema).max(30, "At most 30 flavours").optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  // Sirf create pe: naya product customers ko email karein? (save nahi hota)
+  notifyCustomers: z.boolean().optional(),
 });
 // Edit / reactivate ({ isActive: true }) — har field optional
 const productUpdateBody = productBody.partial();

@@ -133,7 +133,7 @@ const summary = (pricing = {}, { paid = true } = {}) => {
 /* ================= Poora email ================= */
 
 // title: bada headline; body: baaki sab (paragraphs, boxes, tables)
-const layout = ({ preheader = "", title = "", body = "", footerNote = "" }) => `<!doctype html>
+const layout = ({ preheader = "", title = "", body = "", footerNote = "", unsubscribeUrl = "" }) => `<!doctype html>
 <html lang="en"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light only">
@@ -164,6 +164,7 @@ const layout = ({ preheader = "", title = "", body = "", footerNote = "" }) => `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
         <tr><td style="padding:18px 32px 0;font-size:12px;line-height:1.7;color:${C.muted}">
           ${footerNote ? `${footerNote}<br>` : ""}
+          ${unsubscribeUrl ? `Don't want product updates? <a href="${unsubscribeUrl}" style="color:${C.muted}">Unsubscribe</a>.<br>` : ""}
           Need help? Visit <a href="${SITE_URL}/support" style="color:${C.muted}">Customer Support</a>.<br>
           MDN – My Daily Nutrition, India
         </td></tr>
@@ -180,6 +181,10 @@ const sendMail = async ({ to, subject, text, attachments = [], ...content }) => 
     to,
     subject,
     text,
+    // Promotional email pe Gmail ka "Unsubscribe" button
+    ...(content.unsubscribeUrl
+      ? { list: { unsubscribe: { url: content.unsubscribeUrl, comment: "Unsubscribe from product updates" } } }
+      : {}),
     html: layout(content),
     attachments: [{ filename: "mdn-logo.png", path: LOGO_PATH, cid: LOGO_CID }, ...attachments],
   });
@@ -208,6 +213,7 @@ module.exports = {
   box,
   detailRows,
   itemList,
+  imageUrl,
   summary,
   C,
   SITE_URL,

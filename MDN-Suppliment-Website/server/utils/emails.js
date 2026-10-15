@@ -16,10 +16,12 @@ const {
   box,
   detailRows,
   itemList,
+  imageUrl,
   summary,
   C,
   SITE_URL,
 } = require("./mailer");
+const { unsubscribeUrl } = require("./productUpdates");
 const { buildReceiptPdf } = require("./receiptPdf");
 
 // "sachin kumar" → "Sachin Kumar" (log naam chhote akshar me bhi likhte hain)
@@ -255,7 +257,60 @@ const sendEnquiryReceivedEmail = (enquiry) =>
     })
   );
 
+/* ================= Naya product ================= */
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Admin ne naya product add kiya → sab customers ko (jinhone unsubscribe nahi
+// kiya). Ek-ek karke, beech me thoda ruk ke — Gmail ek saath bahut saare
+// emails pe account rok deta hai (limit ~500/din).
+const sendNewProductEmails = (product) =>
+  sendInBackground("new product", async () => {
+    const users = await User.find({ isBlocked: { $ne: true }, productEmails: { $ne: false } })
+      .select("name email")
+      .lean();
+    const size = product.sizes?.[0];
+    const price = size ? size.discountPrice || size.price : null;
+    const mrp = size?.discountPrice && size.discountPrice < size.price ? size.price : null;
+    const img = imageUrl(product.thumbnail || product.images?.[0]);
+    const link = `${SITE_URL}/products/${product.slug}`;
+
+    let sent = 0;
+    for (const u of users) {
+      try {
+        await sendMail({
+          to: u.email,
+          subject: `New at MDN: ${product.name}`,
+          text: `Hi ${firstName(u.name)}, we've just added ${product.name}${price ? ` (from ${rupee(price)})` : ""}. Take a look: ${link}`,
+          preheader: product.shortDescription || `${product.name} is now available.`,
+          title: `New: ${esc(product.name)}`,
+          unsubscribeUrl: unsubscribeUrl(u._id),
+          footerNote: "You're receiving this because you have an account on the MDN website.",
+          body: `${hi(u.name)}
+            ${paragraph(`We've just added a new product to the MDN range${product.brand ? ` from ${esc(product.brand)}` : ""}.`)}
+            ${img ? `<a href="${link}"><img src="${img}" width="240" alt="${esc(product.name)}" style="display:block;width:240px;max-width:100%;height:auto;margin:18px 0;border:1px solid ${C.border};border-radius:6px"></a>` : ""}
+            <p style="margin:0 0 6px;font-size:18px;font-weight:bold;color:${C.ink}">${esc(product.name)}</p>
+            ${product.shortDescription ? paragraph(esc(product.shortDescription)) : ""}
+            ${
+              price
+                ? `<p style="margin:0;font-size:15px;color:${C.ink}">From <strong>${rupee(price)}</strong>${
+                    mrp ? ` <span style="color:${C.muted};text-decoration:line-through">${rupee(mrp)}</span>` : ""
+                  }${size?.weight ? ` <span style="color:${C.muted}">(${esc(size.weight)})</span>` : ""}</p>`
+                : ""
+            }
+            ${button(link, "View product")}`,
+        });
+        sent += 1;
+      } catch (err) {
+        console.error(`[email] new product → ${u.email} failed:`, err.message);
+      }
+      await sleep(1500);
+    }
+    console.log(`[email] new product "${product.name}" sent to ${sent}/${users.length} customers`);
+  });
+
 module.exports = {
+  sendNewProductEmails,
   sendWelcomeEmail,
   sendLoginAlertEmail,
   sendOrderPlacedEmail,

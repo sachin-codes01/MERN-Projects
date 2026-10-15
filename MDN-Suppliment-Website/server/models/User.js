@@ -38,6 +38,9 @@ const userSchema = new mongoose.Schema(
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     // Checkout pe OTP se verify kiye emails — dobara OTP nahi maangte
     verifiedEmails: { type: [String], default: [] },
+    // Naye product waale (promotional) emails — unsubscribe link se band.
+    // Order/account emails is se band nahi hote.
+    productEmails: { type: Boolean, default: true },
     isBlocked: { type: Boolean, default: false },
     refreshToken: { type: String, select: false },
     lastLogin: { type: Date },

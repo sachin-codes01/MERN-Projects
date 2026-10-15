@@ -176,6 +176,8 @@ export default function AdminProducts() {
   // Main fields (name, slug, …) ki inline galtiyan
   const [productErrors, setProductErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  // Naya product add karte waqt customers ko email bhejna hai? (sirf create pe)
+  const [notifyCustomers, setNotifyCustomers] = useState(true);
   const [confirm, confirmDialog] = useConfirm();
   const [thumbnailMissing, setThumbnailMissing] = useState(false);
 
@@ -847,7 +849,7 @@ export default function AdminProducts() {
         setMessage("Product updated.");
         success("Product updated successfully.");
       } else {
-        await api.adminCreateProduct(token, buildPayload());
+        await api.adminCreateProduct(token, { ...buildPayload(), notifyCustomers });
         setMessage("Product created.");
         success("Product created successfully.");
       }
@@ -1851,6 +1853,23 @@ export default function AdminProducts() {
               </label>
             </div>
           </div>
+
+          {!editingId && (
+            <label className="flex items-start gap-2.5 rounded-lg border border-mdn-border p-3 text-sm text-mdn-ink">
+              <input
+                type="checkbox"
+                checked={notifyCustomers}
+                onChange={(e) => setNotifyCustomers(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-mdn-green"
+              />
+              <span>
+                <span className="font-semibold">Email customers about this new product</span>
+                <span className="mt-0.5 block text-xs text-mdn-gray">
+                  Sends a "New at MDN" email to every customer who hasn't unsubscribed. Untick for test or draft products.
+                </span>
+              </span>
+            </label>
+          )}
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <button type="submit" disabled={uploading || saving} className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">

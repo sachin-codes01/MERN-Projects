@@ -38,6 +38,36 @@
         "phone"
       ],
       "port": 5180
+    },
+    {
+      "name": "server-test",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server.js"
+      ],
+      "cwd": "server",
+      "env": {
+        "PORT": "5055"
+      },
+      "port": 5055
+    },
+    {
+      "name": "client-test",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "client",
+        "--",
+        "--port",
+        "5190",
+        "--strictPort"
+      ],
+      "env": {
+        "VITE_BASE_URL": "http://localhost:5055/api"
+      },
+      "port": 5190
     }
   ]
 }

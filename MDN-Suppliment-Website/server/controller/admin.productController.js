@@ -3,11 +3,15 @@
 
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
+const { sendNewProductEmails } = require("../utils/emails");
 
 // CREATE
 exports.createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
+    const { notifyCustomers = false, ...fields } = req.body;
+    const product = await Product.create(fields);
+    // Sirf active product ka announcement — background me, response nahi rukta
+    if (notifyCustomers && product.isActive !== false) sendNewProductEmails(product);
     res.status(201).json({ success: true, data: product });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -59,7 +63,9 @@ exports.getProductById = async (req, res) => {
 // UPDATE
 exports.updateProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+    // Checkbox sirf naye product ke liye hai — edit pe ignore
+    const { notifyCustomers: _ignored, ...fields } = req.body;
+    const product = await Product.findByIdAndUpdate(req.params.id, fields, {
       new: true,
       runValidators: true,
     });
