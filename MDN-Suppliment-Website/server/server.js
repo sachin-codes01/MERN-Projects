@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const connectDB = require("./database");
 const { rejectMongoOperators, corsOptions } = require("./middleware/security");
 const { hideServerErrorDetails, notFound, errorHandler } = require("./middleware/errorHandler");
+const { startCartReminders } = require("./utils/cartReminders");
 
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
@@ -69,4 +70,6 @@ const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  // 24 ghante purane cart pe reminder email (har 30 min check)
+  startCartReminders();
 });

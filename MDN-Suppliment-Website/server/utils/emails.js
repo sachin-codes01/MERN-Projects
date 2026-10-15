@@ -309,7 +309,32 @@ const sendNewProductEmails = (product) =>
     console.log(`[email] new product "${product.name}" sent to ${sent}/${users.length} customers`);
   });
 
+/* ================= Cart reminder ================= */
+
+// Cart me items pade hain, 24 ghante se order nahi hua
+const sendCartReminderEmail = (user, items) =>
+  sendInBackground("cart reminder", () => {
+    const total = items.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0);
+    const one = items.length === 1;
+    return sendMail({
+      to: user.email,
+      subject: one ? `${items[0].name} is still in your cart` : "You left a few things in your cart",
+      text: `Hi ${firstName(user.name)}, you still have ${items.length} item${one ? "" : "s"} in your MDN cart. Complete your order: ${SITE_URL}/cart`,
+      preheader: "Your cart is saved — complete your order whenever you're ready.",
+      title: one ? "Still thinking about it?" : "You left something in your cart",
+      unsubscribeUrl: unsubscribeUrl(user._id),
+      footerNote: "You're receiving this because you added items to your cart on the MDN website.",
+      body: `${hi(user.name)}
+        ${paragraph(`You added ${one ? "this item" : "these items"} to your cart but haven't checked out yet. We've saved ${one ? "it" : "them"} for you.`)}
+        ${itemList(items)}
+        <p style="margin:12px 0 0;text-align:right;font-size:15px;color:${C.ink}">Cart total: <strong>${rupee(total)}</strong></p>
+        ${paragraph("<br>Stock can run out, so complete your order soon to make sure you get it. Prices and stock are confirmed at checkout.")}
+        ${button(SITE_URL + "/cart", "Complete your order")}`,
+    });
+  });
+
 module.exports = {
+  sendCartReminderEmail,
   sendNewProductEmails,
   sendWelcomeEmail,
   sendLoginAlertEmail,

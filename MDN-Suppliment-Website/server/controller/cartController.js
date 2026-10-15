@@ -119,6 +119,8 @@ exports.addItem = async (req, res) => {
       });
     }
 
+    cart.lastItemAddedAt = new Date();
+    cart.reminderSentAt = null;
     await cart.save();
     res.status(201).json({ success: true, data: cart });
   } catch (err) {
