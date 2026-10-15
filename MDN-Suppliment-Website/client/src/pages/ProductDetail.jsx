@@ -347,11 +347,12 @@ const ProductDetail = () => {
           {/* Price block — selected size + flavour ka final price */}
           {selectedPrice && (
             <div className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-mdn-border pb-5">
-              <span className="font-heading text-[30px] font-bold leading-none tracking-tight text-mdn-ink sm:text-[36px]">
+              {/* Price ka rang "Save %" badge jaisa orange (same token) */}
+              <span className="font-heading text-[30px] font-bold leading-none tracking-tight text-[rgb(var(--orange-badge))] sm:text-[36px]">
                 ₹{selectedPrice.effectivePrice}
               </span>
               {selectedPrice.discountPrice && (
-                <span className="text-[15px] text-mdn-ink-muted">
+                <span className="text-[17px] text-mdn-ink-muted sm:text-[19px]">
                   MRP <span className="line-through">₹{selectedPrice.price}</span>
                 </span>
               )}
