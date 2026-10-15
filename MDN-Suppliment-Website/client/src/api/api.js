@@ -263,7 +263,7 @@ export const api = {
   adminPermanentlyDeleteProduct: (token, id) =>
     request(`/admin/products/${id}/permanent`, { method: "DELETE", token }), // irreversible
 
-  // ---------- CHECKOUT OTP (phone / email) ----------
+  // ---------- CHECKOUT EMAIL OTP ----------
   otpStatus: (token) => request("/otp/status", { token }),
   sendOtp: (token, channel, target) => request("/otp/send", { method: "POST", body: { channel, target }, token }),
   verifyOtp: (token, channel, target, code) =>

@@ -3,20 +3,17 @@ const nodemailer = require("nodemailer");
 // OTP bhejne wale "providers". Konsa channel chalu hai, env se tay hota hai:
 //
 //   Email: SMTP_USER + SMTP_PASS (Gmail App Password) set ho → asli email.
-//   Phone: abhi koi SMS provider nahi (free option nahi hai) — sirf test mode.
-//   OTP_TEST_MODE=true → jis channel ka provider nahi, uska code server
-//                         console me print (sirf local testing ke liye!).
+//   OTP_TEST_MODE=true → SMTP na ho to code server console me print
+//                         (sirf local testing ke liye!).
+//   Phone OTP hata diya gaya hai (SMS free nahi) — hamesha "off".
 //
 // Na provider, na test mode → channel band; checkout us OTP ko maangta hi nahi.
 
 const testMode = () => process.env.OTP_TEST_MODE === "true";
 const hasSmtp = () => !!(process.env.SMTP_USER && process.env.SMTP_PASS);
-// Baad me SMS provider (Firebase/MSG91…) jude to yahan true karo
-const hasSms = () => false;
-
 const channelMode = (channel) => {
-  if (channel === "email" && hasSmtp()) return "live";
-  if (channel === "phone" && hasSms()) return "live";
+  if (channel !== "email") return "off";
+  if (hasSmtp()) return "live";
   return testMode() ? "test" : "off";
 };
 

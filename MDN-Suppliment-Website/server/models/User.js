@@ -36,8 +36,7 @@ const userSchema = new mongoose.Schema(
       enum: ["weight_loss", "muscle_gain", "maintenance", "general_fitness"],
     },
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
-    // Checkout pe OTP se verify kiye number/email — dobara OTP nahi maangte
-    verifiedPhones: { type: [String], default: [] },
+    // Checkout pe OTP se verify kiye emails — dobara OTP nahi maangte
     verifiedEmails: { type: [String], default: [] },
     isBlocked: { type: Boolean, default: false },
     refreshToken: { type: String, select: false },

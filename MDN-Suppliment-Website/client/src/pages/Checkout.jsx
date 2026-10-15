@@ -10,7 +10,6 @@ import AddressFields, { Field, inputClass } from "../components/AddressFields";
 import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
 import { usePincodeDetails } from "../hooks/usePincodeDetails";
 import OtpVerify from "../components/OtpVerify";
-import { normalisePhone } from "../utils/phone";
 
 // Address ke rules + email (Razorpay prefill / receipt ke liye)
 const CHECKOUT_RULES = { ...addressRules, email: rules.email };
@@ -37,8 +36,8 @@ export default function Checkout() {
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  // OTP: kaunse channel chalu hain + is account ke verified numbers/emails
-  const [otp, setOtp] = useState({ loaded: false, phone: {}, email: {}, accountEmail: "", verifiedPhones: [], verifiedEmails: [] });
+  // Email OTP: chalu hai ya nahi + is account ke verified emails
+  const [otp, setOtp] = useState({ loaded: false, email: {}, accountEmail: "", verifiedEmails: [] });
   useEffect(() => {
     api
       .otpStatus(token)
@@ -47,11 +46,8 @@ export default function Checkout() {
       .catch(() => setOtp((o) => ({ ...o, loaded: true })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const markVerified = (channel) => (target) =>
-    setOtp((o) => {
-      const key = channel === "phone" ? "verifiedPhones" : "verifiedEmails";
-      return { ...o, [key]: [target, ...o[key].filter((t) => t !== target)] };
-    });
+  const markEmailVerified = (target) =>
+    setOtp((o) => ({ ...o, verifiedEmails: [target, ...o.verifiedEmails.filter((t) => t !== target)] }));
 
   // User ne khud pincode badla? Tabhi city/state auto-fill — saved address
   // load hote waqt uski apni city overwrite nahi karni
@@ -172,13 +168,10 @@ export default function Checkout() {
 
   // "error" (network) pe rokte nahi — server payment se pehle khud check karta hai
   const deliveryOk = delivery.status === "available" || delivery.status === "error";
-  // OTP status — field sahi format ka ho tabhi OTP box dikhta hai
-  const phoneTarget = normalisePhone(form.phone);
+  // Email OTP — Google account wala email pehle se verified
   const emailTarget = form.email.trim().toLowerCase();
-  const phoneVerified = !otp.phone.enabled || otp.verifiedPhones.includes(phoneTarget);
-  // Google account wala email pehle se verified
   const emailVerified = !otp.email.enabled || emailTarget === otp.accountEmail || otp.verifiedEmails.includes(emailTarget);
-  const canPay = formValid && deliveryOk && otp.loaded && phoneVerified && emailVerified;
+  const canPay = formValid && deliveryOk && otp.loaded && emailVerified;
 
   const deliveryStatus =
     delivery.status === "checking" ? (
@@ -397,17 +390,6 @@ export default function Checkout() {
             onBlur={handleBlur}
             addons={{
               pincode: deliveryStatus,
-              phone: otp.phone.enabled && (
-                <OtpVerify
-                  channel="phone"
-                  target={phoneTarget}
-                  valid={!rules.phone(form.phone)}
-                  verified={phoneVerified}
-                  testMode={otp.phone.testMode}
-                  token={token}
-                  onVerified={markVerified("phone")}
-                />
-              ),
             }}
           />
 
@@ -435,7 +417,7 @@ export default function Checkout() {
                 verified={emailVerified}
                 testMode={otp.email.testMode}
                 token={token}
-                onVerified={markVerified("email")}
+                onVerified={markEmailVerified}
               />
             )}
           </Field>
@@ -572,11 +554,9 @@ export default function Checkout() {
                 ? "Fill in all required delivery details to continue."
                 : delivery.status === "unavailable"
                   ? "We don't deliver to this pincode yet. Use a different address or contact customer support."
-                  : !phoneVerified
-                    ? "Verify your mobile number with the OTP to continue."
-                    : !emailVerified
-                      ? "Verify your email with the OTP to continue."
-                      : "Checking delivery for your pincode…"}
+                  : !emailVerified
+                    ? "Verify your email with the OTP to continue."
+                    : "Checking delivery for your pincode…"}
             </p>
           )}
         </div>

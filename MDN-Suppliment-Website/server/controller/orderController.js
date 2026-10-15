@@ -41,13 +41,9 @@ exports.createRazorpayOrder = async (req, res) => {
       return res.status(400).json({ success: false, message, errors: [{ field: "shippingAddress.pincode", message }] });
     }
 
-    // OTP verification (jab channel chalu ho): phone hamesha, email sirf jab
-    // Google wale se alag ho. Client bhi rokta hai — asli check yahan.
-    const me = await User.findById(req.user._id).select("email verifiedPhones verifiedEmails").lean();
-    if (channelMode("phone") !== "off" && !(me.verifiedPhones || []).includes(shippingAddress.phone)) {
-      const message = "Please verify your mobile number with the OTP first.";
-      return res.status(400).json({ success: false, message, errors: [{ field: "shippingAddress.phone", message }] });
-    }
+    // Email OTP (jab chalu ho): sirf jab email Google wale se alag ho.
+    // Client bhi rokta hai — asli check yahan.
+    const me = await User.findById(req.user._id).select("email verifiedEmails").lean();
     const contactEmail = email || me.email;
     if (channelMode("email") !== "off" && contactEmail !== me.email && !(me.verifiedEmails || []).includes(contactEmail)) {
       const message = "Please verify your email with the OTP first.";

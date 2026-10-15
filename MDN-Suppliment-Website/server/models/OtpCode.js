@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 
-// Ek user + channel + target (phone/email) ke liye abhi ka OTP. Code plain
+// Ek user + email ke liye abhi ka OTP. Code plain
 // nahi, sirf uska HMAC hash store hota hai. Expire hote hi Mongo khud
 // document hata deta hai (TTL index).
 const otpCodeSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    channel: { type: String, enum: ["phone", "email"], required: true },
-    target: { type: String, required: true, maxlength: 254 }, // 10-digit phone ya lowercase email
+    channel: { type: String, enum: ["email"], required: true },
+    target: { type: String, required: true, maxlength: 254 }, // lowercase email
     codeHash: { type: String, required: true },
     expiresAt: { type: Date, required: true },
     attempts: { type: Number, default: 0 }, // galat code kitni baar daala

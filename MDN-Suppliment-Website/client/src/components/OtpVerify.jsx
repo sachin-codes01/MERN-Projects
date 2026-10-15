@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import { api } from "../api/api";
 
-// Phone/email field ke neeche chhota OTP box:
+// Email field ke neeche chhota OTP box (channel prop phone ke liye bhi
+// chalta hai, par phone OTP abhi band hai — SMS free nahi):
 //   value sahi format ka ho → "Send OTP" button
 //   code bheja → 6-digit input + Verify + resend timer
 //   verify ho gaya (ya pehle se verified) → "Verified" badge

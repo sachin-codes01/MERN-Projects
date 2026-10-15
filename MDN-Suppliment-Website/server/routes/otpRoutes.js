@@ -8,9 +8,9 @@ const User = require("../models/User");
 const { otpSendBody, otpVerifyBody } = require("../validators/schemas");
 const { sendOtp, channelMode } = require("../utils/otpSender");
 
-// Checkout ke phone/email OTP. Verify hone par number/email user ke
-// account pe "verified" list me jud jata hai — agli checkout pe dobara
-// OTP nahi. Google login wala email pehle se verified maana jata hai.
+// Checkout ka email OTP. Verify hone par email user ke account pe
+// "verified" list me jud jata hai — agli checkout pe dobara OTP nahi.
+// Google login wala email pehle se verified maana jata hai.
 
 const CODE_TTL_MS = 10 * 60 * 1000; // 10 min
 const RESEND_AFTER_MS = 30 * 1000; // 30 sec baad hi naya code
@@ -22,20 +22,18 @@ const hashCode = (code, target) =>
 
 const sameHash = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
-const LIST = { phone: "verifiedPhones", email: "verifiedEmails" };
+const LIST = { email: "verifiedEmails" };
 
 router.use(isAuth);
 
 // GET /api/otp/status — kaunse channel chalu hain + is user ke verified numbers/emails
 router.get("/status", async (req, res) => {
-  const user = await User.findById(req.user._id).select("email verifiedPhones verifiedEmails").lean();
+  const user = await User.findById(req.user._id).select("email verifiedEmails").lean();
   res.json({
     success: true,
     data: {
-      phone: { enabled: channelMode("phone") !== "off", testMode: channelMode("phone") === "test" },
       email: { enabled: channelMode("email") !== "off", testMode: channelMode("email") === "test" },
       accountEmail: user.email,
-      verifiedPhones: user.verifiedPhones || [],
       // Google wala email hamesha verified
       verifiedEmails: [...new Set([user.email, ...(user.verifiedEmails || [])])],
     },

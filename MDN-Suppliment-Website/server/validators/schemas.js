@@ -403,22 +403,22 @@ const emptyBody = z.strictObject({});
 
 /* ---------------- OTP (checkout phone/email) ---------------- */
 
-// target channel ke hisaab se: phone → 10 digits, email → lowercase
+// Sirf email OTP (phone OTP hata diya — SMS free nahi)
 const otpTarget = (b, ctx) => {
-  const r = (b.channel === "phone" ? phone : email).safeParse(b.target);
+  const r = email.safeParse(b.target);
   if (!r.success) ctx.addIssue({ code: "custom", path: ["target"], message: r.error.issues[0].message });
   else b.target = r.data;
 };
 const otpSendBody = z
   .strictObject({
-    channel: z.enum(["phone", "email"], { error: "Channel must be phone or email" }),
-    target: z.string({ error: requiredOrType("Phone or email", "text") }).max(254),
+    channel: z.enum(["email"], { error: "Only email verification is available" }),
+    target: z.string({ error: requiredOrType("Email", "text") }).max(254),
   })
   .superRefine(otpTarget);
 const otpVerifyBody = z
   .strictObject({
-    channel: z.enum(["phone", "email"], { error: "Channel must be phone or email" }),
-    target: z.string({ error: requiredOrType("Phone or email", "text") }).max(254),
+    channel: z.enum(["email"], { error: "Only email verification is available" }),
+    target: z.string({ error: requiredOrType("Email", "text") }).max(254),
     code: z.string({ error: requiredOrType("Code", "text") }).trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
   })
   .superRefine(otpTarget);
