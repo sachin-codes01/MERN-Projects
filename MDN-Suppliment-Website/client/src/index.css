@@ -1035,6 +1035,64 @@ html:not(.dark) [class*="bg-mdn-black/9"] {
   }
 }
 
+/* Sale star badge — product photo pe. Star (burst) dheere ghoomta hai,
+   peeche se glow saans leta hai; text seedha rehta hai (alag layer).
+   clip-path box-shadow ko kaat deta hai, isliye glow wrapper ke
+   drop-shadow filter se aata hai. */
+.sale-badge {
+  /* position component deta hai (relative ya absolute) — yahan set karne se
+     Tailwind ki "absolute" class dab jati thi */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sale-size, 58px);
+  height: var(--sale-size, 58px);
+  animation: sale-glow 2.4s ease-in-out infinite;
+}
+.sale-badge__burst {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 35% 30%, #ffb15c, #f2611c 55%, #c2410c);
+  clip-path: polygon(50% 0%, 59.1% 10%, 71.7% 5%, 75.6% 17.9%, 89.1% 18.8%, 86.9% 32.2%, 98.7% 38.9%, 91% 50%, 98.7% 61.1%, 86.9% 67.8%, 89.1% 81.2%, 75.6% 82.1%, 71.7% 95%, 59.1% 90%, 50% 100%, 40.9% 90%, 28.3% 95%, 24.4% 82.1%, 10.9% 81.2%, 13.1% 67.8%, 1.3% 61.1%, 9% 50%, 1.3% 38.9%, 13.1% 32.2%, 10.9% 18.8%, 24.4% 17.9%, 28.3% 5%, 40.9% 10%);
+  animation: sale-spin 14s linear infinite;
+}
+.sale-badge__text {
+  position: relative;
+  max-width: 78%;
+  text-align: center;
+  font-family: Poppins, sans-serif;
+  font-weight: 800;
+  font-size: calc(var(--sale-size, 58px) * 0.2);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  word-break: break-word;
+}
+@keyframes sale-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sale-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px rgb(249 115 22 / 0.55));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgb(249 115 22 / 0.9));
+    transform: scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sale-badge,
+  .sale-badge__burst {
+    animation: none;
+  }
+}
+
 /* Press feedback — touch pe bhi */
 /* Poori transition list yahin — warna yeh class Tailwind ki transition-colors
    jaisi utilities ko override karke hover colour fade tod deti thi. */

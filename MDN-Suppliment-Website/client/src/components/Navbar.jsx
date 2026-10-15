@@ -9,6 +9,7 @@ import { SHOP_CATEGORIES } from "../data/shopCategories";
 
 const QUICK_LINKS = [
   { label: "Home", to: "/" },
+  { label: "Sale", to: "/sale" },
   { label: "Build Your Bundle", to: "/products/section/fitness_combo" },
   { label: "Wholesale", to: "/search?q=wholesale" },
   // NOTE: this used to point at "/#faq" — now routes to the dedicated
@@ -19,7 +20,7 @@ const QUICK_LINKS = [
 ];
 
 // Mobile drawer ka order: Home, (Shop), phir yeh — desktop row alag hai
-const DRAWER_AFTER_SHOP = ["Build Your Bundle", "Wholesale", "Blogs", "Customer Support"];
+const DRAWER_AFTER_SHOP = ["Sale", "Build Your Bundle", "Wholesale", "Blogs", "Customer Support"];
 const quickLink = (label) => QUICK_LINKS.find((l) => l.label === label);
 
 // The mega-menu header already has a "View All" button, so the card row
@@ -280,8 +281,20 @@ export default function Navbar() {
               Products
             </Link>
 
+            {/* Sale — orange me, chhote ghoomte star ke saath */}
+            <Link
+              to="/sale"
+              aria-current={location.pathname === "/sale" ? "page" : undefined}
+              className={`${linkClass({ active: location.pathname === "/sale" })} !text-mdn-orange-solid inline-flex items-center gap-1`}
+            >
+              <span className="sale-badge relative" style={{ "--sale-size": "14px" }} aria-hidden="true">
+                <span className="sale-badge__burst" />
+              </span>
+              Sale
+            </Link>
+
             {/* Blogs desktop row me nahi (bheed kam) — footer + mobile drawer me milta hai */}
-            {QUICK_LINKS.filter((l) => l.label !== "Home" && l.label !== "Blogs").map((l) =>
+            {QUICK_LINKS.filter((l) => !["Home", "Blogs", "Sale"].includes(l.label)).map((l) =>
               l.label === "Build Your Bundle" ? (
                 <Link
                   key={l.label}

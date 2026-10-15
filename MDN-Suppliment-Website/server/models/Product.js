@@ -199,6 +199,9 @@ const productSchema = new mongoose.Schema(
 
     tags: [{ type: String }], // for search
     isFeatured: { type: Boolean, default: false },
+    // Product photo pe chamakta "sale" star badge — khaali = badge band.
+    // Text admin chunta hai ("SALE", "HOT", "50% OFF").
+    saleBadge: { type: String, trim: true, maxlength: 14, default: "" },
     isActive: { type: Boolean, default: true },
 
     manufactureDate: { type: Date },

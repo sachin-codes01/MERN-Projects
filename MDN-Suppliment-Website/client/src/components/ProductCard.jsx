@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { guestCart } from "../utils/guestCart";
 import { getSizePrice } from "../utils/pricing";
 import { getDisplayRating } from "../utils/rating";
+import SaleBadge from "./SaleBadge";
 
 const Stars = ({ stars }) => {
   const rounded = Math.max(0, Math.min(5, stars));
@@ -116,6 +117,10 @@ const ProductCard = ({ product }) => {
           <span className="absolute left-2 top-2 rounded-md bg-mdn-orange-badge px-1.5 py-0.5 text-[10px] font-bold text-mdn-badge-ink shadow-xs sm:left-3 sm:top-3 sm:px-2 sm:text-xs">
             {discountPct}% OFF
           </span>
+        )}
+        {/* Admin ka sale star — daayein upar kone me */}
+        {product.saleBadge && !outOfStock && (
+          <SaleBadge text={product.saleBadge} size={52} className="absolute right-1.5 top-1.5 sm:right-2.5 sm:top-2.5" />
         )}
         {outOfStock && (
           <span className="absolute left-2 top-2 rounded-md bg-mdn-charcoal/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-mdn-danger shadow-xs sm:left-2.5 sm:top-2.5">

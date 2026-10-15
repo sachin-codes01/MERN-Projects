@@ -25,6 +25,7 @@ const AdminProducts = lazy(() => import("./pages/AdminProducts"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminCoupons = lazy(() => import("./pages/AdminCoupons"));
 const AdminPincodes = lazy(() => import("./pages/AdminPincodes"));
+const Sale = lazy(() => import("./pages/Sale"));
 const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/support" element={<CustomerSupportPage />} />
+                <Route path="/sale" element={<Sale />} />
                 <Route path="/blogs" element={<Blogs />} />
                 <Route path="/blogs/:slug" element={<BlogDetail />} />
 

@@ -195,6 +195,8 @@ const productListQuery = z.strictObject({
   search: queryText("Search", 100),
   sort: queryText("Sort", 20),
   section: queryText("Section", 40),
+  // Sale page: sirf jin products pe sale badge laga hai
+  onSale: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["true"], { error: "onSale must be true" }).optional()),
 });
 const suggestQuery = z.strictObject({
   q: queryText("Search", 100),
@@ -328,6 +330,7 @@ const productBody = z.strictObject({
   flavors: z.array(flavorSchema).max(30, "At most 30 flavours").optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  saleBadge: text("Sale badge text", { max: 14, optional: true }),
   // Sirf create pe: naya product customers ko email karein? (save nahi hota)
   notifyCustomers: z.boolean().optional(),
 });

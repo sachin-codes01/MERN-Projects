@@ -9,6 +9,7 @@ import { BENEFIT_ICONS, BENEFIT_ICON_KEYS, MAX_BENEFITS } from "../components/Pr
 // only offer values the storefront knows how to render.
 import { GOAL_LABELS, DIET_LABELS } from "../components/ProductFacts";
 import { useConfirm } from "../components/ConfirmDialog";
+import SaleBadge from "../components/SaleBadge";
 import { blockNonIntegerKeys, blockNonPriceKeys, numberRule } from "../utils/validators";
 
 // Product form ke rules — server (validators/schemas.js productBody) bhi yahi lagata hai
@@ -150,6 +151,9 @@ const emptyForm = {
   // real customer reviews.
   manualStars: "",
   manualRating: "",
+  // Photo pe sale star badge ka text — khaali = badge band
+  saleBadge: "SALE",
+  saleBadgeOn: false,
 };
 
 export default function AdminProducts() {
@@ -686,6 +690,8 @@ export default function AdminProducts() {
       // rather than a literal 0, so the placeholder explains the fallback.
       manualStars: product.manualStars ? String(product.manualStars) : "",
       manualRating: product.manualRating ? String(product.manualRating) : "",
+      saleBadge: product.saleBadge || "SALE",
+      saleBadgeOn: !!product.saleBadge,
     });
     setEditingId(product._id);
     setError("");
@@ -725,6 +731,8 @@ export default function AdminProducts() {
     // review average.
     manualStars: form.manualStars ? Number(form.manualStars) : 0,
     manualRating: form.manualRating ? Number(form.manualRating) : 0,
+    // Hamesha bhejo — khaali bhejne se hi badge hat-ta hai
+    saleBadge: form.saleBadgeOn ? form.saleBadge.trim() || "SALE" : "",
     sections: form.sections,
     // Always sent, including when empty — that's what lets unticking every
     // box actually clear a product's tags. Omitting the key would leave
@@ -1154,6 +1162,37 @@ export default function AdminProducts() {
               computed from real customer reviews and is never editable
               here — only how the rating is PRESENTED is set by hand. */}
           <div>
+            {/* Sale star badge */}
+            <div className="mb-6 rounded-lg border border-mdn-border p-4">
+              <label className="flex items-center gap-2.5 text-sm font-medium text-mdn-white">
+                <input
+                  type="checkbox"
+                  checked={form.saleBadgeOn}
+                  onChange={(e) => setForm({ ...form, saleBadgeOn: e.target.checked })}
+                  className="h-4 w-4 accent-mdn-green"
+                />
+                Show sale badge on this product
+              </label>
+              {form.saleBadgeOn && (
+                <div className="mt-3 flex flex-wrap items-center gap-4">
+                  <div className="min-w-[200px] flex-1">
+                    <span className="mb-1 block text-xs text-mdn-gray">Badge text (max 14 characters)</span>
+                    <input
+                      name="saleBadge"
+                      value={form.saleBadge}
+                      onChange={(e) => setForm({ ...form, saleBadge: e.target.value.slice(0, 14) })}
+                      maxLength={14}
+                      placeholder="SALE, HOT, 50% OFF…"
+                      aria-label="Sale badge text"
+                      className="input-field"
+                    />
+                  </div>
+                  {/* Live preview */}
+                  <SaleBadge text={form.saleBadge.trim() || "SALE"} size={64} />
+                </div>
+              )}
+            </div>
+
             <label className="mb-2 block text-sm font-medium text-mdn-white">Display rating</label>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>

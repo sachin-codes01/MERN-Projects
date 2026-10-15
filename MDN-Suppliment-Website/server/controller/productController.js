@@ -33,13 +33,14 @@ function escapeRegex(str) {
 // GET /api/products  (public storefront listing)
 exports.getProducts = async (req, res) => {
   try {
-    const { page = 1, limit = 20, category, productType, goal, search, sort, section } = req.query;
+    const { page = 1, limit = 20, category, productType, goal, search, sort, section, onSale } = req.query;
 
     const filter = { isActive: true };
     if (category) filter.category = category;
     if (productType) filter.productType = productType;
     if (goal) filter.goal = goal;
     if (section) filter.sections = section;
+    if (onSale) filter.saleBadge = { $gt: "" }; // badge text wale hi
     if (search) {
       const conditions = buildSearchConditions(search);
       if (conditions) filter.$or = conditions;
