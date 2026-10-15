@@ -178,6 +178,7 @@ const Footer = () => {
               <ul className="mt-3 space-y-1">
                 <li><Link to="/products/section/best_seller" className={LINK}>Best Sellers</Link></li>
                 <li><Link to="/products/section/new_arrival" className={LINK}>New Arrivals</Link></li>
+                <li><Link to="/sale" className={LINK}>Sale</Link></li>
                 {/* Flagship category — same route the navbar's Shop menu
                     uses for it, so both entry points land on one page. */}
                 <li><Link to="/search?q=whey%20protein" className={LINK}>Whey Protein</Link></li>

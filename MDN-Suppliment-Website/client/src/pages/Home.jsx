@@ -5,6 +5,7 @@ import TrustStrip from "../components/TrustStrip";              // new sliding t
 import WhyChooseMDN from "../components/WhyChooseMDN";          // "Why Choose MDN" — absorbs the old "Why One" section
 import AssuredBadges from "../components/AssuredBadges";        // new "AS-IT-IS Assured" carousel
 import Bestsellers from "../components/Bestsellers";            // now a drag/dot carousel
+import SaleSection from "../components/SaleSection";            // "On Sale" — sirf jab koi product sale pe ho
 import TargetSection from "../components/TargetSection";        // "What's Your Target?" — now a single-row slider
 import ReviewsSection from "../components/ReviewsSection";      // "Real People, Real Stories"
 import FAQ from "../components/FAQ";                            // unchanged
@@ -18,6 +19,7 @@ export default function Home() {
       <TrustStrip />
       <WhyChooseMDN />
       <AssuredBadges />
+      <SaleSection />
       <Bestsellers />
       <TargetSection />
       <ReviewsSection />
