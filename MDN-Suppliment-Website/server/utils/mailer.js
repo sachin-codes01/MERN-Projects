@@ -151,7 +151,6 @@ const layout = ({ preheader = "", title = "", body = "", footerNote = "" }) => `
               <td valign="middle" style="padding-right:14px"><img src="cid:${LOGO_CID}" width="84" alt="MDN" style="display:block;width:84px;height:auto;border:0"></td>
               <td valign="middle" style="padding-left:14px;border-left:1px solid ${C.border}">
                 <div style="font-size:17px;font-weight:bold;color:${C.ink};line-height:1.2">My Daily Nutrition</div>
-                <div style="margin-top:2px;font-size:12px;color:${C.muted}">Clean, lab-tested supplements</div>
               </td>
             </tr></table>
           </a>
