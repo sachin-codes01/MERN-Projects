@@ -152,8 +152,10 @@ const ProductCard = ({ product }) => {
                 <span className="truncate text-[12.5px] tabular-nums text-mdn-ink-muted line-through sm:text-[15px]">₹{price}</span>
               )}
               {discountPct > 0 && (
-                // Phone pe chhupa — wahi % image ke badge pe already hai, aur yahan line wrap karta tha
-                <span className="hidden text-xs font-semibold text-mdn-orange-ink sm:inline sm:text-[13px]">{discountPct}% off</span>
+                // Phone pe chhupa — wahi % image ke badge pe already hai. Bade screen pe
+                // hamesha apni line me (basis-full) — bada MRP aane se kuch cards me
+                // wrap hota tha kuch me nahi, cards ulte-seedhe dikhte the
+                <span className="hidden basis-full text-xs font-semibold text-mdn-orange-ink sm:inline sm:text-[13px]">{discountPct}% off</span>
               )}
             </>
           ) : (
