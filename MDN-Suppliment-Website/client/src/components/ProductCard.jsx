@@ -15,8 +15,8 @@ const Stars = ({ stars }) => {
       {Array.from({ length: 5 }).map((_, i) => (
         <svg
           key={i}
-          width="12"
-          height="12"
+          // Phone pe stars thode bade (15px), bade screen pe pehle jaise 12px
+          className="h-[15px] w-[15px] sm:h-3 sm:w-3"
           viewBox="0 0 24 24"
           fill={i < rounded ? "currentColor" : "none"}
           stroke="currentColor"
@@ -136,7 +136,7 @@ const ProductCard = ({ product }) => {
         {hasRating && (
           <div className="mt-1.5 flex items-center gap-1.5">
             <Stars stars={stars} />
-            <span className="text-[11px] font-medium text-mdn-ink-muted sm:text-xs">{ratingValue.toFixed(1)}</span>
+            <span className="text-[12.5px] font-medium text-mdn-ink-muted sm:text-xs">{ratingValue.toFixed(1)}</span>
           </div>
         )}
 
@@ -145,11 +145,11 @@ const ProductCard = ({ product }) => {
           {size ? (
             <>
               {showFrom && <span className="text-[10px] font-medium text-mdn-ink-muted sm:text-[11px]">From</span>}
-              <span className="font-heading text-[15px] font-bold tabular-nums leading-none text-mdn-ink sm:text-lg">
+              <span className="font-heading text-[15px] font-bold tabular-nums leading-none text-mdn-green sm:text-lg">
                 ₹{effectivePrice}
               </span>
               {discountPrice && (
-                <span className="truncate text-[11px] tabular-nums text-mdn-ink-muted line-through sm:text-[13px]">₹{price}</span>
+                <span className="truncate text-[12.5px] tabular-nums text-mdn-ink-muted line-through sm:text-[15px]">₹{price}</span>
               )}
               {discountPct > 0 && (
                 // Phone pe chhupa — wahi % image ke badge pe already hai, aur yahan line wrap karta tha
