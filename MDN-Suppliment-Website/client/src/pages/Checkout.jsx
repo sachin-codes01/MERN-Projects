@@ -531,12 +531,6 @@ export default function Checkout() {
             is added later.
           </p>
 
-          {cart.shippingFee > 0 && cart.freeShippingAbove && (
-            <p className="text-xs text-mdn-green/80">
-              Add items worth ₹{cart.freeShippingAbove - (cart.subtotal - cart.discount) + 1} more to get FREE
-              shipping.
-            </p>
-          )}
         </section>
 
         <div>

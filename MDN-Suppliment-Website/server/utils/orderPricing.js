@@ -3,7 +3,9 @@
 // Razorpay order amount, and the Order.pricing row that gets stored all
 // call this — so the number shown at checkout can never drift from the
 // number actually charged.
-const FREE_SHIPPING_ABOVE = 999; // afterDiscount strictly above this ships free
+// Free shipping nahi hai — har order pe flat shipping. (null = koi
+// "itne se upar free" limit nahi; client ka "add ₹X more" hint bhi isi se band)
+const FREE_SHIPPING_ABOVE = null;
 const SHIPPING_FEE = 79;
 const TAX_RATE = 0.05; // 5% GST
 
@@ -15,7 +17,7 @@ function calcOrderPricing(subtotal = 0, discount = 0) {
     return { shippingFee: 0, tax: 0, total: 0 };
   }
 
-  const shippingFee = afterDiscount > FREE_SHIPPING_ABOVE ? 0 : SHIPPING_FEE;
+  const shippingFee = FREE_SHIPPING_ABOVE !== null && afterDiscount > FREE_SHIPPING_ABOVE ? 0 : SHIPPING_FEE;
   const tax = Math.round(afterDiscount * TAX_RATE);
 
   return { shippingFee, tax, total: afterDiscount + shippingFee + tax };

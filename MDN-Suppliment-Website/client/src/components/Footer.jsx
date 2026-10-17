@@ -26,7 +26,7 @@ const FOOTER_SOCIALS = [
 // Each message carries its own icon, matching the reference strip. The
 // icon is decorative — the text next to it already says the same thing.
 const TICKER_ITEMS = [
-  { text: "Free shipping over ₹999", Icon: LocalShippingRoundedIcon },
+  { text: "Fast, tracked delivery across India", Icon: LocalShippingRoundedIcon },
   { text: "Same day dispatch — order by 1PM", Icon: BoltRoundedIcon },
   { text: "100% Genuine, lab-tested products", Icon: VerifiedRoundedIcon },
   { text: "ISO & GMP certified facilities", Icon: FactoryRoundedIcon },

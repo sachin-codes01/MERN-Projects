@@ -30,7 +30,7 @@ const TOPICS = {
     eyebrow: "Delivery & returns",
     title: "Shipping & Returns",
     intro:
-      "Free shipping over ₹999 with same-day dispatch. Returns aren't available directly — if there's a problem with your order, send us the details below or call our helpline, and our team will help.",
+      "Same-day dispatch on orders placed by 1 PM, with tracked delivery. Returns aren't available directly — if there's a problem with your order, send us the details below or call our helpline, and our team will help.",
     highlightCard: "Shipping & Returns",
   },
 };
@@ -84,7 +84,7 @@ export default function CustomerSupportPage() {
         <InfoCard
           Icon={LocalShippingRoundedIcon}
           title="Shipping & Returns"
-          body="Free shipping over ₹999. Returns are only arranged through our customer support helpline."
+          body="Same-day dispatch with tracked delivery. Returns are only arranged through our customer support helpline."
           highlighted={topic.highlightCard === "Shipping & Returns"}
         />
         <InfoCard
