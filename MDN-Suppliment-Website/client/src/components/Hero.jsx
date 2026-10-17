@@ -14,7 +14,6 @@ import preWorkoutVideo from "../assets/2nd video.mp4";
 import wheyVideo from "../assets/3rd video.mp4";
 import wellnessVideo from "../assets/4th video.mp4";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import CategoryRail from "./CategoryRail";
 
 // Phone banner ke 5 portrait (9:16) videos — ek ke baad ek auto-scroll.
 const MOBILE_SLIDES = [mobileBannerVideo, collagenVideo, preWorkoutVideo, wheyVideo, wellnessVideo];
@@ -111,10 +110,8 @@ const Hero = () => {
         </motion.div>
 
         <HeroTrustRow />
-        {/* Sirf phone pe: category icon row trust chips ke neeche, isi viewport block
-            me — banner flex-1 hai isliye apne aap chhota ho jata hai aur sab
-            pehli screen me fit hota hai. Desktop pe yeh "Shop by Collection" me hai. */}
-        <CategoryRail className="flex-shrink-0 !pb-2 !pt-3 md:hidden" />
+        {/* Phone pe category row ab hero ke neeche apne section me hai
+            (CategoryCards — bade cards), isliye banner ko poori jagah milti hai */}
       </div>
     </section>
   );

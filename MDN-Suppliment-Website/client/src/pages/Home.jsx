@@ -1,4 +1,5 @@
 import Hero from "../components/Hero";
+import CategoryCards from "../components/CategoryCards";       // phone: "Find What Fuels You" category cards
 import CategoryMoves from "../components/CategoryMoves";       // "Shop by Collection" — was "What's Your Move?"
 import StorySection from "../components/StorySection";         // "The Story of MDN" — unchanged
 import TrustStrip from "../components/TrustStrip";              // new sliding trust strip
@@ -13,6 +14,7 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <CategoryCards />
       <CategoryMoves />
       <StorySection />
       <TrustStrip />
