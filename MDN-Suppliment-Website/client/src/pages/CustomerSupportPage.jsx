@@ -30,7 +30,7 @@ const TOPICS = {
     eyebrow: "Delivery & returns",
     title: "Shipping & Returns",
     intro:
-      "Free shipping over ₹999 with same-day dispatch. Unopened products can be returned within 7 days of delivery. Send us the details below and we'll sort it out.",
+      "Free shipping over ₹999 with same-day dispatch. Returns aren't available directly — if there's a problem with your order, send us the details below or call our helpline, and our team will help.",
     highlightCard: "Shipping & Returns",
   },
 };
@@ -84,7 +84,7 @@ export default function CustomerSupportPage() {
         <InfoCard
           Icon={LocalShippingRoundedIcon}
           title="Shipping & Returns"
-          body="Free shipping over ₹999. Unopened products can be returned within 7 days of delivery."
+          body="Free shipping over ₹999. Returns are only arranged through our customer support helpline."
           highlighted={topic.highlightCard === "Shipping & Returns"}
         />
         <InfoCard

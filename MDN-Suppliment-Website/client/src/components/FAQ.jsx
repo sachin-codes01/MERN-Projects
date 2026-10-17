@@ -8,7 +8,7 @@ const FAQS = [
   { q: "How many scoops should I take per day?", a: "Most people do 1 scoop (26g protein) post-workout, and a second scoop if their daily protein target isn't met through food alone." },
   { q: "Does it contain added sugar?", a: "No — our Isolate line is formulated with 0g sugar per serving." },
   { q: "How long does delivery take?", a: "Orders are typically dispatched within 24–48 hours and delivered in 3–6 business days depending on your location." },
-  { q: "What's your return policy?", a: "Unopened products can be returned within 7 days of delivery. Reach out to support and we'll sort out a replacement or refund." },
+  { q: "What's your return policy?", a: "We don't accept returns directly through the website. If there's a problem with your order, contact our customer support helpline — a return or replacement is arranged only after you speak with our team." },
 ];
 
 // Reference ka "Help Centre" layout: left me heading + "Still have a question?"
