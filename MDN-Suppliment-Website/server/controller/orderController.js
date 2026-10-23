@@ -263,14 +263,24 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
+const NOT_CANCELLABLE = ["shipped", "out_for_delivery", "delivered", "cancelled", "returned"];
+
 exports.cancelOrder = async (req, res) => {
   try {
-    const order = await Order.findOne({ _id: req.params.id, user: req.user._id });
-    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-
-    if (["shipped", "out_for_delivery", "delivered", "cancelled", "returned"].includes(order.orderStatus)) {
+    // Ek hi atomic step me "check + lock": do cancel request ek saath aayein
+    // (double tap) to sirf pehli order le paati hai — doosri ko 409, do refund nahi
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id, orderStatus: { $nin: NOT_CANCELLABLE }, cancelLock: { $ne: true } },
+      { $set: { cancelLock: true } },
+      { returnDocument: "after" }
+    );
+    if (!order) {
+      const existing = await Order.findOne({ _id: req.params.id, user: req.user._id }).select("orderStatus cancelLock").lean();
+      if (!existing) return res.status(404).json({ success: false, message: "Order not found" });
+      if (existing.cancelLock) return res.status(409).json({ success: false, message: "This order is already being cancelled." });
       return res.status(400).json({ success: false, message: "Order can no longer be cancelled" });
     }
+    const unlock = () => Order.updateOne({ _id: order._id }, { $set: { cancelLock: false } }).catch(() => {});
 
     const reason = req.body.reason || "Cancelled by customer";
 
@@ -281,6 +291,7 @@ exports.cancelOrder = async (req, res) => {
       refund = await refundOrder(order, reason);
     } catch (err) {
       console.error("Refund failed for order", order.orderNumber, err.message);
+      await unlock();
       return res.status(502).json({
         success: false,
         message: "We couldn't process the refund right now, so the order was not cancelled. Please try again shortly.",
@@ -296,6 +307,7 @@ exports.cancelOrder = async (req, res) => {
 
     order.orderStatus = "cancelled";
     order.cancelReason = reason;
+    order.cancelLock = false;
     order.statusHistory.push({
       status: "cancelled",
       note: refund ? `${reason}. Refund ${refund.id} issued.` : reason,

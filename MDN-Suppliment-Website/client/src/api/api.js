@@ -90,7 +90,25 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
-async function request(path, { method = "GET", body, token, _retried = false } = {}) {
+// Double-click / double-tap guard: same write request (method + path + body)
+// abhi chal hi rahi ho to doosri baar bhejne ki jagah wahi promise lauta do.
+// Isse "Pay" do baar dabane pe do order, coupon do baar, review do baar —
+// koi bhi duplicate request server tak jaati hi nahi. Response aate hi entry
+// hat jaati hai, to baad me jaan-boojh ke dobara click normal kaam karta hai.
+const inFlightWrites = new Map();
+
+async function request(path, options = {}) {
+  const { method = "GET", body, _retried = false } = options;
+  if (method === "GET" || _retried) return sendRequest(path, options);
+
+  const key = `${method} ${path} ${body ? JSON.stringify(body) : ""}`;
+  if (inFlightWrites.has(key)) return inFlightWrites.get(key);
+  const promise = sendRequest(path, options).finally(() => inFlightWrites.delete(key));
+  inFlightWrites.set(key, promise);
+  return promise;
+}
+
+async function sendRequest(path, { method = "GET", body, token, _retried = false } = {}) {
   const cacheable = isCacheable(path, method, token);
 
   // Cache-first, not stale-while-revalidate: `request` hands back a single

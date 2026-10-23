@@ -213,6 +213,14 @@ router.put("/orders/:id/status", byId("Order"), validate({ body: S.orderStatusBo
     // Done before the status changes so a failed refund leaves the order
     // untouched. (Returns are refunded manually once the goods are back.)
     if (status === "cancelled" && order.orderStatus !== "cancelled") {
+      // Atomic lock — "Save" do baar dabane pe do refund nahi
+      const claimed = await Order.updateOne(
+        { _id: order._id, orderStatus: { $ne: "cancelled" }, cancelLock: { $ne: true } },
+        { $set: { cancelLock: true } }
+      );
+      if (!claimed.modifiedCount) {
+        return res.status(409).json({ success: false, message: "This order is already being cancelled." });
+      }
       try {
         if (!order.cancelReason) order.cancelReason = note || "Cancelled by store";
         const refund = await refundOrder(order, order.cancelReason);
@@ -221,8 +229,12 @@ router.put("/orders/:id/status", byId("Order"), validate({ body: S.orderStatusBo
           note = `${note ? note + ". " : ""}Refund ${refund.id} issued.`;
         }
       } catch (err) {
+        await Order.updateOne({ _id: order._id }, { $set: { cancelLock: false } }).catch(() => {});
         return res.status(502).json({ success: false, message: `Refund failed, order not cancelled: ${err.message}` });
       }
+      // Order lock lagne se pehle load hua tha — false "badlav" nahi lagta, isliye zabardasti save
+      order.set("cancelLock", false);
+      order.markModified("cancelLock");
     }
 
     order.orderStatus = status;

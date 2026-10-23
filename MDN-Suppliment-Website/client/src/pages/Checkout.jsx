@@ -35,6 +35,18 @@ export default function Checkout() {
   const [couponMessage, setCouponMessage] = useState("");
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
+  // Ref turant badalta hai (state agle render pe) — bahut tez double-tap me
+  // bhi doosra click yahin ruk jata hai, Razorpay do baar nahi khulta
+  const payLockRef = useRef(false);
+  const couponLockRef = useRef(false);
+  const setPayLocked = (v) => {
+    payLockRef.current = v;
+    setPlacing(v);
+  };
+  const setCouponLocked = (v) => {
+    couponLockRef.current = v;
+    setCouponBusy(v);
+  };
   const [pageLoading, setPageLoading] = useState(true);
   // Email OTP: chalu hai ya nahi + is account ke verified emails
   const [otp, setOtp] = useState({ loaded: false, email: {}, accountEmail: "", verifiedEmails: [] });
@@ -200,7 +212,7 @@ export default function Checkout() {
     ) : null;
 
   const handleApplyCoupon = async () => {
-    if (couponBusy) return;
+    if (couponLockRef.current) return;
     setError("");
     setCouponMessage("");
     const code = couponCode.trim().toUpperCase();
@@ -208,7 +220,7 @@ export default function Checkout() {
     setCouponError(msg);
     if (msg) return;
 
-    setCouponBusy(true);
+    setCouponLocked(true);
     try {
       const data = await api.applyCoupon(token, code);
       setCart(data.data);
@@ -218,13 +230,13 @@ export default function Checkout() {
       setCouponError(err.message);
       toastError(err.message);
     } finally {
-      setCouponBusy(false);
+      setCouponLocked(false);
     }
   };
 
   const handleRemoveCoupon = async () => {
-    if (couponBusy) return;
-    setCouponBusy(true);
+    if (couponLockRef.current) return;
+    setCouponLocked(true);
     try {
       const data = await api.removeCoupon(token);
       setCart(data.data);
@@ -234,13 +246,13 @@ export default function Checkout() {
     } catch (err) {
       toastError(err.message);
     } finally {
-      setCouponBusy(false);
+      setCouponLocked(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (placing) return; // double submit guard
+    if (payLockRef.current) return; // double submit guard (ref — turant)
     setError("");
     if (!validate()) {
       toastError("Some fields need fixing — please check the highlighted fields.");
@@ -260,7 +272,7 @@ export default function Checkout() {
     // Trim + phone sirf 10 digits — server bhi yahi rules dobara check karta hai
     const shippingAddress = cleanAddress(form);
 
-    setPlacing(true);
+    setPayLocked(true);
     try {
       const rpOrderRes = await api.createRazorpayOrder(token, {
         shippingAddress,
@@ -311,13 +323,13 @@ export default function Checkout() {
             setError(msg);
             toastError(msg);
           } finally {
-            setPlacing(false);
+            setPayLocked(false);
           }
         },
 
         modal: {
           ondismiss: function () {
-            setPlacing(false);
+            setPayLocked(false);
             toastError("Payment was cancelled.");
           },
         },
@@ -326,7 +338,7 @@ export default function Checkout() {
       const rzp = new window.Razorpay(options);
 
       rzp.on("payment.failed", function (response) {
-        setPlacing(false);
+        setPayLocked(false);
         toastError("Payment failed: " + response.error.description);
       });
 
@@ -334,7 +346,7 @@ export default function Checkout() {
     } catch (err) {
       setError(err.message);
       toastError(err.message);
-      setPlacing(false);
+      setPayLocked(false);
     }
   };
 

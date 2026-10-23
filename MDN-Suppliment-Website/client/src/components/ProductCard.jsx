@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useCartBadge } from "../context/CartBadgeContext";
@@ -42,6 +42,12 @@ const ProductCard = ({ product }) => {
   const { success, error: toastError } = useToast();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  // Ref turant lock hota hai — tez double-tap pe do baar cart me na jaye
+  const addLockRef = useRef(false);
+  const setAddingLocked = (v) => {
+    addLockRef.current = v;
+    setAdding(v);
+  };
   const [error, setError] = useState("");
 
   // Admin-set display rating if there is one, else the average of real
@@ -56,10 +62,10 @@ const ProductCard = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     // Out of stock, ya pichhli request abhi chal rahi ho (double tap)
-    if (outOfStock || adding) return;
+    if (outOfStock || addLockRef.current) return;
 
     try {
-      setAdding(true);
+      setAddingLocked(true);
       setError("");
       if (token) {
         await api.addToCart(token, {
@@ -91,7 +97,7 @@ const ProductCard = ({ product }) => {
       setError(err.message);
       toastError(err.message);
     } finally {
-      setAdding(false);
+      setAddingLocked(false);
     }
   };
 

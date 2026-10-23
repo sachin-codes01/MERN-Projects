@@ -47,6 +47,12 @@ const ProductDetail = () => {
   const [selectedFlavorId, setSelectedFlavorId] = useState(null);
   const [error, setError] = useState("");
   const [adding, setAdding] = useState(false);
+  // Ref turant lock hota hai — tez double-tap pe do baar cart me na jaye
+  const addLockRef = useRef(false);
+  const setAddingLocked = (v) => {
+    addLockRef.current = v;
+    setAdding(v);
+  };
   const { token, user } = useAuth();
   const { markNewItem } = useCartBadge();
   const { success, error: toastError } = useToast();
@@ -91,7 +97,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     // Size chuna na ho ya pichhli request abhi chal rahi ho (double tap)
-    if (!currentSize || adding) return;
+    if (!currentSize || addLockRef.current) return;
     // Flavour wale product me flavour bhi chahiye
     if (flavors.length > 0 && !selectedFlavorId) {
       toastError("Please choose a flavour first.");
@@ -99,7 +105,7 @@ const ProductDetail = () => {
     }
     setError("");
     try {
-      setAdding(true);
+      setAddingLocked(true);
       const { effectivePrice } = getSizePrice(currentSize, currentFlavor?.priceAdjustment || 0);
       if (token) {
         await api.addToCart(token, {
@@ -131,7 +137,7 @@ const ProductDetail = () => {
       setError(err.message);
       toastError(err.message);
     } finally {
-      setAdding(false);
+      setAddingLocked(false);
     }
   };
 

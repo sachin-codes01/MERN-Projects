@@ -90,6 +90,9 @@ const orderSchema = new mongoose.Schema(
     estimatedDelivery: Date,
     deliveredAt: Date,
     cancelReason: { type: String, trim: true, maxlength: 300 },
+    // Cancel chal raha hai — do request saath aayein to doosri ko rok do
+    // (warna do baar refund ki koshish). Kaam khatam hote hi false.
+    cancelLock: { type: Boolean, default: false },
 
     statusHistory: [statusHistorySchema],
   },

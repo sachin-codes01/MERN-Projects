@@ -135,23 +135,25 @@ exports.getProductBySlug = async (req, res) => {
 // POST /api/products/:id/reviews  (requires auth)
 exports.addReview = async (req, res) => {
   try {
-    const { rating, comment, images } = req.body;
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    const { rating, comment } = req.body;
 
-    const alreadyReviewed = product.reviews.find(
-      (r) => r.user.toString() === req.user._id.toString()
+    // "Is user ka review nahi hai" check aur add ek hi atomic step me — do
+    // baar submit (double tap) pe bhi sirf ek review judta hai
+    const product = await Product.findOneAndUpdate(
+      { _id: req.params.id, "reviews.user": { $ne: req.user._id } },
+      { $push: { reviews: { user: req.user._id, rating, comment } } },
+      { returnDocument: "after", runValidators: true }
     );
-    if (alreadyReviewed) {
+    if (!product) {
+      const exists = await Product.exists({ _id: req.params.id });
+      if (!exists) return res.status(404).json({ success: false, message: "Product not found" });
       return res.status(400).json({ success: false, message: "You already reviewed this product" });
     }
 
-    product.reviews.push({ user: req.user._id, rating, comment, images });
-    product.ratingsCount = product.reviews.length;
-    product.ratingsAverage =
-      product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length;
-
-    await product.save();
+    // Average real reviews se dobara
+    const count = product.reviews.length;
+    const avg = product.reviews.reduce((sum, r) => sum + r.rating, 0) / count;
+    await Product.updateOne({ _id: product._id }, { $set: { ratingsCount: count, ratingsAverage: avg } });
     res.status(201).json({ success: true, message: "Review added" });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
