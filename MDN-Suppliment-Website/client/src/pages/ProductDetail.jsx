@@ -275,7 +275,9 @@ const ProductDetail = () => {
               dotsPosition="overlay"
               showArrows
               onIndexChange={setActiveImage}
-              slideClassName="aspect-[9/10] sm:aspect-[4/5] lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
+              // Phone/tablet: square card (1:1) — 1200x1200 product photo bina
+              // khinche poora fit. Desktop pe pehle jaisa (window ke hisaab se height).
+              slideClassName="aspect-square lg:aspect-auto lg:h-[min(850px,calc(100svh-var(--nav-h,79px)-30px))]"
             />
           </div>
 
