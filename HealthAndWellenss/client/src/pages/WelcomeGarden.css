@@ -1,0 +1,221 @@
+/* A planted courtyard: substantial artwork has its own space in every composition. */
+.studio-landing{max-width:1440px;background:#f6f3e9;--studio-gutter:clamp(20px,4vw,56px)}
+.studio-header{min-height:98px;border-bottom:0}
+.studio-hero{background:#e8eddc;border:1px solid #d7dfc9;border-radius:24px;padding:24px 32px 18px;column-gap:28px}
+.studio-hero h1{font-size:clamp(58px,6.2vw,90px)}
+.studio-hero-photo{background:#f8f7ef;border-radius:48% 48% 12px 12px;margin-top:32px;padding-top:18px}
+.studio-hero-branch{width:62%;right:-10px;top:-42px;transform:rotate(6deg)}
+.studio-hero-caption p{max-width:45ch}.studio-hero>.folio{margin-top:16px}
+.garden-branch{display:block;object-fit:contain;pointer-events:none;user-select:none}
+.studio-section{padding-top:28px;padding-bottom:20px}.studio-section>.folio{margin-top:18px}
+.studio-intro-layout{grid-template-columns:1.35fr 1fr;gap:32px}.studio-intro-copy{grid-column:1;grid-row:1}
+.garden-portrait{grid-column:2;grid-row:1;display:grid;grid-template-columns:.45fr 1fr;align-items:center;min-width:0;background:#e7eadb;border-radius:18px;padding:14px 12px 0;overflow:hidden}
+.garden-portrait-vine{width:100%;height:280px;object-position:top center;align-self:start}
+.garden-portrait .studio-intro-photo.botanical-scene{aspect-ratio:.85;background:none;border-radius:0;max-width:none}
+.studio-services{margin:4px 0 16px;padding:28px;border:1px solid #d8deca;background:#fffdf6;border-radius:20px}
+.studio-services-layout{grid-template-columns:1.15fr 1fr;gap:32px}.studio-service-photo{position:relative;background:#edf0e2;border-radius:48% 48% 14px 14px;padding:24px 12px 16px;isolation:isolate}
+.garden-service-canopy{position:absolute;top:-24px;right:-6px;width:45%;z-index:1;opacity:.9}
+.studio-service-photo>.botanical-scene{position:relative;z-index:2}.studio-service-photo figcaption{position:relative;z-index:2;font-size:23px}
+.studio-therapy-row{padding:15px 10px;border-radius:6px}.studio-service-title .studio-number{font-size:28px}
+.studio-journey{margin:0;border-radius:20px;padding:28px;overflow:hidden}
+.studio-journey-layout{grid-template-columns:1fr 1.3fr;gap:32px}.studio-journey-layout>div:first-child{position:relative;padding-right:90px;min-height:275px}
+.garden-journey-leaves{position:absolute;right:-6px;bottom:-10px;width:140px;height:220px;opacity:.8;object-position:right bottom;transform:scaleX(-1)}
+.studio-journey-steps article{background:#ffffff08;border:1px solid #ffffff15;border-radius:10px;padding:16px}.studio-journey-steps article:last-child{padding:16px;border:1px solid #ffffff15}.studio-journey-steps{gap:10px}
+.studio-loyalty-details{gap:16px}.studio-loyalty-details article{background:#fffdf6;border-radius:16px;padding:20px;overflow:hidden;position:relative}
+.garden-benefit-art{width:100%;height:100px;margin-bottom:16px;background:#edf0e2;border-radius:8px;padding:5px;object-position:center}
+.studio-loyalty-details article:nth-child(1) .garden-benefit-art{background:#f3e7e3}.studio-loyalty-details article:nth-child(3) .garden-benefit-art{background:#ebe8f0}
+.studio-aftercare{border:0;background:#e7ebdf;border-radius:20px;padding:28px;margin-top:8px}.studio-aftercare-layout{grid-template-columns:1fr 1.4fr;gap:28px}
+.garden-aftercare-art{position:relative;padding-left:65px}.garden-aftercare-vine{position:absolute;left:0;top:0;width:80px;height:100%;object-position:top center}
+.studio-aftercare-layout figure>.botanical-scene{background:#f7f7ee;border-radius:45% 45% 12px 12px}.studio-aftercare .studio-columns>div{border-color:#c9d1bd}
+.studio-faq{border:0}.studio-faq-layout{grid-template-columns:.85fr 1.4fr;gap:32px}.studio-faq-layout>div:first-child{position:relative;min-height:300px;padding-right:90px}
+.garden-faq-vine{position:absolute;right:5px;top:0;width:115px;height:300px;object-position:right top}
+.studio-faq-list details{background:#fffdf6;border:1px solid #dde2d1;border-radius:10px;margin-bottom:8px;padding:8px 16px}.studio-faq-list details:first-child{border-top:1px solid #dde2d1}
+.studio-contact{background:#e4ead7;margin-top:0;border-radius:20px;padding:28px}.studio-contact-layout{grid-template-columns:1fr 1.15fr 1fr;gap:24px}.garden-contact-art{position:relative;min-width:0;padding-top:34px}.garden-contact-canopy{position:absolute;top:-24px;left:0;width:65%;height:120px;object-position:left top}.garden-contact-art .studio-contact-photo{width:100%;max-width:none}
+.studio-bottom{padding-block:12px}
+@media(max-width:1000px){.studio-hero{padding:22px}.studio-hero h1{font-size:6.5vw}.studio-intro-layout{grid-template-columns:1.25fr 1fr;gap:24px}.garden-portrait-vine{height:200px}.studio-journey-layout>div:first-child{padding-right:0;padding-bottom:130px}.garden-journey-leaves{width:110px;height:150px;right:0}.studio-faq-layout>div:first-child{padding-right:75px}.garden-faq-vine{width:85px}.studio-aftercare-layout{grid-template-columns:1fr 1.3fr}.garden-aftercare-art{padding-left:44px}.garden-aftercare-vine{width:58px}}
+@media(max-width:700px){.studio-hero{padding:18px;border-radius:18px}.studio-hero h1{font-size:clamp(44px,11vw,70px)}.hero-heading-flower{width:42px;right:0}.studio-hero-photo{margin-top:26px}.studio-hero-branch{width:48%;top:-28px;right:0}.studio-hero-caption{grid-template-columns:1fr;gap:8px}.studio-hero-caption>span br{display:none}.studio-hero-caption>span{word-spacing:.2em}.studio-hero-meta{gap:16px}.studio-hero-meta>span:last-child{max-width:130px}.studio-intro-layout{grid-template-columns:1fr;gap:20px}.studio-intro-copy{grid-column:auto;grid-row:auto}.garden-portrait{grid-column:auto;grid-row:auto;max-width:390px;width:100%;justify-self:center;grid-template-columns:.4fr 1fr}.garden-portrait-vine{height:230px}.garden-portrait .studio-intro-photo.botanical-scene{aspect-ratio:1}.studio-services,.studio-journey,.studio-aftercare,.studio-contact{padding:22px;border-radius:16px}.studio-services-layout,.studio-journey-layout,.studio-aftercare-layout,.studio-faq-layout{grid-template-columns:1fr;gap:22px}.studio-service-photo{padding:24px 8px 14px;display:grid;grid-template-columns:1.1fr 1fr;border-radius:14px;margin-top:8px}.garden-service-canopy{width:32%;top:-16px}.studio-service-photo figcaption{font-size:20px}.studio-journey-layout>div:first-child{display:block;min-height:0;padding-right:70px;padding-bottom:0}.studio-journey-layout>div:first-child>.studio-number{margin-top:8px}.garden-journey-leaves{right:-15px;bottom:0;width:90px;height:150px;opacity:.6}.studio-journey-steps article{padding:14px}.studio-loyalty-details{grid-template-columns:1fr}.studio-loyalty-details article{display:grid;grid-template-columns:85px 1fr;gap:8px 16px;padding:16px}.garden-benefit-art{grid-column:1;grid-row:1/4;height:100%;min-height:130px;margin:0;padding:4px}.studio-loyalty-details article>span,.studio-loyalty-details article>h3,.studio-loyalty-details article>p{grid-column:2;margin:0}.studio-loyalty-details h3{font-size:23px}.garden-aftercare-art{padding-left:55px;max-width:360px!important}.garden-aftercare-vine{width:70px}.studio-aftercare .studio-columns{grid-template-columns:1fr}.studio-faq-layout>div:first-child{display:block;min-height:150px;padding-right:90px}.garden-faq-vine{height:150px;width:85px}.studio-faq-layout .studio-number{margin-top:10px}.studio-contact-layout{grid-template-columns:1fr 1fr;gap:20px}.garden-contact-art{grid-column:2;grid-row:1/3;align-self:center;padding-top:20px}.garden-contact-canopy{height:80px;top:-12px;width:85%}.studio-contact-copy:last-child{grid-column:1}}
+@media(max-width:420px){.studio-hero h1{font-size:clamp(40px,11vw,48px)}.studio-hero .MuiButton-root{flex-basis:100%}.studio-hero-meta{font-size:7px}.studio-service-photo{grid-template-columns:1fr}.studio-service-photo>.botanical-scene{max-width:240px;width:100%;justify-self:center;aspect-ratio:1.15}.studio-service-photo figcaption{text-align:center;font-size:22px}.garden-service-canopy{width:40%}.studio-loyalty-details article{grid-template-columns:65px 1fr;gap:8px 12px}.studio-contact-layout{grid-template-columns:1fr}.garden-contact-art{grid-column:1;grid-row:auto;max-width:280px;width:100%;justify-self:center}.studio-contact-copy:last-child{grid-column:1}.studio-journey-layout>div:first-child{padding-right:50px}.studio-journey h2{font-size:28px}.garden-journey-leaves{width:70px}}
+
+/* Open botanical composition: artwork and fine rules replace enclosed panels. */
+.studio-hero{background:transparent;border:0;border-radius:0;padding:24px 0 18px}
+.studio-hero-photo{background:transparent;border-radius:0;padding:18px 0 12px}
+.studio-hero-photo>.botanical-scene{background:radial-gradient(ellipse at 50% 60%,#dce5ce80,transparent 70%)}
+.studio-hero-branch{width:56%;right:0;top:-24px}
+.garden-portrait{background:transparent;border-radius:0;padding:0;overflow:visible}
+.studio-services{background:transparent;border:0;border-top:1px solid var(--studio-line);border-radius:0;padding:28px 0 20px;margin:0}
+.studio-service-photo{background:transparent;border-radius:0;padding:24px 0 12px}
+.studio-therapy-row{border-radius:0;padding-inline:0}.studio-therapy-row:hover{background:#e6ecdb70}
+.studio-journey{background:transparent;color:#183e2a;border-radius:0;padding:28px 0 20px;border-block:1px solid var(--studio-line);--studio-line:#d2d9c8;overflow:visible}
+.studio-journey .decorated-heading em{color:#456a48}.studio-journey .studio-kicker,.studio-journey .folio{color:#7d865f}
+.studio-journey-steps article,.studio-journey-steps article:last-child{background:transparent;border:0;border-bottom:1px solid var(--studio-line);border-radius:0;padding:12px 0}
+.studio-journey-steps article:first-child{padding-top:0}.studio-journey-steps article:last-child{border-bottom:0}.studio-journey-steps p{color:#60705a}.studio-journey-steps article>span{color:#967137}
+.garden-journey-leaves{opacity:.85}
+.studio-loyalty-details article{background:transparent;border:0;border-top:1px solid #b59b68;border-radius:0;padding:16px 0;overflow:visible}
+.studio-loyalty-details{gap:28px}
+.garden-benefit-art,.studio-loyalty-details article:nth-child(1) .garden-benefit-art,.studio-loyalty-details article:nth-child(3) .garden-benefit-art{background:transparent;border-radius:0;padding:0;height:110px;object-position:left center}
+.studio-aftercare{background:transparent;border-radius:0;border-top:1px solid var(--studio-line);padding:28px 0 20px;margin-top:0}
+.studio-aftercare-layout figure>.botanical-scene{background:radial-gradient(ellipse,#dce5ce60,transparent 70%);border-radius:0}
+.studio-faq-list details,.studio-faq-list details:first-child{background:transparent;border:0;border-bottom:1px solid var(--studio-line);border-radius:0;padding:8px 0;margin:0}
+.studio-faq-list details:first-child{border-top:1px solid var(--studio-line)}
+.studio-contact{background:transparent;border-top:1px solid var(--studio-line);border-radius:0;padding:28px 0 20px}
+.studio-contact-heading{margin-bottom:0}
+@media(max-width:700px){
+ .studio-hero{padding:18px 0 12px}.studio-hero h1{font-size:clamp(48px,12vw,76px)}
+ .studio-services,.studio-journey,.studio-aftercare,.studio-contact{padding:24px 0 18px;border-radius:0}
+ .studio-hero-photo{padding:12px 0;margin-top:22px}.studio-service-photo{border-radius:0;padding:20px 0 12px}
+ .studio-loyalty-details article{padding:16px 0}.studio-loyalty-details{gap:8px}
+ .garden-benefit-art,.studio-loyalty-details article:nth-child(1) .garden-benefit-art,.studio-loyalty-details article:nth-child(3) .garden-benefit-art{height:100%;min-height:130px}
+ .studio-journey-steps article,.studio-journey-steps article:last-child{padding:12px 0}
+ .studio-hero .MuiButton-root{flex:1 1 135px}
+}
+
+/* Larger editorial scale fills the open layout without adding containers. */
+.studio-landing h2{font-size:clamp(40px,4.5vw,64px);line-height:1.06}
+.studio-aftercare-layout h2{font-size:clamp(38px,3.8vw,54px)}
+.studio-hero h1{font-size:clamp(64px,7.2vw,104px)}
+.studio-hero-caption p,.studio-columns p,.studio-section-description,.studio-loyalty-heading>p{font-size:16px;line-height:1.8}
+.studio-intro-layout{grid-template-columns:1.2fr 1fr;gap:28px}
+.garden-portrait{grid-template-columns:.32fr 1fr}.garden-portrait-vine{height:320px}
+.studio-services-layout{grid-template-columns:1fr 1.05fr;gap:28px}
+.studio-therapy-row h3{font-size:22px}.studio-therapy-row p{font-size:14px}.studio-service-photo figcaption{font-size:29px}
+.studio-journey-steps h3{font-size:29px}.studio-journey-steps p{font-size:15px}
+.studio-loyalty-details h3{font-size:30px}.studio-loyalty-details p{font-size:15px}
+.garden-benefit-art,.studio-loyalty-details article:nth-child(1) .garden-benefit-art,.studio-loyalty-details article:nth-child(3) .garden-benefit-art{height:140px}
+.studio-aftercare-layout{grid-template-columns:1fr 1.2fr;gap:28px}.studio-aftercare-layout h3{font-size:27px}
+.studio-faq-list summary{font-size:17px;min-height:50px}.studio-faq-list details p{font-size:15px}
+.studio-contact-copy h3{font-size:29px}.studio-contact-copy p,.studio-contact-copy>div>a{font-size:15px}.studio-contact-copy .studio-contact-tagline{font-size:34px}
+.studio-text-link{font-size:13px}
+@media(max-width:1000px){.studio-hero h1{font-size:7vw}.studio-journey-layout>div:first-child{padding-bottom:140px}.studio-contact-copy h3{font-size:25px}.studio-contact-copy .studio-contact-tagline{font-size:28px}.studio-columns{gap:20px}}
+@media(max-width:700px){
+ .studio-landing h2{font-size:clamp(36px,8.2vw,48px)}.studio-aftercare-layout h2{font-size:clamp(34px,8vw,44px)}
+ .studio-hero h1{font-size:clamp(48px,13vw,82px)}
+ .studio-intro-layout,.studio-services-layout,.studio-aftercare-layout{grid-template-columns:1fr}
+ .garden-portrait{max-width:440px}.garden-portrait-vine{height:260px}
+ .studio-service-photo{grid-template-columns:1fr;max-width:420px;width:100%;justify-self:center}
+ .studio-service-photo>.botanical-scene{max-width:none;width:100%;aspect-ratio:1.15}
+ .studio-service-photo figcaption{text-align:center;font-size:27px}
+ .studio-journey-layout>div:first-child{padding-bottom:0;padding-right:70px}
+ .studio-journey h2{font-size:clamp(32px,7.5vw,42px)}
+ .studio-loyalty-details h3{font-size:27px}
+ .garden-benefit-art,.studio-loyalty-details article:nth-child(1) .garden-benefit-art,.studio-loyalty-details article:nth-child(3) .garden-benefit-art{height:100%}
+ .garden-aftercare-art{max-width:420px!important}
+ .studio-faq-list summary{font-size:16px}.studio-contact-copy .studio-contact-tagline{font-size:30px}
+}
+
+/* Retain the established panel treatment in chapters 02–04. */
+.studio-services{background:#eaf0e2;border:1px solid #d8deca;border-radius:18px;padding:28px;margin:8px 0 16px}
+.studio-journey{background:#1c422e;color:#f8f5e9;border:0;border-radius:18px;padding:28px;--studio-line:#50694c;overflow:hidden}
+.studio-journey .decorated-heading em{color:#dfc48e}.studio-journey .studio-kicker,.studio-journey .folio{color:#b4c5a5}
+.studio-journey-steps p{color:#d1dcc9}.studio-journey-steps article>span{color:#dcc58c}
+.studio-loyalty-details article{background:#eff1e7;border:1px solid #dde3d2;border-radius:12px;padding:20px;overflow:hidden}
+@media(max-width:700px){.studio-services,.studio-journey{padding:22px;border-radius:16px}.studio-loyalty-details article{padding:16px}.studio-journey-layout>div:first-child{padding-right:55px}}
+
+/* Original cream, forest, sage and gold palette. */
+.studio-landing{background:#faf7f0;color:#143522;--studio-line:#c5cebc}
+.studio-header-name>span:first-child{color:#1f5135}
+.studio-header-name>span:last-child,.studio-hero-caption>span,.studio-therapy-index,.studio-loyalty-details article>span,.studio-contact-copy>div>span,.folio span:last-child{color:#8a6a2b}
+.hero-last-line{color:#24543a}.decorated-heading em{color:#376449}
+.studio-hero-caption p,.studio-columns p,.studio-section-description,.studio-loyalty-heading>p,.studio-loyalty-details p,.studio-faq-list details p{color:#66706a}
+.studio-services{background:#e9eddf;border-color:#bccbb3}.studio-therapy-row{border-color:#bccbb3}.studio-therapy-row:hover{background:#dce5d3}
+.studio-journey{background:#193d2b;color:#f5f1e7;--studio-line:#52705a}
+.studio-journey .decorated-heading-copy em{color:#dcc28a}.studio-journey .studio-kicker,.studio-journey .folio{color:#c2cfbb}
+.studio-journey-steps p{color:#d0dacb}.studio-journey-steps article>span,.studio-journey .folio span:last-child{color:#dcc28a}
+.studio-loyalty-details article{background:#f0efe3;border-color:#c5cebc}
+.studio-kicker::before{background:#b08a3e}.hero-heading-stroke,.heading-orbit{border-bottom-color:#b08a3e}
+.studio-bottom{color:#66706a}
+
+/* Restore the earlier section panels and loyalty card colours. */
+.studio-services{margin:8px calc(-1 * var(--studio-gutter)) 0;padding:32px var(--studio-gutter) 22px;background:#e9eddf;border:0;border-radius:0}
+.studio-journey{margin-inline:calc(-1 * var(--studio-gutter));padding:32px var(--studio-gutter) 22px;background:#193d2b;border:0;border-radius:0;--studio-line:#52705a}
+.studio-loyalty-details article{background:#eff1e7;border:1px solid #dde3d2;border-radius:12px}
+@media(max-width:700px){.studio-services,.studio-journey{padding:28px var(--studio-gutter) 22px;border-radius:0}}
+
+/* Mirror and slightly enlarge the pink branch above the hero lotus. */
+.studio-hero-branch{width:63%;transform:rotate(-6deg) scaleX(-1)}
+@media(max-width:700px){.studio-hero-branch{width:54%}}
+
+/* Larger jasmine accent beside the hero heading. */
+.hero-heading-flower{width:clamp(90px,9vw,130px);top:-16px;right:-8px}
+@media(max-width:1000px){.hero-heading-flower{width:80px;top:-12px;right:-6px}}
+@media(max-width:700px){.hero-heading-flower{width:76px;top:-8px;right:0}}
+
+/* Match the larger jasmine accent with a more visible orange butterfly. */
+.hero-heading-butterfly{width:clamp(42px,4vw,56px);left:0;bottom:8px}
+@media(max-width:700px){.hero-heading-butterfly{width:40px;bottom:12px}}
+
+/* A small floral cluster in the open area beside Natural Balance. */
+.hero-flower-companion{position:absolute;object-fit:contain;pointer-events:none;width:48px;z-index:1}
+.hero-flower-companion--pink{right:-2px;top:88px;transform:rotate(18deg)}
+.hero-flower-companion--blue{right:90px;top:-28px;width:40px;transform:rotate(-14deg)}
+@media(max-width:1000px){.hero-flower-companion--pink{width:34px;top:58px;right:-4px}.hero-flower-companion--blue{width:30px;right:60px;top:-24px}}
+@media(max-width:700px){.hero-flower-companion--pink{width:32px;top:58px;right:0}.hero-flower-companion--blue{width:28px;right:60px;top:-20px}}
+
+/* Colourful accents follow the open central gap, away from copy and controls. */
+.hero-flower-trail{position:absolute;inset:0;pointer-events:none;user-select:none;z-index:2}
+.hero-trail-flower{position:absolute;object-fit:contain;width:clamp(48px,5vw,72px);height:auto}
+.hero-trail-flower--gold{left:48%;top:18px;transform:rotate(-16deg)}
+.hero-trail-flower--rose{left:56%;top:66px;width:clamp(42px,4vw,58px);transform:rotate(14deg)}
+.hero-trail-flower--blue{left:48%;bottom:135px;transform:rotate(-12deg)}
+.hero-trail-flower--pink{left:43%;bottom:55px;width:clamp(60px,6vw,86px);transform:rotate(18deg)}
+@media(min-width:701px) and (max-width:1100px){.hero-trail-flower{width:40px}.hero-trail-flower--rose{width:34px;left:55%;top:55px}.hero-trail-flower--pink{width:48px;left:45%}.hero-trail-flower--blue{left:49%;bottom:115px}}
+@media(max-width:700px){.hero-flower-trail{display:none}}
+
+/* Continue the flower arrangement through the middle of the marked gap. */
+.hero-trail-flower--middle-purple{left:49%;top:43%;width:clamp(52px,5.2vw,76px);transform:rotate(-12deg)}
+.hero-trail-flower--middle-pink{left:47%;top:58%;width:clamp(44px,4.5vw,64px);transform:rotate(16deg)}
+@media(min-width:701px) and (max-width:1100px){.hero-trail-flower--middle-purple{left:49%;width:36px}.hero-trail-flower--middle-pink{left:49%;width:32px}}
+
+/* A fuller bouquet with overlapping blooms inside the central open space. */
+.hero-trail-flower--cluster-white{left:51%;top:34%;width:clamp(44px,4.7vw,68px);transform:rotate(12deg)}
+.hero-trail-flower--cluster-rose{left:46.5%;top:48%;width:clamp(56px,5.5vw,80px);transform:rotate(-18deg)}
+.hero-trail-flower--cluster-gold{left:51%;top:55%;width:clamp(42px,4.3vw,62px);transform:rotate(20deg)}
+.hero-trail-flower--cluster-blue{left:46%;top:69%;width:clamp(50px,5vw,72px);transform:rotate(-8deg)}
+@media(min-width:701px) and (max-width:1100px){.hero-trail-flower--cluster-white{left:51%;width:30px}.hero-trail-flower--cluster-rose{left:48%;width:38px}.hero-trail-flower--cluster-gold{left:51%;width:30px}.hero-trail-flower--cluster-blue{left:48%;width:34px}}
+
+/* Subtle divider beneath the navigation header. */
+.studio-header{border-bottom:1px solid var(--studio-line)}
+
+/* Fill the remaining spaces between the existing flower groups. */
+.hero-trail-flower--fill-top{left:53%;top:12%;width:clamp(54px,5.8vw,84px);transform:rotate(-10deg)}
+.hero-trail-flower--fill-upper{left:49%;top:23%;width:clamp(50px,5.2vw,76px);transform:rotate(16deg)}
+.hero-trail-flower--fill-center{left:47%;top:36%;width:clamp(46px,5vw,72px);transform:rotate(-18deg)}
+.hero-trail-flower--fill-lower{left:50%;top:65%;width:clamp(48px,5vw,72px);transform:rotate(12deg)}
+.hero-trail-flower--fill-base{left:49%;bottom:50px;width:clamp(48px,5vw,72px);transform:rotate(-14deg)}
+@media(min-width:701px) and (max-width:1100px){.hero-trail-flower--fill-top{left:52%;width:38px}.hero-trail-flower--fill-upper{left:49%;width:34px}.hero-trail-flower--fill-center{left:48%;width:32px}.hero-trail-flower--fill-lower{left:51%;width:34px}.hero-trail-flower--fill-base{left:50%;width:34px}}
+
+/* Widen the arrangement into the empty areas on either side of the cluster. */
+.hero-trail-flower--spread-left-top{left:43%;top:11%;width:clamp(48px,5vw,72px);transform:rotate(-20deg)}
+.hero-trail-flower--spread-left-bottom{left:43%;top:66%;width:clamp(42px,4.3vw,62px);transform:rotate(15deg)}
+.hero-trail-flower--spread-right-top{left:58%;top:16%;width:clamp(48px,5vw,72px);transform:rotate(18deg)}
+.hero-trail-flower--spread-right-bottom{left:54%;bottom:52px;width:clamp(48px,5vw,72px);transform:rotate(-12deg)}
+@media(min-width:701px) and (max-width:1100px){.hero-trail-flower--spread-left-top{left:45%;width:32px}.hero-trail-flower--spread-left-bottom{display:none}.hero-trail-flower--spread-right-top{left:58%;width:32px}.hero-trail-flower--spread-right-bottom{left:54%;width:32px}}
+
+/* Accents fitted to the four additional marked gaps on wide screens. */
+.hero-marked-flower{position:absolute;object-fit:contain;pointer-events:none}
+.hero-marked-flower--marked-top{left:13%;top:12px;width:28%;height:76px;object-position:center}
+.hero-marked-flower--marked-heading{left:35%;top:20%;width:56px;transform:rotate(-12deg)}
+.hero-marked-flower--marked-middle-white{left:41%;top:46%;width:54px;transform:rotate(14deg)}
+.hero-marked-flower--marked-middle-pink{left:40%;top:58%;width:56px;transform:rotate(-18deg)}
+.hero-marked-flower--marked-bottom{left:19%;bottom:38px;width:23%;height:95px;transform:rotate(-12deg)}
+@media(max-width:1100px){.hero-marked-flower{display:none}}
+
+/* Individual blooms instead of branches in the newly marked gaps. */
+.hero-marked-flower--marked-top{left:16%;top:16px;width:66px;height:66px}
+.hero-marked-flower--top-gold{left:24%;top:14px;width:58px;height:58px;transform:rotate(12deg)}
+.hero-marked-flower--top-blue{left:32%;top:22px;width:62px;height:62px;transform:rotate(-10deg)}
+.hero-marked-flower--marked-bottom{left:29%;bottom:30px;width:64px;height:64px;transform:rotate(-12deg)}
+.hero-marked-flower--bottom-white{left:23%;bottom:20px;width:52px;height:52px}
+.hero-marked-flower--bottom-purple{left:36%;bottom:62px;width:60px;height:60px;transform:rotate(14deg)}
+
+/* Individual colourful flowers beside the introduction portrait. */
+.garden-portrait-flowers{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;align-self:stretch;pointer-events:none;user-select:none;padding:8px 0}
+.garden-portrait-flowers img{display:block;object-fit:contain;width:clamp(40px,5.8vw,80px);max-width:90%;height:auto;max-height:85px}
+.garden-portrait-flowers img:nth-child(1){transform:rotate(-12deg)}
+.garden-portrait-flowers img:nth-child(2){width:65%;transform:rotate(14deg)}
+.garden-portrait-flowers img:nth-child(3){transform:rotate(-8deg)}
+.garden-portrait-flowers img:nth-child(4){width:60%;transform:rotate(16deg)}
+@media(max-width:700px){.garden-portrait-flowers{gap:4px}.garden-portrait-flowers img{width:62px;max-height:65px}}
+
+/* Hide only the landing page scrollbar; preserve native scrolling. */
+html.landing-scrollbar-hidden{scrollbar-width:none}
+html.landing-scrollbar-hidden::-webkit-scrollbar{display:none;width:0;height:0}

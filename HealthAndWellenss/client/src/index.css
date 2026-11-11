@@ -1,0 +1,236 @@
+/* Layer order: Tailwind ka reset (base) → MUI ke styles → Tailwind utilities.
+   Isse MUI components sahi dikhte hain aur Tailwind classes (p-4, grid...) unhe override kar sakti hain */
+@layer theme, base, mui, components, utilities;
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-Italic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-MediumItalic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-SemiBoldItalic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Scaver';
+  src: url('/fonts/scaver/Scaver-BoldItalic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+
+
+/* ===== Brand theme: yahan colour badlo, poori site me badal jaayega ===== */
+@theme {
+  --color-brand-50: #f1f6f0;
+  --color-brand-100: #e2ece0;
+  --color-brand-200: #c3d8c0;
+  --color-brand-300: #93b98f;
+  --color-brand-500: #2f6b47;
+  --color-brand-700: #1f5135;
+  --color-brand-900: #143522;
+  --color-gold-100: #f6eedc;
+  --color-gold-300: #dcc28a;
+  --color-gold-500: #b08a3e;
+  --color-gold-700: #8a6a2b;
+  --color-cream: #faf7f0;
+  --color-ink: #1f2a24;
+  --color-muted: #66706a;
+
+  --font-serif: 'Scaver', Georgia, serif;
+  --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    color-scheme: light;
+  }
+  body {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.65;
+  }
+  button, a, input, select, textarea { touch-action: manipulation; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--color-brand-700);
+    outline-offset: 5px;
+  }
+  img { max-width: 100%; }
+}
+
+@layer components {
+  /* Card ka common look — white, halka border, soft shadow */
+  .surface {
+    @apply rounded-md border border-brand-100 bg-white;
+  }
+
+  /* Bade headings serif font me (logo jaisa feel) */
+  .heading {
+    @apply font-serif font-medium text-brand-700;
+    letter-spacing: -0.025em;
+  }
+
+  /* Halka patterned background (welcome / login pages) */
+  .brand-backdrop {
+    background: var(--color-cream);
+  }
+
+  /* Entry flows are a continuous page; forms keep their own input boundaries. */
+  .auth-shell { background: var(--color-cream); }
+  .auth-shell .surface {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding-inline: 0;
+  }
+  .auth-brand { min-height: 100svh; }
+  .auth-shell main { min-height: 100svh; }
+  .auth-shell .MuiStepLabel-label { font-size: 0.75rem; }
+  .auth-shell .MuiStepConnector-line { border-color: var(--color-brand-200); }
+  .home-section { border-top: 1px solid var(--color-brand-200); }
+  .therapy-entry:focus-visible { outline-offset: 7px; }
+  .customer-site main { min-width: 0; }
+  .customer-site footer { line-height: 1.8; }
+
+  .eyebrow { color: var(--color-gold-700); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
+  .editorial-link { display: inline-flex; align-items: center; gap: 0.7rem; color: var(--color-brand-700); font-size: 0.8rem; text-underline-offset: 6px; }
+  .editorial-link:hover { text-decoration: underline; }
+  .editorial-link svg { transition: transform 180ms ease; }
+  .editorial-link:hover svg { transform: translateX(3px); }
+  .welcome-page { max-width: 1600px; margin-inline: auto; }
+  .welcome-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.4rem clamp(1.25rem, 5vw, 5rem); }
+  .welcome-hero { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; padding: 0 clamp(1.25rem, 5vw, 5rem) 2rem; gap: clamp(2rem, 5vw, 6rem); }
+  .welcome-story { padding-block: 2rem; }
+  .welcome-title { max-width: 620px; margin-top: 1.3rem; color: var(--color-brand-900); font-family: var(--font-serif); font-size: clamp(3.2rem, 5.4vw, 5.7rem); line-height: 0.98; letter-spacing: -0.045em; font-weight: 500; }
+  .welcome-title span { display: block; max-width: 25rem; margin-top: 1.5rem; color: var(--color-brand-500); font-size: 0.46em; line-height: 1.15; letter-spacing: -0.02em; }
+  .welcome-description { max-width: 29rem; margin-top: 1.75rem; color: var(--color-muted); font-size: 0.875rem; line-height: 1.95; }
+  .welcome-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+  .welcome-explore { margin-top: 1.5rem; }
+  .welcome-photograph { position: relative; min-width: 0; margin: 0; background: var(--color-brand-900); }
+  .welcome-photograph > img { width: 100%; height: clamp(500px, 72vh, 780px); object-fit: cover; }
+  .welcome-photograph figcaption { position: absolute; inset: 2rem 2rem auto; color: var(--color-cream); font-family: var(--font-serif); font-size: clamp(1.8rem, 2.6vw, 3rem); line-height: 1.15; }
+  .welcome-photograph em { display: block; color: var(--color-gold-300); }
+  .welcome-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--color-brand-200); margin-inline: clamp(1.25rem, 5vw, 5rem); padding-block: 1.25rem; color: var(--color-muted); font-size: 0.75rem; }
+  .welcome-footer > p:first-child { color: var(--color-brand-700); font-family: var(--font-serif); font-style: italic; font-size: 1.25rem; }
+  .auth-brand { justify-content: flex-start; }
+  .auth-brand-photo, .auth-brand-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .auth-brand-photo { object-fit: cover; }
+  .auth-brand-shade { background: linear-gradient(180deg, rgba(20,53,34,0.9), rgba(20,53,34,0.48) 55%, rgba(20,53,34,0.05)); }
+  .auth-brand > p:last-child { margin-top: 2.5rem; }
+  .auth-shell main { background: #f5f0e6; }
+  .catalogue-intro { display: grid; grid-template-columns: 1.4fr 1fr; align-items: center; gap: 2rem; background: #eee9dc; margin-bottom: 2rem; padding: 2rem; }
+  .catalogue-intro .eyebrow { margin-bottom: 1rem; }
+  .catalogue-intro > img { width: 100%; height: 230px; object-fit: cover; object-position: center 65%; }
+  .catalogue-intro .heading { font-size: clamp(2.75rem, 5vw, 4.5rem); }
+  .therapy-cover { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6em; overflow: hidden; padding: 0.7em; container-type: inline-size; background: #e5e7d9; color: var(--color-brand-900); }
+  .therapy-cover--1 { background: #eae0cb; color: #655329; }
+  .therapy-cover--2 { background: #254d39; color: #faf7f0; }
+  .therapy-cover-mark { width: 22%; max-width: 70px; }
+  .brand-logo-on-dark { filter: brightness(1.65) saturate(0.85); }
+  .therapy-cover-title { max-width: 85%; text-align: center; font-family: var(--font-serif); font-size: clamp(0.7rem, 8cqi, 2.5rem); line-height: 1.1; }
+  .therapy-cover-number { position: absolute; bottom: 1rem; left: 1.25rem; font-size: 0.65rem; letter-spacing: 0.1em; }
+  .therapy-entry { transition: border-color 180ms ease; }
+  .therapy-entry:hover { border-color: var(--color-gold-500); }
+  .therapy-entry > img { transition: filter 180ms ease; }
+  .therapy-entry:hover > img { filter: brightness(1.04); }
+  .home-greeting { padding: 1.75rem; background: #e9eddf; border-left: 3px solid var(--color-gold-500); }
+  .home-section { background: #f0eddf; border-top-color: var(--color-gold-300); }
+  .home-section + .home-section { background: #e9eddf; border-top-color: var(--color-brand-300); }
+  .booking-section { border-top: 1px solid var(--color-brand-200); background: #f3f0e7; }
+  .booking-summary { background: #e9eddf; border-top: 3px solid var(--color-brand-700); }
+  .reminder-preferences { background: #eee9dc; border-left: 3px solid var(--color-gold-500); }
+  .reminder-feature { background: #e9eddf; border-top: 1px solid var(--color-brand-300); }
+
+  @media (max-width: 767px) {
+    .welcome-header { padding-block: 1rem; }
+    .welcome-header > .editorial-link { display: none; }
+    .welcome-hero { grid-template-columns: 1fr; gap: 1rem; }
+    .welcome-story { padding-block: 1.5rem 0.75rem; }
+    .welcome-title { font-size: clamp(3.25rem, 11vw, 5rem); }
+    .welcome-actions > .MuiButton-root { flex: 1 1 180px; }
+    .welcome-photograph > img { height: 420px; }
+    .welcome-photograph figcaption { inset: 1.5rem 1.5rem auto; }
+    .catalogue-intro { grid-template-columns: 1fr; gap: 0.5rem; padding: 1.25rem; }
+    .catalogue-intro > img { height: 170px; }
+    .catalogue-intro .heading { font-size: 2.75rem; }
+    .home-greeting { padding: 1.25rem; }
+  }
+
+  /* Horizontal scroll strip (date picker) me scrollbar chhupao */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* A quiet botanical vignette anchors the desktop welcome panel. */
+.auth-brand>.auth-botanical{position:absolute;bottom:0;left:0;width:100%;max-height:60svh;aspect-ratio:1/1;background:radial-gradient(ellipse at 50% 65%,#93b98f26,transparent 70%);opacity:.9}
+.auth-brand>.auth-botanical .botanical-scene-orbit{border-color:#c3d8c030}
+.auth-brand>.auth-botanical .botanical-piece--vine{opacity:.7}
+.auth-brand>p{z-index:1}
+@media(max-height:750px){.auth-brand>.auth-botanical{max-height:48svh}}
+.catalogue-intro>.catalogue-botanical{width:100%;height:270px;aspect-ratio:auto;background:none}
+@media(max-width:600px){.catalogue-intro>.catalogue-botanical{height:210px;max-width:320px;margin-inline:auto}}

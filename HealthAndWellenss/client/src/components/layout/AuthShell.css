@@ -1,0 +1,41 @@
+.auth-shell .auth-brand {
+  align-items: center;
+  padding: clamp(20px, 3vh, 40px) 32px 24px;
+  background: radial-gradient(ellipse at 50% 75%, #36583c 0, #183e2a 48%, #143522 85%);
+  height: 100svh;
+  position: sticky;
+  top: 0;
+}
+.auth-brand-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #faf7f0;
+  box-shadow: 0 0 0 7px #faf7f009, 0 0 0 8px #dcc28a38;
+}
+.auth-brand-home { position: absolute; inset: 0; z-index: 10; cursor: pointer; }
+.auth-brand-home:focus-visible { outline: 3px solid #dcc28a; outline-offset: -8px; }
+.auth-brand-mark img { width: clamp(100px, 16vh, 156px); height: clamp(100px, 16vh, 156px); padding: 8px; }
+.auth-brand-message { text-align: center; z-index: 1; margin-top: clamp(20px, 3vh, 36px); flex-shrink: 0; }
+.auth-brand-message > span { color: #dcc28a; font-size: 10px; letter-spacing: .18em; }
+.auth-brand-message h1 { font-family: 'Scaver', Georgia, serif; font-weight: 400; font-size: clamp(32px, 3.1vw, 58px); line-height: 1.15; color: #faf7f0; margin: 18px 0 12px; }
+.auth-brand-message h1 em { color: #e0cf9f; font-weight: 400; }
+.auth-brand-message p { color: #c2d0bc; font-size: 13px; }
+.auth-brand-garden { position: relative; flex: 1; min-height: 0; width: min(100%, 650px); margin-top: 10px; }
+.auth-brand-garden img { position: absolute; object-fit: contain; pointer-events: none; }
+.auth-garden-halo { position: absolute; inset: 8% 9% 4%; border: 1px solid #dcc28a33; border-radius: 50%; transform: rotate(-15deg); }
+.auth-garden-halo::after { content: ''; position: absolute; inset: 6%; border: 1px solid #dcc28a18; border-radius: inherit; }
+.auth-garden-lotus { width: 80%; height: 88%; left: 6%; bottom: 0; filter: drop-shadow(0 18px 16px #071d2466); }
+.auth-garden-leaves { width: 37%; height: 94%; right: -5%; bottom: 0; opacity: .8; }
+.auth-garden-blossom { width: 65%; height: 48%; right: -5%; top: 0; transform: scaleX(-1) rotate(-12deg); }
+.auth-garden-butterfly { width: 12%; height: 20%; left: 9%; top: 20%; transform: rotate(-18deg); }
+.auth-brand-caption { flex-shrink: 0; display: flex; align-items: center; gap: 18px; font-size: 10px; letter-spacing: .2em; color: #dcc28a; padding-top: 16px; }
+.auth-brand-caption i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
+@media (min-width: 1024px) {
+  .auth-shell--compact main { padding-block: 16px; }
+  .auth-shell--compact .surface { padding-block: 12px; }
+  .auth-shell--compact .MuiStepper-root { margin-bottom: 20px; }
+  .auth-shell--compact .MuiStepLabel-label.MuiStepLabel-alternativeLabel { margin-top: 8px; }
+  .auth-shell--compact .surface > p:last-child { margin-top: 16px; }
+}

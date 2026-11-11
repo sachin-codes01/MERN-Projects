@@ -1,0 +1,41 @@
+.botanical-scene{position:relative;isolation:isolate;overflow:hidden;min-width:0;aspect-ratio:1/1;background:radial-gradient(ellipse at 50% 65%,#dce6ce88,transparent 66%);pointer-events:none;user-select:none}
+.botanical-scene-orbit{position:absolute;inset:12%;border:1px solid #a9bb9560;border-radius:50%;z-index:-1}
+.botanical-scene-orbit::after{content:'';position:absolute;inset:8%;border:1px solid #b08a3e30;border-radius:50%}
+.botanical-piece{position:absolute;display:block;object-fit:contain;width:auto;height:auto;max-width:none;filter:drop-shadow(0 12px 12px #14352215)}
+.botanical-piece--foliage{right:-12%;top:-10%;height:100%;width:53%;transform-origin:90% 80%;animation:botanical-sway 12s ease-in-out infinite alternate}
+.botanical-piece--rocks{bottom:5%;left:9%;width:82%}
+.botanical-piece--bloom{width:67%;left:10%;bottom:12%;z-index:2}
+.botanical-piece--butterfly{width:15%;right:16%;top:20%;z-index:3;animation:botanical-float 7s ease-in-out infinite}
+.botanical-piece--vine{left:-8%;top:0;width:49%;height:100%}
+.botanical-piece--palms{right:0;top:0;height:88%;width:58%;opacity:.8}
+.botanical-piece--tree{right:-13%;top:-7%;height:100%;width:76%}
+.botanical-scene--blossom .botanical-piece--bloom{left:29%;bottom:13%;width:66%}
+.botanical-scene--blossom .botanical-piece--butterfly{right:12%;top:9%;width:20%}
+.botanical-scene--lotus .botanical-piece--bloom{width:83%;left:0;bottom:6%}
+.botanical-scene--lotus .botanical-piece--butterfly{width:25%;left:7%;top:15%}
+.botanical-scene--calm .botanical-piece--bloom{width:78%;left:1%;bottom:6%}
+.botanical-scene--garden .botanical-piece--bloom{width:47%;left:2%;bottom:7%}
+.botanical-scene--garden .botanical-piece--butterfly{left:12%;top:23%}
+@keyframes botanical-sway{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+@keyframes botanical-float{0%,100%{transform:translate(0,0) rotate(-8deg)}50%{transform:translate(7px,-12px) rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.botanical-piece{animation:none}}
+@media(max-width:600px){.botanical-piece{filter:drop-shadow(0 6px 6px #14352212)}}
+.botanical-piece--portrait{width:90%;height:96%;left:5%;bottom:0;object-fit:contain}
+.botanical-piece--column{height:98%;width:88%;left:6%;bottom:0}
+.botanical-piece--flock{width:32%;right:0;top:7%;z-index:3;animation:botanical-float 10s ease-in-out infinite}
+.botanical-scene--courtyard .botanical-piece--flock{width:25%;right:0;top:40%}
+@media(prefers-reduced-motion:reduce){.botanical-piece--flock{animation:none}}
+
+
+/* Slow, offset rhythms keep the garden from moving in unison. */
+.botanical-piece--foliage{animation-duration:17s;animation-delay:-5s}
+.botanical-piece--butterfly{animation-duration:11s;animation-delay:-3s}
+.botanical-piece--flock{animation-duration:15s;animation-delay:-7s}
+.botanical-piece--vine{transform-origin:50% 15%;animation:botanical-breeze 19s ease-in-out infinite alternate}
+.botanical-piece--palms,.botanical-piece--tree{transform-origin:85% 95%;animation:botanical-breeze 23s ease-in-out infinite alternate;animation-delay:-9s}
+.botanical-scene-orbit{animation:botanical-breathe 18s ease-in-out infinite}
+.botanical-scene[data-motion-paused="true"] .botanical-piece,
+.botanical-scene[data-motion-paused="true"] .botanical-scene-orbit{animation-play-state:paused}
+@keyframes botanical-breeze{from{transform:rotate(-.6deg)}to{transform:rotate(.6deg)}}
+@keyframes botanical-breathe{0%,100%{opacity:.65;transform:scale(.985)}50%{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.botanical-scene .botanical-piece,.botanical-scene .botanical-scene-orbit{animation:none}}

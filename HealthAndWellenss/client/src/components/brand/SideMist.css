@@ -1,0 +1,13 @@
+/* CSS smoke needs no canvas, texture downloads or per-frame React renders. */
+.side-mist{position:fixed;inset:0;z-index:4;pointer-events:none;user-select:none;overflow:clip}
+.side-mist-edge{position:absolute;top:0;bottom:0;width:clamp(22px,calc((100vw - 1328px)/2),240px);overflow:hidden;mask-image:linear-gradient(to right,#000 15%,transparent 100%)}
+.side-mist-edge--left{left:0}
+.side-mist-edge--right{right:0;transform:scaleX(-1)}
+.side-mist-cloud{position:absolute;inset:-18% -50% -18% -65%;filter:blur(22px);opacity:.42;transform-origin:30% 50%;background:radial-gradient(ellipse at 22% 22%,#8fae7c99 0,transparent 40%),radial-gradient(ellipse at 45% 58%,#bac9a5bb 0,transparent 42%),radial-gradient(ellipse at 18% 88%,#789b6e80 0,transparent 36%);animation:side-mist-rise 26s ease-in-out infinite alternate}
+.side-mist-cloud--far{opacity:.27;background:radial-gradient(ellipse at 36% 15%,#d4c79b99 0,transparent 38%),radial-gradient(ellipse at 18% 65%,#8da67a99 0,transparent 46%);animation-duration:34s;animation-delay:-17s;animation-direction:alternate-reverse}
+.side-mist-edge--right .side-mist-cloud--near{animation-delay:-11s;animation-duration:31s}
+.side-mist-edge--right .side-mist-cloud--far{animation-delay:-23s}
+.side-mist[data-motion-paused='true'] .side-mist-cloud{animation-play-state:paused}
+@keyframes side-mist-rise{0%{transform:translate3d(-7%,8%,0) scale(.95,1.08)}50%{transform:translate3d(5%,-2%,0) scale(1.12,.96)}100%{transform:translate3d(-3%,-9%,0) scale(.98,1.06)}}
+@media(max-width:700px){.side-mist-cloud{opacity:.24;filter:blur(12px)}.side-mist-cloud--far{display:none}}
+@media(prefers-reduced-motion:reduce){.side-mist-cloud{animation:none;transform:none}}

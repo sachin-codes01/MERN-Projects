@@ -1,0 +1,17 @@
+.studio-landing :is(.studio-section,.studio-bottom){position:relative}
+.botanical-decorations{position:absolute;inset:0;pointer-events:none;user-select:none;color:#8ca779;z-index:0;--edge-offset:calc(-1 * var(--studio-gutter));--edge-width:calc(var(--studio-gutter) - 14px)}
+.studio-services>.botanical-decorations,.studio-journey>.botanical-decorations{--edge-offset:0px}
+.botanical-edge{position:absolute;width:var(--edge-width);max-width:70px;opacity:.55}
+.botanical-branch-cutout{display:block;width:100%;height:auto;object-fit:contain}
+.botanical-edge--left{left:var(--edge-offset);top:24%;transform:scaleX(-1)}
+.botanical-edge--right{right:var(--edge-offset);bottom:18%}
+.botanical-edge-flower,.botanical-edge-butterfly{position:absolute;object-fit:contain;max-width:var(--edge-width);height:auto;pointer-events:none}
+.botanical-edge-flower{right:var(--edge-offset);top:12%;width:44px;opacity:.65}
+.botanical-edge-butterfly{left:calc(var(--edge-offset) + 6px);bottom:16%;width:22px;opacity:.7;transform:rotate(-18deg)}
+.botanical-decorations--journey{color:#c5d4b2}
+.botanical-decorations--journey .botanical-edge{opacity:.7}
+.botanical-decorations--introduction .botanical-edge--left,.botanical-decorations--faq .botanical-edge--left{top:auto;bottom:12%}
+.botanical-decorations--loyalty .botanical-edge--right{bottom:32%}
+.botanical-decorations--footer .botanical-edge{width:24px;top:auto;bottom:8px;opacity:.4}
+@media(max-width:1023px){.botanical-edge{opacity:.4}.botanical-edge-flower{width:28px}.botanical-edge-butterfly{display:none}}
+@media(max-width:767px){.botanical-decorations{display:none}}
