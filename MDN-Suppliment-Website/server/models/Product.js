@@ -131,6 +131,7 @@ const productSchema = new mongoose.Schema(
     description: { type: String, required: true },
     shortDescription: { type: String },
 
+    shippingFee: { type: Number, min: 0, max: 1000000, default: null },
     brand: { type: String, required: true },
 
     category: {

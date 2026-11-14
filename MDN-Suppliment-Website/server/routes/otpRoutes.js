@@ -10,7 +10,6 @@ const { sendOtp, channelMode } = require("../utils/otpSender");
 
 // Checkout ka email OTP. Verify hone par email user ke account pe
 // "verified" list me jud jata hai — agli checkout pe dobara OTP nahi.
-// Google login wala email pehle se verified maana jata hai.
 
 const CODE_TTL_MS = 10 * 60 * 1000; // 10 min
 const RESEND_AFTER_MS = 30 * 1000; // 30 sec baad hi naya code
@@ -28,14 +27,12 @@ router.use(isAuth);
 
 // GET /api/otp/status — kaunse channel chalu hain + is user ke verified numbers/emails
 router.get("/status", async (req, res) => {
-  const user = await User.findById(req.user._id).select("email verifiedEmails").lean();
+  const user = await User.findById(req.user._id).select("verifiedEmails").lean();
   res.json({
     success: true,
     data: {
       email: { enabled: channelMode("email") !== "off", testMode: channelMode("email") === "test" },
-      accountEmail: user.email,
-      // Google wala email hamesha verified
-      verifiedEmails: [...new Set([user.email, ...(user.verifiedEmails || [])])],
+      verifiedEmails: user.verifiedEmails || [],
     },
   });
 });
@@ -43,10 +40,6 @@ router.get("/status", async (req, res) => {
 // POST /api/otp/send { channel, target }
 router.post("/send", limits.otpSend, validate({ body: otpSendBody }), async (req, res) => {
   const { channel, target } = req.body;
-
-  if (channel === "email" && target === req.user.email) {
-    return res.json({ success: true, data: { alreadyVerified: true } });
-  }
 
   const existing = await OtpCode.findOne({ user: req.user._id, channel, target });
   if (existing && Date.now() - existing.lastSentAt.getTime() < RESEND_AFTER_MS) {
@@ -91,16 +84,25 @@ router.post("/verify", limits.otpVerify, validate({ body: otpVerifyBody }), asyn
     return res.status(429).json({ success: false, message: "Too many wrong attempts. Please request a new code." });
   }
   if (!sameHash(otp.codeHash, hashCode(code, target))) {
-    otp.attempts += 1;
-    await otp.save();
-    const left = MAX_ATTEMPTS - otp.attempts;
+    const updated = await OtpCode.findOneAndUpdate(
+      { _id: otp._id, codeHash: otp.codeHash, attempts: { $lt: MAX_ATTEMPTS }, expiresAt: { $gt: new Date() } },
+      { $inc: { attempts: 1 } },
+      { new: true }
+    );
+    if (!updated) {
+      return res.status(400).json({ success: false, message: "This code is no longer valid. Please request a new one." });
+    }
+    const left = MAX_ATTEMPTS - updated.attempts;
     return res.status(400).json({
       success: false,
       message: left > 0 ? `Incorrect code. ${left} attempt${left > 1 ? "s" : ""} left.` : "Too many wrong attempts. Please request a new code.",
     });
   }
 
-  await OtpCode.deleteOne({ _id: otp._id });
+  const consumed = await OtpCode.deleteOne({ _id: otp._id, codeHash: otp.codeHash, attempts: { $lt: MAX_ATTEMPTS }, expiresAt: { $gt: new Date() } });
+  if (!consumed.deletedCount) {
+    return res.status(400).json({ success: false, message: "This code is no longer valid. Please request a new one." });
+  }
   // List me sabse naya aage, purane kat jayein
   const user = await User.findById(req.user._id).select(LIST[channel]);
   user[LIST[channel]] = [target, ...(user[LIST[channel]] || []).filter((t) => t !== target)].slice(0, MAX_VERIFIED);

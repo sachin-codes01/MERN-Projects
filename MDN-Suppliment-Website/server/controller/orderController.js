@@ -4,11 +4,9 @@ const Coupon = require("../models/Coupon");
 const Product = require("../models/Product");
 const CheckoutSession = require("../models/CheckoutSession");
 const ServiceablePincode = require("../models/ServiceablePincode");
-const User = require("../models/User");
-const { channelMode } = require("../utils/otpSender");
 const { sendOrderCancelledEmail } = require("../utils/emails");
 const razorpay = require("../config/razorpay");
-const { calcOrderPricing } = require("../utils/orderPricing");
+const { calcOrderPricing, getProductShippingFee } = require("../utils/orderPricing");
 const {
   isValidCheckoutSignature,
   isValidWebhookSignature,
@@ -42,14 +40,7 @@ exports.createRazorpayOrder = async (req, res) => {
       return res.status(400).json({ success: false, message, errors: [{ field: "shippingAddress.pincode", message }] });
     }
 
-    // Email OTP (jab chalu ho): sirf jab email Google wale se alag ho.
-    // Client bhi rokta hai — asli check yahan.
-    const me = await User.findById(req.user._id).select("email verifiedEmails").lean();
-    const contactEmail = email || me.email;
-    if (channelMode("email") !== "off" && contactEmail !== me.email && !(me.verifiedEmails || []).includes(contactEmail)) {
-      const message = "Please verify your email with the OTP first.";
-      return res.status(400).json({ success: false, message, errors: [{ field: "email", message }] });
-    }
+    const contactEmail = email || req.user.email;
 
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
     if (!cart || cart.items.length === 0) {
@@ -109,7 +100,7 @@ exports.createRazorpayOrder = async (req, res) => {
       }
     }
 
-    const { shippingFee, tax, total } = calcOrderPricing(subtotal, discount);
+    const { shippingFee, tax, total } = calcOrderPricing(subtotal, discount, getProductShippingFee(cart.items));
     const amount = Math.round(total * 100);
 
     const razorpayOrder = await razorpay.orders.create({

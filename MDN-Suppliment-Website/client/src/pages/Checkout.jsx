@@ -9,7 +9,6 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import AddressFields, { Field, inputClass } from "../components/AddressFields";
 import { addressRules, cleanAddress, hasErrors, LIMITS, rules, validateFields } from "../utils/validators";
 import { usePincodeDetails } from "../hooks/usePincodeDetails";
-import OtpVerify from "../components/OtpVerify";
 
 // Address ke rules + email (Razorpay prefill / receipt ke liye)
 const CHECKOUT_RULES = { ...addressRules, email: rules.email };
@@ -48,19 +47,6 @@ export default function Checkout() {
     setCouponBusy(v);
   };
   const [pageLoading, setPageLoading] = useState(true);
-  // Email OTP: chalu hai ya nahi + is account ke verified emails
-  const [otp, setOtp] = useState({ loaded: false, email: {}, accountEmail: "", verifiedEmails: [] });
-  useEffect(() => {
-    api
-      .otpStatus(token)
-      .then((d) => setOtp({ loaded: true, ...d.data }))
-      // Status na mile to OTP UI mat dikhao — server payment se pehle khud check karta hai
-      .catch(() => setOtp((o) => ({ ...o, loaded: true })));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const markEmailVerified = (target) =>
-    setOtp((o) => ({ ...o, verifiedEmails: [target, ...o.verifiedEmails.filter((t) => t !== target)] }));
-
   // User ne khud pincode badla? Tabhi city/state auto-fill — saved address
   // load hote waqt uski apni city overwrite nahi karni
   const pincodeTypedRef = useRef(false);
@@ -181,9 +167,7 @@ export default function Checkout() {
   // "error" (network) pe rokte nahi — server payment se pehle khud check karta hai
   const deliveryOk = delivery.status === "available" || delivery.status === "error";
   // Email OTP — Google account wala email pehle se verified
-  const emailTarget = form.email.trim().toLowerCase();
-  const emailVerified = !otp.email.enabled || emailTarget === otp.accountEmail || otp.verifiedEmails.includes(emailTarget);
-  const canPay = formValid && deliveryOk && otp.loaded && emailVerified;
+  const canPay = formValid && deliveryOk;
 
   const deliveryStatus =
     delivery.status === "checking" ? (
@@ -421,17 +405,6 @@ export default function Checkout() {
               aria-describedby={fieldErrors.email ? "checkout-email-error" : undefined}
               className={inputClass(fieldErrors.email)}
             />
-            {!fieldErrors.email && otp.email.enabled && (
-              <OtpVerify
-                channel="email"
-                target={emailTarget}
-                valid={!rules.email(form.email)}
-                verified={emailVerified}
-                testMode={otp.email.testMode}
-                token={token}
-                onVerified={markEmailVerified}
-              />
-            )}
           </Field>
 
           <label className="flex items-center gap-2.5 text-sm text-mdn-gray">
@@ -560,9 +533,7 @@ export default function Checkout() {
                 ? "Fill in all required delivery details to continue."
                 : delivery.status === "unavailable"
                   ? "We don't deliver to this pincode yet. Use a different address or contact customer support."
-                  : !emailVerified
-                    ? "Verify your email with the OTP to continue."
-                    : "Checking delivery for your pincode…"}
+                  : "Checking delivery for your pincode…"}
             </p>
           )}
         </div>

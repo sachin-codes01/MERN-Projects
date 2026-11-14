@@ -305,6 +305,7 @@ const productBody = z.strictObject({
   description: longText("Description", 10000, { optional: false }),
   shortDescription: longText("Short description", 500),
   brand: text("Brand", { max: 60 }),
+  shippingFee: number("Shipping fee", { min: 0, max: 1000000, int: true }).nullable().optional(),
   category: objectId("Category"),
   productType: text("Product type", { max: 60 }),
   tags: z.array(text("Tag", { max: 40 })).max(30, "At most 30 tags").optional(),
@@ -358,7 +359,7 @@ const couponFields = {
   discountType: z.enum(["percentage", "flat"], { error: "Discount type must be percentage or flat" }),
   discountValue: number("Discount", { gt: 0, max: 100000 }),
   minOrderValue: number("Minimum order value", { min: 0, max: 1000000 }).optional(),
-  maxDiscount: number("Max discount", { gt: 0, max: 1000000 }).optional(),
+  maxDiscount: number("Max discount", { min: 0, max: 1000000 }).optional(),
   expiresAt: dateString("Expiry date").nullable().optional(),
   isActive: z.boolean().optional(),
 };

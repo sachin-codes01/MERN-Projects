@@ -7,9 +7,9 @@ const { sendMail, isMailConfigured, paragraph, C } = require("./mailer");
 //                         (sirf local testing ke liye!).
 //   Phone OTP hata diya gaya hai (SMS free nahi) — hamesha "off".
 //
-// Na provider, na test mode → channel band; checkout us OTP ko maangta hi nahi.
+// Without a provider, checkout cannot verify new email addresses.
 
-const testMode = () => process.env.OTP_TEST_MODE === "true";
+const testMode = () => process.env.NODE_ENV !== "production" && process.env.OTP_TEST_MODE === "true";
 const hasSmtp = isMailConfigured;
 const channelMode = (channel) => {
   if (channel !== "email") return "off";

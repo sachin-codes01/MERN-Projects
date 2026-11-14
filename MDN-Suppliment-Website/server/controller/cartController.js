@@ -1,10 +1,14 @@
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const Coupon = require("../models/Coupon");
-const { calcOrderPricing, FREE_SHIPPING_ABOVE, TAX_RATE } = require("../utils/orderPricing");
+const { calcOrderPricing, getProductShippingFee, FREE_SHIPPING_ABOVE, TAX_RATE } = require("../utils/orderPricing");
 const { MAX_QTY_PER_LINE } = require("../validators/schemas");
 
 const calcCartTotals = async (cart) => {
+  const needsProducts = cart.items.length > 0 && !cart.populated("items.product");
+  if (needsProducts) await cart.populate("items.product", "shippingFee");
+  const productShippingFee = getProductShippingFee(cart.items);
+  if (needsProducts) cart.depopulate("items.product");
   const subtotal = cart.items.reduce((sum, i) => sum + i.priceAtAddition * i.quantity, 0);
   let discount = 0;
   let couponDetails = null;
@@ -29,7 +33,7 @@ const calcCartTotals = async (cart) => {
   // `total` is the full amount payable — the same figure the Razorpay
   // popup will show — so the checkout summary can display every line the
   // customer is charged instead of only the item subtotal.
-  const { shippingFee, tax } = calcOrderPricing(subtotal, discount);
+  const { shippingFee, tax } = calcOrderPricing(subtotal, discount, productShippingFee);
 
   return {
     subtotal,
@@ -59,7 +63,7 @@ exports.getCart = async (req, res) => {
   try {
     let cart = await Cart.findOne({ user: req.user._id }).populate(
       "items.product",
-      "name thumbnail slug sizes flavors brand"
+      "name thumbnail slug sizes flavors brand shippingFee"
     );
     if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
 

@@ -287,7 +287,7 @@ const syncRefundFromRazorpay = async (paymentId, refund, event) => {
   await order.save();
   // Paisa sach me wapas gaya (Razorpay dashboard se kiya refund bhi)
   if (event === "refund.processed" && refundedPaise > 0) {
-    emails().sendRefundProcessedEmail(order, refund?.amount ? rupees(refund.amount) : refundedAmount);
+    emails().sendRefundProcessedEmail(order, refund?.amount ? rupees(refund.amount) : refundedAmount, refund);
   }
   return order;
 };

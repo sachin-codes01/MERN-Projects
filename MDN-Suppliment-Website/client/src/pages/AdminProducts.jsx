@@ -24,6 +24,7 @@ const PRODUCT_RULES = {
   slug: (v) => textRule("Slug", 2, 140)(v) || (/^[a-z0-9 -]+$/i.test(String(v).trim()) ? "" : "Slug can only use letters, numbers and -"),
   description: textRule("Description", 1, 10000),
   brand: textRule("Brand", 1, 60),
+  shippingFee: numberRule("Shipping fee", { min: 0, max: 1000000, int: true, optional: true }),
   category: (v) => (v ? "" : "Pick a category"),
   productType: textRule("Product type", 1, 60),
   manualRating: numberRule("Display rating", { min: 0, max: 5, optional: true }),
@@ -130,6 +131,7 @@ const emptyForm = {
   slug: "",
   description: "",
   brand: "",
+  shippingFee: "",
   category: "",
   productType: "",
   tags: "",
@@ -664,6 +666,7 @@ export default function AdminProducts() {
       slug: product.slug || "",
       description: product.description || "",
       brand: product.brand || "",
+      shippingFee: product.shippingFee ?? "",
       category: product.category?._id || product.category || "",
       productType: product.productType || "",
       tags: (product.tags || []).join(", "),
@@ -704,6 +707,7 @@ export default function AdminProducts() {
     slug: form.slug.trim(),
     description: form.description.trim(),
     brand: form.brand.trim(),
+    shippingFee: form.shippingFee === "" ? null : Number(form.shippingFee),
     category: form.category,
     productType: form.productType.trim(),
     tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -1056,6 +1060,25 @@ export default function AdminProducts() {
               className={productFieldClass("description", "w-full resize-y")}
             />
             {productFieldError("description")}
+          </div>
+
+          <div>
+            <label htmlFor="product-shipping-fee" className="mb-1 block text-sm">Shipping fee (₹)</label>
+            <input
+              id="product-shipping-fee"
+              name="shippingFee"
+              type="number"
+              min="0"
+              max="1000000"
+              step="1"
+              value={form.shippingFee}
+              onChange={handleFormChange}
+              onBlur={handleProductBlur}
+              {...productAria("shippingFee")}
+              className={productFieldClass("shippingFee")}
+            />
+            <p className="mt-1 text-xs">Leave blank for standard shipping or enter 0 for free shipping. The highest applicable fee in the cart applies once.</p>
+            {productFieldError("shippingFee")}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

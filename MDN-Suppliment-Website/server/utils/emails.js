@@ -221,21 +221,26 @@ const sendOrderCancelledEmail = (order, { refunded = false, byCustomer = false }
   });
 
 // Razorpay dashboard se kiya refund pura hua
-const sendRefundProcessedEmail = (order, amount) =>
-  sendInBackground("refund processed", async () =>
-    sendMail({
+const sendRefundProcessedEmail = (order, amount, refund) =>
+  sendInBackground("refund processed", async () => {
+    const details = [["Refund amount", rupee(amount)]];
+    if (refund?.id) details.push(["Razorpay refund ID", esc(refund.id)]);
+    const bankReference = refund?.acquirer_data?.arn || refund?.acquirer_data?.rrn || refund?.acquirer_data?.utr;
+    if (bankReference) details.push(["Bank reference", esc(bankReference)]);
+
+    return sendMail({
       to: await orderRecipient(order),
       subject: `Refund of ${rupee(amount)} processed for order ${order.orderNumber}`,
-      text: `A refund of ${rupee(amount)} for order ${order.orderNumber} has been processed.`,
-      preheader: `${rupee(amount)} has been refunded to your original payment method.`,
+      text: `Razorpay processed your refund of ${rupee(amount)} for order ${order.orderNumber}.${bankReference ? ` Bank reference: ${bankReference}.` : ""} Your bank may take additional time to show the credit.`,
+      preheader: `Razorpay processed your ${rupee(amount)} refund.`,
       title: "Your refund has been processed",
       footerNote: ORDER_FOOTER,
       body: `${hi(order.shippingAddress?.fullName)}
-        ${paragraph(`We've refunded <strong>${rupee(amount)}</strong> to your original payment method. Depending on your bank, it can take 5–7 working days to show in your account.`)}
-        ${orderInfo(order, [["Refund amount", rupee(amount)]])}
+        ${paragraph(`Razorpay processed your refund of <strong>${rupee(amount)}</strong> to your original payment method. Your bank may take additional time to show the credit.`)}
+        ${orderInfo(order, details)}
         ${button(SITE_URL + "/orders", "View your orders")}`,
-    })
-  );
+    });
+  });
 
 /* ================= Contact form ================= */
 
